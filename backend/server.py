@@ -241,7 +241,19 @@ async def checkout_status(session_id: str, http_request: Request):
     host_url = str(http_request.base_url)
     webhook_url = f"{host_url}api/webhook/stripe"
     stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
-    status: CheckoutStatusResponse = await stripe_checkout.get_checkout_status(session_id)
+
+    try:
+        status: CheckoutStatusResponse = await stripe_checkout.get_checkout_status(session_id)
+    except Exception as e:
+        logging.warning("Stripe status lookup failed for %s: %s", session_id, e)
+        # Gracefully fall back to the DB-cached record so the polling UI keeps working
+        return CheckoutStatusOut(
+            session_id=session_id,
+            status=existing.get("status", "open"),
+            payment_status=existing.get("payment_status", "pending"),
+            amount_total=float(existing.get("amount", 0)),
+            currency=existing.get("currency", "usd"),
+        )
 
     new_payment_status = status.payment_status
     new_status = status.status
