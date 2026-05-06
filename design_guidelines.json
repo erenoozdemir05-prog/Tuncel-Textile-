@@ -1,0 +1,70 @@
+{
+  "project_name": "Tuncel Textile",
+  "app_type": "ecommerce",
+  "theme": "light",
+  "archetype": "Swiss & High-Contrast",
+  "emotion": "Bold, luxury streetwear, artistic, minimalist",
+  "colors": {
+    "background": "#FFFFFF",
+    "surface": "#F5F5F5",
+    "primary": "#0A0A0A",
+    "secondary": "#E5E5E5",
+    "text_main": "#050505",
+    "text_muted": "#737373",
+    "border": "#E5E5E5",
+    "accent": "#000000"
+  },
+  "typography": {
+    "heading_font": "Bebas Neue, sans-serif",
+    "body_font": "Manrope, sans-serif",
+    "heading_strategy": "Ultra-bold, uppercase, tall typography for a print-based fashion editorial look.",
+    "body_strategy": "Clean, highly readable geometric sans for contrast."
+  },
+  "layout_strategy": {
+    "spacing": "Generous (p-8 to p-24) to create a gallery/exhibition feel.",
+    "grid": "Asymmetric bento for homepage features; strict 3-col or 4-col grids for product catalogs.",
+    "borders": "Minimal to none. Rely on whitespace and scale for hierarchy."
+  },
+  "component_guidelines": {
+    "navigation": "Sticky top, white background with backdrop blur. High contrast black logo. Minimalist links.",
+    "buttons": "Sharp edges (rounded-none). Black background, white text for primary. White background, black border for secondary. Add group-hover inverted effects.",
+    "cards_product": "Borderless. Full width image. Product name and price below in minimal text. No 'Add to Cart' button visible until hover.",
+    "hero": "Massive typography overlapping edge-to-edge imagery. Minimalist overlays."
+  },
+  "media": {
+    "hero_image": {
+      "url": "https://images.pexels.com/photos/30816952/pexels-photo-30816952.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1024&w=1536",
+      "description": "Stylish fashion poses with motion blur background, highlighting modern attire."
+    },
+    "category_men": {
+      "url": "https://images.pexels.com/photos/2540152/pexels-photo-2540152.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1024&w=1536",
+      "description": "Stylish young man wearing denim, showcasing modern urban fashion."
+    },
+    "category_women": {
+      "url": "https://images.pexels.com/photos/8945179/pexels-photo-8945179.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1024&w=1536",
+      "description": "Fashionable young women posing confidently, showcasing modern trends."
+    },
+    "category_accessories": {
+      "url": "https://images.pexels.com/photos/16039231/pexels-photo-16039231.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1024&w=1536",
+      "description": "Closeup of fashion jewelry with spiked chains and necklaces, showcasing edgy style."
+    },
+    "product_tshirt": {
+      "url": "https://images.pexels.com/photos/36908588/pexels-photo-36908588.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1024&w=1536",
+      "description": "Oversized white T-shirt featuring bold printed text."
+    },
+    "product_tshirts_grid": {
+      "url": "https://images.pexels.com/photos/18265935/pexels-photo-18265935.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1024&w=1536",
+      "description": "An arrangement of colorful T-shirts."
+    }
+  },
+  "instructions_to_main_agent": [
+    "Build a full e-commerce flow: Home, Men, Women, Accessories, Product Detail, Cart, and Checkout.",
+    "Use English language only.",
+    "Use Shadcn UI but heavily customize it to remove the 'tech/SaaS' look. Use rounded-none for buttons and inputs.",
+    "Import 'Bebas Neue' and 'Manrope' from Google Fonts in the index.html or global css.",
+    "Ensure the hero section makes a bold statement with typography over the provided hero image.",
+    "Product images must use the provided Pexels placeholders since users will upload their own later.",
+    "Implement a shopping cart state and basic product management data structure.",
+    "Do NOT use placeholder URLs like via.placeholder.com. ONLY use the media URLs provided here."
+  ]
+}
