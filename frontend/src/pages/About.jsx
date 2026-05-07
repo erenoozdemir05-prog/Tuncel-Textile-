@@ -28,7 +28,7 @@ export default function About() {
             Tuncel Textile is an independent print studio founded by two friends.
           </p>
           <p className="mt-8 text-[15px] leading-relaxed text-neutral-700">
-            Every hoodie, every t-shirt, every accessory is hand-printed in our studio in Istanbul.
+            Every hoodie, every t-shirt, every accessory is hand-printed in our studio in Riga.
             We produce in small editions — twenty to fifty pieces per drop — using heavyweight cotton
             and water-based inks. Once a print sells out, it doesn’t come back.
           </p>
@@ -41,7 +41,7 @@ export default function About() {
           <div className="mt-10 grid grid-cols-3 gap-6 border-t border-black/10 pt-8">
             {[
               { k: "Founded", v: "2026" },
-              { k: "Studio", v: "Istanbul" },
+              { k: "Studio", v: "Riga" },
               { k: "Run size", v: "≤ 50" },
             ].map((s) => (
               <div key={s.k}>

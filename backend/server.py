@@ -1,14 +1,15 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Request, Query
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Query, UploadFile, File, Header, Depends, Response, Cookie
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
+import requests
 from pathlib import Path
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional, Dict
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from emergentintegrations.payments.stripe.checkout import (
     StripeCheckout,
@@ -26,6 +27,81 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ["DB_NAME"]]
 
 STRIPE_API_KEY = os.environ.get("STRIPE_API_KEY", "")
+EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "tuncel-admin-2026")
+APP_NAME = os.environ.get("APP_NAME", "tuncel-textile")
+
+STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
+storage_key: Optional[str] = None
+
+
+def init_storage() -> Optional[str]:
+    global storage_key
+    if storage_key:
+        return storage_key
+    if not EMERGENT_LLM_KEY:
+        return None
+    try:
+        resp = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_LLM_KEY}, timeout=30)
+        resp.raise_for_status()
+        storage_key = resp.json()["storage_key"]
+        return storage_key
+    except Exception as e:
+        logging.error("Storage init failed: %s", e)
+        return None
+
+
+def put_object(path: str, data: bytes, content_type: str) -> dict:
+    key = init_storage()
+    if not key:
+        raise HTTPException(503, "Storage not available")
+    resp = requests.put(
+        f"{STORAGE_URL}/objects/{path}",
+        headers={"X-Storage-Key": key, "Content-Type": content_type},
+        data=data,
+        timeout=120,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def get_object(path: str):
+    key = init_storage()
+    if not key:
+        raise HTTPException(503, "Storage not available")
+    resp = requests.get(
+        f"{STORAGE_URL}/objects/{path}",
+        headers={"X-Storage-Key": key},
+        timeout=60,
+    )
+    resp.raise_for_status()
+    return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
+
+
+# ============================================================
+# Shared auth dependency (used by /api/checkout/session and /api/orders)
+# ============================================================
+async def get_current_user(
+    session_token: Optional[str] = Cookie(None),
+    authorization: Optional[str] = Header(None),
+) -> Optional[dict]:
+    token = session_token
+    if not token and authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ", 1)[1]
+    if not token:
+        return None
+    sess = await db.user_sessions.find_one({"session_token": token}, {"_id": 0})
+    if not sess:
+        return None
+    expires_at = sess.get("expires_at")
+    if isinstance(expires_at, str):
+        expires_at = datetime.fromisoformat(expires_at)
+    if expires_at and expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at and expires_at < datetime.now(timezone.utc):
+        return None
+    user = await db.users.find_one({"user_id": sess["user_id"]}, {"_id": 0})
+    return user
 
 app = FastAPI(title="Tuncel Textile API")
 api_router = APIRouter(prefix="/api")
@@ -114,6 +190,7 @@ SEED_PRODUCTS = [
 
 @app.on_event("startup")
 async def seed_products():
+    init_storage()
     count = await db.products.count_documents({})
     if count == 0:
         for p in SEED_PRODUCTS:
@@ -161,7 +238,7 @@ async def get_product(product_id: str):
 
 # ---------------------------- Stripe Checkout ----------------------------
 @api_router.post("/checkout/session", response_model=CheckoutResponse)
-async def create_checkout(req: CheckoutRequest, http_request: Request):
+async def create_checkout(req: CheckoutRequest, http_request: Request, user: Optional[dict] = Depends(get_current_user)):
     if not req.items:
         raise HTTPException(400, "Cart is empty")
 
@@ -211,7 +288,8 @@ async def create_checkout(req: CheckoutRequest, http_request: Request):
         "currency": "usd",
         "metadata": metadata,
         "items": [it.model_dump() for it in req.items],
-        "customer_email": req.customer_email,
+        "customer_email": req.customer_email or (user.get("email") if user else None),
+        "user_id": user.get("user_id") if user else None,
         "payment_status": "initiated",
         "status": "open",
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -300,6 +378,208 @@ async def stripe_webhook(request: Request):
             }},
         )
     return {"received": True}
+
+
+# ============================================================
+# ADMIN AUTH (simple password)
+# ============================================================
+class AdminLogin(BaseModel):
+    password: str
+
+
+def require_admin(x_admin_token: Optional[str] = Header(None)):
+    if not x_admin_token or x_admin_token != ADMIN_PASSWORD:
+        raise HTTPException(401, "Admin auth required")
+    return True
+
+
+@api_router.post("/admin/login")
+async def admin_login(payload: AdminLogin):
+    if payload.password != ADMIN_PASSWORD:
+        raise HTTPException(401, "Invalid password")
+    return {"token": ADMIN_PASSWORD}
+
+
+# ============================================================
+# IMAGE UPLOAD (admin only)
+# ============================================================
+@api_router.post("/admin/upload")
+async def admin_upload(file: UploadFile = File(...), _: bool = Depends(require_admin), request: Request = None):
+    ext = (file.filename.rsplit(".", 1)[-1] if file.filename and "." in file.filename else "bin").lower()
+    if ext not in {"jpg", "jpeg", "png", "webp", "gif"}:
+        raise HTTPException(400, "Unsupported file type")
+    content_type = file.content_type or f"image/{'jpeg' if ext == 'jpg' else ext}"
+    path = f"{APP_NAME}/products/{uuid.uuid4()}.{ext}"
+    data = await file.read()
+    put_object(path, data, content_type)
+    await db.files.insert_one({
+        "id": str(uuid.uuid4()),
+        "storage_path": path,
+        "original_filename": file.filename,
+        "content_type": content_type,
+        "size": len(data),
+        "is_deleted": False,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    base = str(request.base_url).rstrip("/") if request else ""
+    return {"path": path, "url": f"{base}/api/files/{path}"}
+
+
+@api_router.get("/files/{path:path}")
+async def serve_file(path: str):
+    record = await db.files.find_one({"storage_path": path, "is_deleted": False}, {"_id": 0})
+    if not record:
+        raise HTTPException(404, "File not found")
+    data, content_type = get_object(path)
+    return Response(content=data, media_type=record.get("content_type", content_type))
+
+
+# ============================================================
+# ADMIN PRODUCT CRUD
+# ============================================================
+class ProductIn(BaseModel):
+    name: str
+    description: str
+    price: float
+    category: str
+    product_type: str
+    image_url: str
+    sizes: List[str] = []
+    colors: List[str] = []
+    in_stock: bool = True
+    featured: bool = False
+    print_name: Optional[str] = None
+
+
+@api_router.post("/admin/products", response_model=Product)
+async def admin_create_product(payload: ProductIn, _: bool = Depends(require_admin)):
+    product = Product(**payload.model_dump())
+    doc = product.model_dump()
+    doc["created_at"] = doc["created_at"].isoformat()
+    await db.products.insert_one(doc)
+    return product
+
+
+@api_router.put("/admin/products/{product_id}", response_model=Product)
+async def admin_update_product(product_id: str, payload: ProductIn, _: bool = Depends(require_admin)):
+    update = payload.model_dump()
+    res = await db.products.update_one({"id": product_id}, {"$set": update})
+    if res.matched_count == 0:
+        raise HTTPException(404, "Product not found")
+    doc = await db.products.find_one({"id": product_id}, {"_id": 0})
+    if isinstance(doc.get("created_at"), str):
+        doc["created_at"] = datetime.fromisoformat(doc["created_at"])
+    return doc
+
+
+@api_router.delete("/admin/products/{product_id}")
+async def admin_delete_product(product_id: str, _: bool = Depends(require_admin)):
+    res = await db.products.delete_one({"id": product_id})
+    if res.deleted_count == 0:
+        raise HTTPException(404, "Product not found")
+    return {"deleted": True}
+
+
+# ============================================================
+# GOOGLE AUTH (Emergent-managed)
+# REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
+# ============================================================
+class SessionIn(BaseModel):
+    session_id: str
+
+
+@api_router.post("/auth/session")
+async def auth_session(payload: SessionIn, response: Response):
+    try:
+        r = requests.get(
+            "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data",
+            headers={"X-Session-ID": payload.session_id},
+            timeout=15,
+        )
+        r.raise_for_status()
+        data = r.json()
+    except Exception as e:
+        logging.error("Auth session lookup failed: %s", e)
+        raise HTTPException(401, "Invalid session")
+
+    email = data.get("email")
+    name = data.get("name")
+    picture = data.get("picture")
+    session_token = data.get("session_token")
+    if not (email and session_token):
+        raise HTTPException(401, "Invalid session payload")
+
+    existing = await db.users.find_one({"email": email}, {"_id": 0})
+    if existing:
+        user_id = existing["user_id"]
+        await db.users.update_one(
+            {"user_id": user_id},
+            {"$set": {"name": name, "picture": picture, "updated_at": datetime.now(timezone.utc).isoformat()}},
+        )
+    else:
+        user_id = f"user_{uuid.uuid4().hex[:12]}"
+        await db.users.insert_one({
+            "user_id": user_id,
+            "email": email,
+            "name": name,
+            "picture": picture,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+
+    expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+    await db.user_sessions.insert_one({
+        "user_id": user_id,
+        "session_token": session_token,
+        "expires_at": expires_at.isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+
+    response.set_cookie(
+        key="session_token",
+        value=session_token,
+        max_age=7 * 24 * 60 * 60,
+        path="/",
+        httponly=True,
+        secure=True,
+        samesite="none",
+    )
+    return {"user_id": user_id, "email": email, "name": name, "picture": picture}
+
+
+@api_router.get("/auth/me")
+async def auth_me(user: Optional[dict] = Depends(get_current_user)):
+    if not user:
+        raise HTTPException(401, "Not authenticated")
+    return user
+
+
+@api_router.post("/auth/logout")
+async def auth_logout(
+    response: Response,
+    session_token: Optional[str] = Cookie(None),
+    authorization: Optional[str] = Header(None),
+):
+    token = session_token
+    if not token and authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ", 1)[1]
+    if token:
+        await db.user_sessions.delete_one({"session_token": token})
+    response.delete_cookie("session_token", path="/")
+    return {"ok": True}
+
+
+# ============================================================
+# ORDERS (linked to user when authenticated)
+# ============================================================
+@api_router.get("/orders")
+async def list_orders(user: Optional[dict] = Depends(get_current_user)):
+    if not user:
+        raise HTTPException(401, "Not authenticated")
+    orders = await db.payment_transactions.find(
+        {"user_id": user["user_id"], "payment_status": "paid"},
+        {"_id": 0},
+    ).sort("created_at", -1).to_list(200)
+    return orders
 
 
 app.include_router(api_router)

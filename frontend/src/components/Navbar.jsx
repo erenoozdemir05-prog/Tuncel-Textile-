@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { Menu, ShoppingBag, X } from "lucide-react";
+import { Menu, ShoppingBag, User, X } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const NAV = [
@@ -13,7 +14,14 @@ const NAV = [
 
 export const Navbar = () => {
   const { totals } = useCart();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
+
+  // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
+  const handleSignIn = () => {
+    const redirectUrl = window.location.origin + "/auth/callback";
+    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+  };
 
   return (
     <header
@@ -47,7 +55,27 @@ export const Navbar = () => {
           </nav>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          {user ? (
+            <Link
+              to="/account"
+              data-testid="nav-account-button"
+              className="hidden h-10 items-center gap-2 px-3 text-[12px] uppercase tracking-[0.2em] text-black hover:bg-black hover:text-white sm:inline-flex"
+            >
+              <User className="h-4 w-4" />
+              {user.name?.split(" ")[0] || "Account"}
+            </Link>
+          ) : (
+            <button
+              onClick={handleSignIn}
+              data-testid="nav-signin-button"
+              className="hidden h-10 items-center gap-2 px-3 text-[12px] uppercase tracking-[0.2em] text-black hover:bg-black hover:text-white sm:inline-flex"
+            >
+              <User className="h-4 w-4" />
+              Sign In
+            </button>
+          )}
+
           <Link
             to="/cart"
             data-testid="nav-cart-button"
@@ -82,7 +110,7 @@ export const Navbar = () => {
                   <X className="h-5 w-5" />
                 </button>
               </div>
-              <nav className="flex flex-col px-6 py-8">
+              <nav className="flex flex-col px-6 py-6">
                 {NAV.map((n) => (
                   <NavLink
                     key={n.to}
@@ -94,6 +122,22 @@ export const Navbar = () => {
                     {n.label}
                   </NavLink>
                 ))}
+                {user ? (
+                  <Link
+                    to="/account"
+                    onClick={() => setOpen(false)}
+                    className="border-b border-black/10 py-5 font-display text-3xl uppercase tracking-[0.05em]"
+                  >
+                    Account
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => { setOpen(false); handleSignIn(); }}
+                    className="border-b border-black/10 py-5 text-left font-display text-3xl uppercase tracking-[0.05em]"
+                  >
+                    Sign In
+                  </button>
+                )}
               </nav>
             </SheetContent>
           </Sheet>

@@ -28,7 +28,7 @@ export const Footer = () => {
             and pieces designed to outlast the season.
           </p>
           <p className="mt-4 text-xs uppercase tracking-[0.25em] text-white/50">
-            Studio · Istanbul
+            Studio · Riga
           </p>
         </div>
 

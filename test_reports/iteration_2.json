@@ -1,0 +1,56 @@
+{
+  "summary": "Iteration 2 testing complete: 29/29 backend tests pass (admin login + CRUD + image upload + auth/me + auth/session + orders, plus iteration 1 regression). Frontend critical flows all work end-to-end (home + lookbook + process + newsletter + sign-in redirect; shop sort & price filter; product gallery + qty + size guide accordion + related; admin login + dashboard + new product drawer + image upload populating URL + edit prefill + create flow). Account redirect to / when unauthenticated works. ONE HIGH-PRIORITY BUG: /api/admin/upload returns image URL using internal cluster base_url, not public preview URL — saved product image_url breaks for customers.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/admin/upload",
+        "issue": "Response 'url' field is built from request.base_url which inside the cluster resolves to 'http://tuncel-textile.cluster-6.preview.emergentcf.cloud/api/files/...'. This URL returns 403 from outside the cluster and is HTTP (not HTTPS). The Admin form auto-populates image_url with this returned URL and saves it to MongoDB — meaning every product image uploaded via the admin panel is broken on the live site. Fix: return either just the path (and let frontend prefix with REACT_APP_BACKEND_URL) or build the URL from a PUBLIC_BASE_URL env var, or strip to relative '/api/files/{path}'. The /api/files/{path} endpoint itself works correctly when accessed via the public preview URL (returns 200 image/png).",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Admin image upload → save product",
+        "issue": "The upload UploadButton populates the image_url field with the broken internal cluster URL returned by /api/admin/upload. Until backend fix lands, uploaded product images will not render on customer-facing pages. Frontend can also defensively rewrite to REACT_APP_BACKEND_URL.",
+        "affected_selectors": ["[data-testid='admin-image-upload']", "input[placeholder='Image URL']"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration2.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/iteration2_results.xml"
+  ],
+  "action_items": [
+    "Fix /api/admin/upload to return a publicly-reachable URL. Recommended: return only {path, url: f'/api/files/{path}'} (relative) and let the frontend prepend REACT_APP_BACKEND_URL, OR introduce PUBLIC_BASE_URL env var and use it instead of request.base_url. After fix, retest by uploading via admin panel and verifying the saved product image renders on /shop and on the product detail page.",
+    "Frontend can also defensively normalize the returned URL: if it contains 'cluster-' or starts with 'http://', strip to the path after '/api/files/' and prepend REACT_APP_BACKEND_URL."
+  ],
+  "critical_code_review_comments": [
+    "server.py is ~600 lines — still maintainable but consider splitting into routers/admin.py, routers/auth.py, routers/products.py, routers/checkout.py before adding more.",
+    "init_storage() and put_object/get_object call requests synchronously inside async endpoints — for higher load consider httpx.AsyncClient. Acceptable for MVP.",
+    "Cookie set with samesite='none', secure=True, httponly=True — correct for cross-site auth flow.",
+    "Auth dependency get_current_user correctly handles both Cookie and Bearer header, normalizes naive datetimes to UTC before expiry comparison — good.",
+    "ProductIn excludes id/created_at — correct (server generates).",
+    "MongoDB _id is excluded with projection({'_id': 0}) everywhere — good.",
+    "ADMIN_PASSWORD is read from .env (tuncel2026admin) but code defaults to 'tuncel-admin-2026' if missing — slight inconsistency with docs, but env wins.",
+    "request.base_url is unreliable for building public URLs in a kubernetes-ingressed app — see HIGH bug above."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration2.py"
+  ],
+  "success_rate": {
+    "backend": "100% (29/29)",
+    "frontend": "95% (all selectors and flows work; only the uploaded-image-url integration is broken due to backend bug)"
+  },
+  "test_credentials": "Admin password: tuncel2026admin (from /app/backend/.env). No real Google session tested — only invalid-session 401 path verified per request.",
+  "seed_data_creation": "TEST_E2E Product created and deleted via E2E flow. Cleanup confirmed via DELETE /api/admin/products/{id}.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend tests live in /app/backend/tests/{backend_test.py, test_iteration2.py}. Run with: pytest /app/backend/tests/ -v --junitxml=/app/test_reports/pytest/results.xml. Iteration 1 checkout-status bug is now fixed (graceful fallback in server.py). Confirmed admin testids: admin-password-input, admin-login-submit, admin-dashboard, admin-new-product, admin-save-button, admin-image-upload, admin-edit-{id}, admin-delete-{id}. Drawer form inputs do NOT have label-for associations or names; use page.locator('input:visible').nth(i) ordering: 0=Name, 1=Print Name, textarea[0]=Description, input[type=number]=Price, then Sizes, Colors, Image URL. Newsletter, Lookbook, Process testids confirmed working on Home. Shop sort & price filter testids exist; sort dropdown is shadcn Select (uses role='option'). The auth.emergentagent.com Sign In redirect URL pattern verified: 'https://auth.emergentagent.com/?redirect=https%3A%2F%2Ftuncel-textile.preview.emergentagent.com%2Fauth%2Fcallback'.",
+  "rca of the issue": "POST /api/admin/upload uses `str(request.base_url).rstrip('/')` to build the returned URL. Inside the kubernetes cluster, request.base_url resolves to the internal service hostname 'http://tuncel-textile.cluster-6.preview.emergentcf.cloud' (HTTP, internal). The frontend stores this URL into the product.image_url field via the upload button. When customers later browse the shop, their browser tries to load an HTTP image from the internal cluster hostname, which is not reachable (returns 403 from outside or fails with mixed-content on HTTPS pages). Reproduction: 1) Login admin 2) Open New Product 3) Upload any image 4) Inspect the populated Image URL field — it contains 'cluster-6.preview.emergentcf.cloud'. The /api/files/{path} GET endpoint itself works correctly when reached via the public REACT_APP_BACKEND_URL. Mitigation: change admin_upload to return relative URL (`/api/files/{path}`) or read a PUBLIC_BASE_URL env var, OR have the frontend strip the host and use REACT_APP_BACKEND_URL."
+}
