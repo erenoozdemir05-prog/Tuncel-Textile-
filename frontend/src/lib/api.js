@@ -70,5 +70,7 @@ export const adminUploadImage = async (token, file) => {
   const { data } = await api.post("/admin/upload", fd, {
     headers: { "X-Admin-Token": token, "Content-Type": "multipart/form-data" },
   });
-  return data;
+  // Backend returns relative URL like '/api/files/...'; prepend public backend URL.
+  const url = data?.url?.startsWith("http") ? data.url : `${BACKEND_URL}${data.url}`;
+  return { ...data, url };
 };

@@ -404,7 +404,7 @@ async def admin_login(payload: AdminLogin):
 # IMAGE UPLOAD (admin only)
 # ============================================================
 @api_router.post("/admin/upload")
-async def admin_upload(file: UploadFile = File(...), _: bool = Depends(require_admin), request: Request = None):
+async def admin_upload(file: UploadFile = File(...), _: bool = Depends(require_admin)):
     ext = (file.filename.rsplit(".", 1)[-1] if file.filename and "." in file.filename else "bin").lower()
     if ext not in {"jpg", "jpeg", "png", "webp", "gif"}:
         raise HTTPException(400, "Unsupported file type")
@@ -421,8 +421,8 @@ async def admin_upload(file: UploadFile = File(...), _: bool = Depends(require_a
         "is_deleted": False,
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
-    base = str(request.base_url).rstrip("/") if request else ""
-    return {"path": path, "url": f"{base}/api/files/{path}"}
+    # Return a relative URL — frontend prepends REACT_APP_BACKEND_URL.
+    return {"path": path, "url": f"/api/files/{path}"}
 
 
 @api_router.get("/files/{path:path}")
