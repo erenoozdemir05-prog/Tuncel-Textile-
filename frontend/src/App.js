@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
+import { Footer, WhatsappFAB } from "@/components/Footer";
 import Home from "@/pages/Home";
 import Shop from "@/pages/Shop";
 import ProductDetail from "@/pages/ProductDetail";
@@ -49,6 +49,7 @@ function App() {
               <AppRouter />
             </main>
             <Footer />
+            <WhatsappFAB />
             <Toaster position="bottom-center" />
           </div>
         </BrowserRouter>

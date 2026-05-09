@@ -35,9 +35,9 @@ const LOOKBOOK = [
 ];
 
 const PROCESS = [
-  { icon: Layers, kicker: "Step 01", title: "Design", body: "Every print starts as a hand-drawn or typeset sketch in our studio. No templates, no resampled assets." },
-  { icon: Hand, kicker: "Step 02", title: "Print", body: "Water-based screen-printed in small editions on heavyweight cotton. We sign every drop." },
-  { icon: Package, kicker: "Step 03", title: "Ship", body: "Folded by hand, packed in recyclable mailers. Sent within 48 hours from our Riga studio." },
+  { icon: Layers, kicker: "Step 01", title: "Sketch", body: "Every piece begins as a hand-drawn study at our table. No templates, no resampled assets — only the founder's pencil." },
+  { icon: Hand, kicker: "Step 02", title: "Craft", body: "Heavyweight cotton, water-based finishes, hand-pulled in small editions. Each garment is signed and numbered." },
+  { icon: Package, kicker: "Step 03", title: "Deliver", body: "Folded and labelled by hand, packed in recyclable mailers. Dispatched within 48 hours from our atelier in Riga." },
 ];
 
 export default function Home() {
@@ -64,13 +64,14 @@ export default function Home() {
         <div className="relative z-10 mx-auto flex h-full max-w-[1400px] flex-col justify-end px-5 pb-10 sm:px-8 sm:pb-14">
           <div className="text-[11px] uppercase tracking-[0.4em] text-white/80">Edition 01 · Spring 2026</div>
           <h1 className="font-display mt-4 text-[16vw] leading-[0.85] text-white sm:text-[12vw]">
-            WEAR
+            HAND
             <br />
-            <span className="tx-outline-text">THE&nbsp;PRINT</span>
+            <span className="tx-outline-text">CRAFTED</span>
           </h1>
           <div className="mt-8 flex flex-wrap items-end justify-between gap-6">
             <p className="max-w-md text-sm leading-relaxed text-white/85">
-              A two-person studio printing limited-run hoodies, t-shirts and accessories. No seasons. No noise. Just type.
+              A two-person atelier crafting limited-run hoodies, tees and accessories. Every piece
+              cut, finished and signed by the founders themselves.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link
@@ -144,9 +145,9 @@ export default function Home() {
           <div className="flex items-end justify-between gap-4">
             <div>
               <div className="text-[11px] uppercase tracking-[0.3em] text-white/50">Lookbook</div>
-              <h2 className="font-display mt-2 text-5xl uppercase tracking-[0.04em] sm:text-7xl">In Print, On Skin</h2>
+              <h2 className="font-display mt-2 text-5xl uppercase tracking-[0.04em] sm:text-7xl">Worn With Pride</h2>
             </div>
-            <Link to="/shop/all" className="tx-link hidden text-[12px] uppercase tracking-[0.25em] sm:block">View Drop →</Link>
+            <Link to="/shop/all" className="tx-link hidden text-[12px] uppercase tracking-[0.25em] sm:block">View Edition →</Link>
           </div>
         </div>
         <div className="mt-10 overflow-x-auto">
@@ -169,8 +170,8 @@ export default function Home() {
 
       {/* PROCESS */}
       <section className="mx-auto max-w-[1400px] px-5 py-24 sm:px-8 sm:py-28">
-        <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">Studio process</div>
-        <h2 className="font-display mt-2 text-5xl uppercase tracking-[0.04em] sm:text-7xl">How it’s printed</h2>
+        <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">Atelier process</div>
+        <h2 className="font-display mt-2 text-5xl uppercase tracking-[0.04em] sm:text-7xl">How it’s made</h2>
         <div className="mt-14 grid grid-cols-1 gap-12 md:grid-cols-3">
           {PROCESS.map(({ icon: Icon, kicker, title, body }) => (
             <div key={title} data-testid={`process-step-${kicker.toLowerCase().replace(/\s+/g, "-")}`} className="border-t border-black/15 pt-6">
@@ -191,10 +192,10 @@ export default function Home() {
           <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-600">Manifesto / 01</div>
           <div>
             <p className="font-display text-3xl leading-[1.1] uppercase tracking-[0.02em] sm:text-5xl">
-              Two of us. One press. Every garment passes through our hands before it reaches yours. We print in small editions — when they’re gone, they’re gone.
+              Two of us. One atelier. Every garment passes through our hands before it reaches yours. We craft in small editions — when an edition closes, it never returns.
             </p>
             <Link to="/about" className="tx-link mt-10 inline-block text-[12px] uppercase tracking-[0.25em]">
-              Read Our Story →
+              Meet The Atelier →
             </Link>
           </div>
         </div>
@@ -207,7 +208,7 @@ export default function Home() {
             <div className="text-[11px] uppercase tracking-[0.3em] text-white/50">Newsletter</div>
             <h2 className="font-display mt-2 text-5xl uppercase tracking-[0.04em] sm:text-7xl">First In Line</h2>
             <p className="mt-5 max-w-md text-sm text-white/70">
-              Drops sell out fast. Get a 24-hour heads-up before each release lands.
+              Editions sell out quickly. Receive a 24-hour heads-up before each release leaves the atelier.
             </p>
           </div>
           <form
