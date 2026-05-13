@@ -593,7 +593,7 @@ DEFAULT_SETTINGS = {
     "id": "default",
     "whatsapp_number": "+371 20677937",
     "whatsapp_default_message": "Hello Tuncel Textile, I'm interested in your collection.",
-    "favicon_url": "",
+    "favicon_url": "https://customer-assets.emergentagent.com/job_tuncel-textile/artifacts/x9q410pf_WhatsApp_Image_2026-05-06_at_18.11.35-removebg-preview.png",
     "social": {
         "instagram": "",
         "facebook": "",
@@ -729,6 +729,37 @@ async def get_iban_order(reference: str):
         "items_summary": (doc.get("metadata") or {}).get("items", ""),
         "iban": settings.get("iban", {}),
     }
+
+
+# ============================================================
+# ADMIN ORDERS (list + mark IBAN orders as paid)
+# ============================================================
+@api_router.get("/admin/orders")
+async def admin_list_orders(_: bool = Depends(require_admin)):
+    orders = await db.payment_transactions.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
+    return orders
+
+
+@api_router.post("/admin/orders/{reference}/mark-paid")
+async def admin_mark_paid(reference: str, _: bool = Depends(require_admin)):
+    res = await db.payment_transactions.update_one(
+        {"$or": [{"reference": reference}, {"session_id": reference}]},
+        {"$set": {"payment_status": "paid", "status": "complete", "updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    if res.matched_count == 0:
+        raise HTTPException(404, "Order not found")
+    return {"ok": True}
+
+
+@api_router.post("/admin/orders/{reference}/mark-unpaid")
+async def admin_mark_unpaid(reference: str, _: bool = Depends(require_admin)):
+    res = await db.payment_transactions.update_one(
+        {"$or": [{"reference": reference}, {"session_id": reference}]},
+        {"$set": {"payment_status": "awaiting_bank_transfer", "status": "open", "updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    if res.matched_count == 0:
+        raise HTTPException(404, "Order not found")
+    return {"ok": True}
 
 
 # ============================================================

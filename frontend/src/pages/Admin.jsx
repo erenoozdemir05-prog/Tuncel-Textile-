@@ -4,6 +4,7 @@ import {
   fetchProducts, fetchSettings, adminUpdateSettings,
   adminListHero, adminCreateHero, adminUpdateHero, adminDeleteHero, adminReorderHero,
   fetchCms, adminUpdateCms,
+  adminListOrders, adminMarkPaid, adminMarkUnpaid,
 } from "@/lib/api";
 import { toast } from "sonner";
 import { ArrowDown, ArrowUp, ImageIcon, Loader2, LogOut, Pencil, Plus, Save, Trash2, Upload, X } from "lucide-react";
@@ -99,6 +100,7 @@ export default function Admin() {
       <nav className="flex flex-wrap gap-1 border-b border-black/10 py-4">
         {[
           ["products", "Products"],
+          ["orders", "Orders"],
           ["hero", "Hero Manager"],
           ["cms", "Global Text"],
           ["settings", "Settings"],
@@ -118,6 +120,7 @@ export default function Admin() {
 
       <div className="py-10">
         {tab === "products" && <ProductsTab token={token} />}
+        {tab === "orders" && <OrdersTab token={token} />}
         {tab === "hero" && <HeroTab token={token} />}
         {tab === "cms" && <CmsTab token={token} />}
         {tab === "settings" && <SettingsTab token={token} />}
@@ -559,6 +562,122 @@ function SettingsTab({ token }) {
           <ImagePicker label="Favicon image" value={s.favicon_url || ""} onChange={(v) => u("favicon_url", v)} onUpload={(f) => upload(f, "favicon_url")} uploading={uploadingKey === "favicon_url"} small />
         </div>
       </section>
+    </div>
+  );
+}
+
+/* ============================================================
+   ORDERS TAB (Mark as Paid / Unpaid)
+============================================================ */
+function OrdersTab({ token }) {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [filter, setFilter] = useState("all"); // all | iban | card | paid | pending
+
+  const load = async () => {
+    setLoading(true);
+    try { setOrders(await adminListOrders(token)); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, []);
+
+  const markPaid = async (ref) => {
+    if (!window.confirm(`Mark order ${ref} as PAID? This will send it to fulfillment.`)) return;
+    try { await adminMarkPaid(token, ref); toast.success("Marked as paid"); load(); }
+    catch { toast.error("Failed"); }
+  };
+  const markUnpaid = async (ref) => {
+    if (!window.confirm(`Revert order ${ref} to AWAITING TRANSFER?`)) return;
+    try { await adminMarkUnpaid(token, ref); toast.success("Reverted"); load(); }
+    catch { toast.error("Failed"); }
+  };
+
+  const filtered = orders.filter((o) => {
+    if (filter === "all") return true;
+    if (filter === "iban") return o.payment_method === "iban";
+    if (filter === "card") return o.payment_method !== "iban";
+    if (filter === "paid") return o.payment_status === "paid";
+    if (filter === "pending") return o.payment_status === "awaiting_bank_transfer" || o.payment_status === "initiated";
+    return true;
+  });
+
+  const statusBadge = (s) => {
+    const map = {
+      paid: "bg-black text-white",
+      complete: "bg-black text-white",
+      awaiting_bank_transfer: "bg-amber-100 text-amber-900",
+      initiated: "bg-neutral-200 text-neutral-700",
+      failed: "bg-red-100 text-red-900",
+      expired: "bg-neutral-200 text-neutral-700",
+    };
+    return <span className={`inline-flex px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] ${map[s] || "bg-neutral-100 text-neutral-700"}`}>{(s || "").replace(/_/g, " ")}</span>;
+  };
+
+  return (
+    <div>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="font-display text-3xl uppercase tracking-[0.04em]">Orders</h2>
+          <p className="mt-1 text-sm text-neutral-600">Confirm IBAN bank transfers · review all checkouts.</p>
+        </div>
+        <div className="flex gap-1">
+          {[["all", "All"], ["iban", "IBAN"], ["card", "Card"], ["pending", "Pending"], ["paid", "Paid"]].map(([k, l]) => (
+            <button key={k} onClick={() => setFilter(k)} data-testid={`orders-filter-${k}`}
+              className={`px-3 py-2 text-[11px] uppercase tracking-[0.2em] ${filter === k ? "bg-black text-white" : "border border-black/15 hover:border-black"}`}>{l}</button>
+          ))}
+        </div>
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-neutral-500">Loading…</p>
+      ) : filtered.length === 0 ? (
+        <div className="border border-dashed border-black/15 p-10 text-center text-sm text-neutral-500">No orders match this filter.</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px] text-sm">
+            <thead>
+              <tr className="border-b border-black/10 text-left text-[11px] uppercase tracking-[0.25em] text-neutral-500">
+                <th className="py-3">Reference</th><th>Date</th><th>Method</th><th>Customer</th><th>Amount</th><th>Status</th><th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((o) => {
+                const ref = o.reference || o.session_id;
+                const isIban = o.payment_method === "iban";
+                const isPaid = o.payment_status === "paid";
+                const date = o.created_at ? new Date(o.created_at).toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
+                return (
+                  <tr key={ref} data-testid={`order-row-${ref}`} className="border-b border-black/5 align-middle">
+                    <td className="py-3 font-mono text-xs">{ref?.slice(0, 20)}</td>
+                    <td className="text-xs text-neutral-600">{date}</td>
+                    <td className="text-xs uppercase tracking-[0.15em]">{isIban ? "IBAN" : "Card"}</td>
+                    <td className="text-xs">
+                      <div className="font-semibold">{o.customer_name || "—"}</div>
+                      <div className="text-neutral-500">{o.customer_email || "—"}</div>
+                    </td>
+                    <td className="font-semibold">{(o.currency === "eur" ? "€" : "$")}{Number(o.amount).toFixed(2)}</td>
+                    <td>{statusBadge(o.payment_status)}</td>
+                    <td className="py-3">
+                      {isIban && !isPaid && (
+                        <button data-testid={`mark-paid-${ref}`} onClick={() => markPaid(ref)}
+                          className="inline-flex items-center gap-1 bg-black px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white hover:bg-neutral-800">
+                          Mark Paid
+                        </button>
+                      )}
+                      {isIban && isPaid && (
+                        <button data-testid={`mark-unpaid-${ref}`} onClick={() => markUnpaid(ref)}
+                          className="inline-flex items-center gap-1 border border-black/20 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] hover:bg-black hover:text-white">
+                          Revert
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

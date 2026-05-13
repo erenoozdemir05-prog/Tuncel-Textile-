@@ -7,9 +7,6 @@ import { useI18n } from "@/contexts/I18nContext";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
-const LOGO_URL =
-  "https://customer-assets.emergentagent.com/job_tuncel-textile/artifacts/ji9o9ya2_WhatsApp_Image_2026-05-06_at_18.11.35-removebg-preview%20%281%29.png";
-
 export const Navbar = () => {
   const { totals } = useCart();
   const { user } = useAuth();
@@ -34,15 +31,15 @@ export const Navbar = () => {
       data-testid="site-navbar"
       className="sticky top-0 z-40 border-b border-black/10 bg-white/90 backdrop-blur-md"
     >
-      <div className="mx-auto flex h-20 max-w-[1400px] items-center justify-between px-5 sm:px-8">
+      <div className="mx-auto flex h-16 max-w-[1400px] items-center justify-between px-5 sm:px-8">
         <div className="flex items-center gap-8">
-          <Link to="/" data-testid="nav-logo" aria-label="Tuncel Textile" className="group inline-flex items-center">
-            <img
-              src={LOGO_URL}
-              alt="Tuncel Textile"
-              className="h-14 w-auto object-contain transition-transform duration-500 group-hover:scale-105 sm:h-16"
-              draggable={false}
-            />
+          <Link
+            to="/"
+            data-testid="nav-logo"
+            aria-label="Tuncel Textile"
+            className="font-display text-xl tracking-[0.22em] text-black transition-opacity hover:opacity-70 sm:text-2xl"
+          >
+            TUNCEL&nbsp;TEXTILE
           </Link>
           <nav className="hidden items-center gap-7 md:flex">
             {NAV.map((n) => (
@@ -114,7 +111,7 @@ export const Navbar = () => {
             </SheetTrigger>
             <SheetContent side="right" className="w-[85vw] max-w-sm p-0">
               <div className="flex items-center justify-between border-b border-black/10 px-6 py-5">
-                <img src={LOGO_URL} alt="Tuncel Textile" className="h-10 w-auto object-contain" />
+                <span className="font-display text-lg tracking-[0.22em]">TUNCEL TEXTILE</span>
                 <button onClick={() => setOpen(false)} aria-label="Close">
                   <X className="h-5 w-5" />
                 </button>

@@ -75,6 +75,20 @@ export const adminUpdateCms = async (token, items) => {
   return data;
 };
 
+// ---- Admin Orders ----
+export const adminListOrders = async (token) => {
+  const { data } = await api.get("/admin/orders", { headers: { "X-Admin-Token": token } });
+  return data;
+};
+export const adminMarkPaid = async (token, reference) => {
+  const { data } = await api.post(`/admin/orders/${encodeURIComponent(reference)}/mark-paid`, {}, { headers: { "X-Admin-Token": token } });
+  return data;
+};
+export const adminMarkUnpaid = async (token, reference) => {
+  const { data } = await api.post(`/admin/orders/${encodeURIComponent(reference)}/mark-unpaid`, {}, { headers: { "X-Admin-Token": token } });
+  return data;
+};
+
 // ---- Auth ----
 export const exchangeSession = async (sessionId) => {
   const { data } = await api.post("/auth/session", { session_id: sessionId });
