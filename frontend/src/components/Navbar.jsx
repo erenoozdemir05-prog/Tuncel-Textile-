@@ -3,14 +3,9 @@ import { Link, NavLink } from "react-router-dom";
 import { Menu, ShoppingBag, User, X } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useI18n } from "@/contexts/I18nContext";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-
-const NAV = [
-  { to: "/shop/men", label: "Men" },
-  { to: "/shop/women", label: "Women" },
-  { to: "/shop/accessories", label: "Accessories" },
-  { to: "/about", label: "Atelier" },
-];
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 const LOGO_URL =
   "https://customer-assets.emergentagent.com/job_tuncel-textile/artifacts/ji9o9ya2_WhatsApp_Image_2026-05-06_at_18.11.35-removebg-preview%20%281%29.png";
@@ -18,7 +13,15 @@ const LOGO_URL =
 export const Navbar = () => {
   const { totals } = useCart();
   const { user } = useAuth();
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
+
+  const NAV = [
+    { to: "/shop/men", label: t("nav.men") },
+    { to: "/shop/women", label: t("nav.women") },
+    { to: "/shop/accessories", label: t("nav.accessories") },
+    { to: "/about", label: t("nav.atelier") },
+  ];
 
   // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
   const handleSignIn = () => {
@@ -33,23 +36,20 @@ export const Navbar = () => {
     >
       <div className="mx-auto flex h-20 max-w-[1400px] items-center justify-between px-5 sm:px-8">
         <div className="flex items-center gap-8">
-          <Link to="/" data-testid="nav-logo" className="group inline-flex items-center gap-3">
+          <Link to="/" data-testid="nav-logo" aria-label="Tuncel Textile" className="group inline-flex items-center">
             <img
               src={LOGO_URL}
               alt="Tuncel Textile"
-              className="h-12 w-12 object-contain transition-transform duration-500 group-hover:scale-105 sm:h-14 sm:w-14"
+              className="h-14 w-auto object-contain transition-transform duration-500 group-hover:scale-105 sm:h-16"
               draggable={false}
             />
-            <span className="font-display text-xl tracking-[0.22em] text-black sm:text-2xl">
-              TUNCEL&nbsp;TEXTILE
-            </span>
           </Link>
           <nav className="hidden items-center gap-7 md:flex">
             {NAV.map((n) => (
               <NavLink
                 key={n.to}
                 to={n.to}
-                data-testid={`nav-link-${n.label.toLowerCase()}`}
+                data-testid={`nav-link-${n.to.replace("/shop/", "").replace("/", "")}`}
                 className={({ isActive }) =>
                   `tx-link text-[13px] uppercase tracking-[0.22em] ${
                     isActive ? "text-black" : "text-neutral-700"
@@ -62,7 +62,9 @@ export const Navbar = () => {
           </nav>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
+          <div className="hidden sm:block"><LanguageSwitcher /></div>
+
           {user ? (
             <Link
               to="/account"
@@ -70,7 +72,7 @@ export const Navbar = () => {
               className="hidden h-10 items-center gap-2 px-3 text-[12px] uppercase tracking-[0.22em] text-black hover:bg-black hover:text-white sm:inline-flex"
             >
               <User className="h-4 w-4" />
-              {user.name?.split(" ")[0] || "Account"}
+              {user.name?.split(" ")[0] || t("nav.account")}
             </Link>
           ) : (
             <button
@@ -79,7 +81,7 @@ export const Navbar = () => {
               className="hidden h-10 items-center gap-2 px-3 text-[12px] uppercase tracking-[0.22em] text-black hover:bg-black hover:text-white sm:inline-flex"
             >
               <User className="h-4 w-4" />
-              Sign In
+              {t("nav.signin")}
             </button>
           )}
 
@@ -89,7 +91,7 @@ export const Navbar = () => {
             className="relative inline-flex h-10 items-center gap-2 px-3 text-[12px] uppercase tracking-[0.22em] text-black hover:bg-black hover:text-white"
           >
             <ShoppingBag className="h-4 w-4" />
-            Cart
+            <span className="hidden sm:inline">{t("nav.cart")}</span>
             {totals.count > 0 && (
               <span
                 data-testid="nav-cart-count"
@@ -112,10 +114,7 @@ export const Navbar = () => {
             </SheetTrigger>
             <SheetContent side="right" className="w-[85vw] max-w-sm p-0">
               <div className="flex items-center justify-between border-b border-black/10 px-6 py-5">
-                <div className="flex items-center gap-2">
-                  <img src={LOGO_URL} alt="Tuncel Textile" className="h-9 w-9 object-contain" />
-                  <span className="font-display text-lg tracking-[0.22em]">TUNCEL TEXTILE</span>
-                </div>
+                <img src={LOGO_URL} alt="Tuncel Textile" className="h-10 w-auto object-contain" />
                 <button onClick={() => setOpen(false)} aria-label="Close">
                   <X className="h-5 w-5" />
                 </button>
@@ -126,7 +125,7 @@ export const Navbar = () => {
                     key={n.to}
                     to={n.to}
                     onClick={() => setOpen(false)}
-                    data-testid={`mobile-nav-link-${n.label.toLowerCase()}`}
+                    data-testid={`mobile-nav-link-${n.to.replace("/shop/", "").replace("/", "")}`}
                     className="border-b border-black/10 py-5 font-display text-3xl uppercase tracking-[0.05em]"
                   >
                     {n.label}
@@ -138,16 +137,19 @@ export const Navbar = () => {
                     onClick={() => setOpen(false)}
                     className="border-b border-black/10 py-5 font-display text-3xl uppercase tracking-[0.05em]"
                   >
-                    Account
+                    {t("nav.account")}
                   </Link>
                 ) : (
                   <button
                     onClick={() => { setOpen(false); handleSignIn(); }}
                     className="border-b border-black/10 py-5 text-left font-display text-3xl uppercase tracking-[0.05em]"
                   >
-                    Sign In
+                    {t("nav.signin")}
                   </button>
                 )}
+                <div className="pt-6">
+                  <LanguageSwitcher />
+                </div>
               </nav>
             </SheetContent>
           </Sheet>

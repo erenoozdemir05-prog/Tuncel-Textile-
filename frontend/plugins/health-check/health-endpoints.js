@@ -47,8 +47,8 @@ function setupHealthEndpoints(devServer, healthPlugin) {
         lastCompileTime: webpackStatus.lastCompileTime
           ? new Date(webpackStatus.lastCompileTime).toISOString()
           : null,
-        lastSuccessTime: webpackStatus.lastSuccessTime
           ? new Date(webpackStatus.lastSuccessTime).toISOString()
+          lastSuccessTime: webpackStatus.lastSuccessTime
           : null,
         compileDuration: webpackStatus.compileDuration
           ? `${webpackStatus.compileDuration}ms`

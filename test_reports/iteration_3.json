@@ -1,0 +1,59 @@
+{
+  "summary": "Iteration 3 testing complete. Backend: 25/25 NEW tests pass (Settings GET/PUT, IBAN checkout+lookup+edge cases, Hero CMS CRUD+reorder, Global CMS GET/PUT, Product status_label+stock_count, regression). Fixed 1 CRITICAL routing bug in server.py (hero reorder route was shadowed by /admin/hero/{slide_id}). Full backend suite 52/54 (2 stale-seed-count failures in legacy backend_test.py, not new). Frontend: hero-slider, cookie-banner (accept/decline dismiss), cookie-policy page, lang-switch (EN/RU verified — navbar labels switch to МУЖЧИНЫ/ЖЕНЩИНЫ/АКСЕССУАРЫ/АТЕЛЬЕ on RU, hero fallback shows РУЧНАЯ РАБОТА), Russian footer translation, WhatsApp link uses settings.whatsapp_number + settings.whatsapp_default_message, social-bar in footer, all 4 admin tabs (Products/Hero/CMS/Settings), Hero drawer with EN/RU/LV language tabs + kicker/title/subtitle/CTA/desktop+mobile image/video URL/blur/active/opacity slider all verified. Logo: image only (no wordmark text in nav).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/admin/upload", "issue": "(carried from iteration_2) returns absolute URL built from request.base_url (internal cluster host). Frontend should defensively use only data.path or rewrite host to REACT_APP_BACKEND_URL."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Cart → IBAN checkout E2E via automation", "issue": "Could not complete full UI E2E for cart→IBAN form submit via Playwright because clicking [data-testid='add-to-cart'] (after selecting size) did not persist into localStorage tuncel_cart_v1 in headless run. Backend POST /api/checkout/iban works perfectly (5/5 tests pass). Recommend main agent manually verify the UI flow (Cart → CHECKOUT → 'Choose how to pay' → Bank Transfer → fill form → /checkout/iban-success?ref=TT-XXXXXX).", "affected_selectors": ["[data-testid='add-to-cart']", "[data-testid='checkout-button']", "[data-testid='payment-choice']", "[data-testid='pay-iban-button']", "[data-testid='iban-form']", "[data-testid='iban-success-page']"]},
+      {"flow": "Admin CMS save / Settings save testid verification", "issue": "[data-testid='admin-cms-save'] and [data-testid='admin-settings-save'] returned not-found in automation, but this was because the Hero drawer overlay was still open and intercepting the CMS/Settings tabs. The CMS and Settings tabs themselves load (visible in body text). Main agent should manually open Admin → CMS tab and Admin → Settings tab to confirm the Save buttons render and persist via PUT /api/admin/cms and PUT /api/admin/settings (both endpoints verified working in backend tests)."}
+    ],
+    "design_issues": [
+      {"screen": "Navbar", "issues": ["Logo image visible; the SVG logo file itself contains the small word 'TUNCEL' below the diamond icon — this is part of the logo image, not a separate wordmark — confirms 'logo-only navbar' is satisfied."]},
+      {"screen": "Home (RU)", "issues": ["Fallback hero in Russian shows 'РУЧНАЯ РАБОТА' (RU translation of HAND CRAFTED) — fallback i18n works correctly."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration3.py",
+    "/app/backend/tests/test_iteration2.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/iteration3_results.xml",
+    "/app/test_reports/pytest/iteration3_full.xml"
+  ],
+  "action_items": [
+    "(Already applied by testing agent) Confirmed fix of routing order in /app/backend/server.py — moved PUT /api/admin/hero/reorder BEFORE PUT /api/admin/hero/{slide_id}. Verify locally by running pytest /app/backend/tests/test_iteration3.py::TestHeroCMS::test_reorder_hero.",
+    "Main agent: manually click through Cart → IBAN flow in a real browser to confirm the end-to-end UI works (data-testid wiring on cart/IBAN form was not verified through automation due to localStorage seeding issues).",
+    "Main agent: open Admin → Global Text tab and Admin → Settings tab and confirm 'Save' buttons (data-testid='admin-cms-save' and 'admin-settings-save') render correctly and persist changes (backend endpoints already verified).",
+    "Optionally fix legacy backend_test.py::TestProducts hard-coded counts (11/4) which fail because some seeded products were deleted in prior testing — replace assertions with `>= 1` or seed-independent counts.",
+    "(From iteration 2, still open) /api/admin/upload returns broken absolute URL — recommend returning only relative path."
+  ],
+  "critical_code_review_comments": [
+    "BUG FIXED by testing agent: FastAPI route ordering matters — `/admin/hero/reorder` was being shadowed by `/admin/hero/{slide_id}`. Moved static route before parametric route.",
+    "server.py now ~875 lines — recommend splitting into routers/ (admin.py, products.py, checkout.py, cms.py, settings.py, hero.py, auth.py) before next iteration.",
+    "DEFAULT_SETTINGS deep-merge in get_settings_doc() correctly backfills missing nested social/iban keys — good.",
+    "IbanCheckoutRequest uses pydantic EmailStr → returns 422 (not 400) on invalid email. That's pydantic standard; UI should handle 422 as a validation error.",
+    "HeroSlideIn.overlay_opacity has no Field range validation (could accept 1.5 or -1). Add Field(ge=0.0, le=1.0). Not critical.",
+    "_lang_dict helper correctly coerces missing en/ru/lv keys to empty strings — robust.",
+    "PUT /admin/cms replaces the entire items array — no merge. This is by design but means partial saves wipe other keys. Frontend must always send the full list.",
+    "/api/checkout/iban reuses `session_id` field (= reference) for unique lookup — clever but couples IBAN orders to the Stripe transaction schema. Acceptable.",
+    "MongoDB _id excluded via {'_id': 0} projection in all reads — good."
+  ],
+  "updated_files": [
+    "/app/backend/server.py (route order fix: hero reorder)",
+    "/app/backend/tests/test_iteration3.py (new file, 25 tests)"
+  ],
+  "success_rate": {
+    "backend": "100% on new iteration-3 tests (25/25). Full suite 96% (52/54) — 2 failures are stale fixture counts in legacy backend_test.py, not new bugs.",
+    "frontend": "~85% verified via automation (home, hero slider, cookie banner accept, language switch EN→RU including navbar+hero+footer, WhatsApp link with custom message, cookie-policy page, admin login + 4 tabs visible + Hero drawer with EN/RU/LV tabs + all hero fields). Not fully E2E-verified: Cart→IBAN UI submit (backend works), CMS-save & Settings-save button clicks (testids likely present but masked by overlay during run)."
+  },
+  "test_credentials": "Admin password: tuncel2026admin (from /app/backend/.env). No /app/memory/test_credentials.md file exists.",
+  "seed_data_creation": "TEST_iter3 settings message + instagram URL written via PUT /api/admin/settings (verified via WhatsApp link reflecting on home). TEST_iter3 Low Stock Tee product created+deleted. TEST CMS items overwrote defaults (limited_edition.values.en='TEST_EN' etc) — main agent may want to re-PUT /api/admin/cms with the original DEFAULT_CMS_ITEMS to restore production-style copy before launch.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All iteration 3 backend tests in /app/backend/tests/test_iteration3.py. Run: pytest /app/backend/tests/ -v --junitxml=/app/test_reports/pytest/results.xml. Hero reorder route order fix is in server.py (lines ~810-825). Frontend testids confirmed: site-navbar, nav-logo, nav-link-{men|women|accessories|about}, lang-switch-trigger, nav-signin-button, nav-cart-button, hero-slider, cookie-banner, cookie-accept, cookie-decline, cookie-policy-page, site-footer, social-bar, social-instagram, social-whatsapp, footer-whatsapp, whatsapp-fab, cart-page, cart-empty-shop-link, admin-tab-{products|hero|cms|settings}, admin-new-slide, hero-lang-{en|ru|lv}. Admin Hero drawer fields are present (kicker EN/RU/LV, title EN/RU/LV, subtitle, CTA label+link, desktop image with upload, mobile image with upload, video URL, blur overlay checkbox, active checkbox, overlay opacity slider, SAVE button). Cart key in localStorage = 'tuncel_cart_v1'. CMS default keys: limited_edition, handcrafted, free_shipping, hero_strapline. Settings keys: whatsapp_number, whatsapp_default_message, favicon_url, social.{instagram,facebook,twitter,linkedin,youtube,tiktok}, iban.{bank_name,account_holder,iban,bic,reference_prefix,instructions}. IBAN reference format: '{prefix}-{6 uppercase hex chars}'.",
+  "rca of the issue": "FastAPI registers and matches routes in order. The original code defined `@api_router.put('/admin/hero/{slide_id}')` BEFORE `@api_router.put('/admin/hero/reorder')`. When a client called PUT /api/admin/hero/reorder, FastAPI matched it as slide_id='reorder', invoked admin_update_hero with slide_id='reorder', which returned 404 because no slide with id 'reorder' exists. Mitigation applied: moved the static `/admin/hero/reorder` route definition above the parametric `/admin/hero/{slide_id}` route. Verified by re-running pytest TestHeroCMS::test_reorder_hero (now passes). Reproduction (pre-fix): PUT /api/admin/hero/reorder with X-Admin-Token and {ordered_ids: [...]} body → returned 404 'Slide not found'. Post-fix: returns 200 {'ok': true} and subsequent GET /api/hero returns slides in the new sort_order."
+}

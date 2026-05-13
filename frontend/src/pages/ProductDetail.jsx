@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { fetchProduct, fetchProducts } from "@/lib/api";
 import { useCart } from "@/contexts/CartContext";
+import { useCms, cmsText } from "@/contexts/CmsContext";
+import { useI18n } from "@/contexts/I18nContext";
 import { ProductCard } from "@/components/ProductCard";
 import { toast } from "sonner";
 import { Check, ChevronRight, Minus, Plus } from "lucide-react";
@@ -20,6 +22,8 @@ export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addItem } = useCart();
+  const { items: cmsItems } = useCms();
+  const { locale } = useI18n();
   const [product, setProduct] = useState(null);
   const [related, setRelated] = useState([]);
   const [size, setSize] = useState(null);
@@ -220,9 +224,9 @@ export default function ProductDetail() {
           </div>
 
           <ul className="mt-8 space-y-2 border-t border-black/10 pt-6 text-sm text-neutral-700">
-            <li className="flex items-center gap-2"><Check className="h-4 w-4" /> Limited edition · numbered & signed</li>
-            <li className="flex items-center gap-2"><Check className="h-4 w-4" /> Hand-finished in our atelier</li>
-            <li className="flex items-center gap-2"><Check className="h-4 w-4" /> Complimentary shipping over $120</li>
+            <li className="flex items-center gap-2"><Check className="h-4 w-4" /> {cmsText(cmsItems, "limited_edition", locale, "Limited edition · numbered & signed")}</li>
+            <li className="flex items-center gap-2"><Check className="h-4 w-4" /> {cmsText(cmsItems, "handcrafted", locale, "Hand-finished in our atelier")}</li>
+            <li className="flex items-center gap-2"><Check className="h-4 w-4" /> {cmsText(cmsItems, "free_shipping", locale, "Complimentary shipping over $120")}</li>
           </ul>
 
           {/* Accordion details */}

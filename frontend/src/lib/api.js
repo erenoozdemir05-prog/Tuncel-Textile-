@@ -12,19 +12,66 @@ export const fetchProducts = async (params = {}) => {
   const { data } = await api.get("/products", { params });
   return data;
 };
-
 export const fetchProduct = async (id) => {
   const { data } = await api.get(`/products/${id}`);
   return data;
 };
-
 export const createCheckout = async (payload) => {
   const { data } = await api.post("/checkout/session", payload);
   return data;
 };
-
 export const getCheckoutStatus = async (sessionId) => {
   const { data } = await api.get(`/checkout/status/${sessionId}`);
+  return data;
+};
+export const createIbanOrder = async (payload) => {
+  const { data } = await api.post("/checkout/iban", payload);
+  return data;
+};
+export const getIbanOrder = async (reference) => {
+  const { data } = await api.get(`/checkout/iban/${reference}`);
+  return data;
+};
+
+// ---- Settings ----
+export const fetchSettings = async () => {
+  const { data } = await api.get("/settings");
+  return data;
+};
+export const adminUpdateSettings = async (token, payload) => {
+  const { data } = await api.put("/admin/settings", payload, { headers: { "X-Admin-Token": token } });
+  return data;
+};
+
+// ---- Hero CMS ----
+export const adminListHero = async (token) => {
+  const { data } = await api.get("/admin/hero", { headers: { "X-Admin-Token": token } });
+  return data;
+};
+export const adminCreateHero = async (token, payload) => {
+  const { data } = await api.post("/admin/hero", payload, { headers: { "X-Admin-Token": token } });
+  return data;
+};
+export const adminUpdateHero = async (token, id, payload) => {
+  const { data } = await api.put(`/admin/hero/${id}`, payload, { headers: { "X-Admin-Token": token } });
+  return data;
+};
+export const adminDeleteHero = async (token, id) => {
+  const { data } = await api.delete(`/admin/hero/${id}`, { headers: { "X-Admin-Token": token } });
+  return data;
+};
+export const adminReorderHero = async (token, orderedIds) => {
+  const { data } = await api.put("/admin/hero/reorder", { ordered_ids: orderedIds }, { headers: { "X-Admin-Token": token } });
+  return data;
+};
+
+// ---- CMS Text ----
+export const fetchCms = async () => {
+  const { data } = await api.get("/cms");
+  return data;
+};
+export const adminUpdateCms = async (token, items) => {
+  const { data } = await api.put("/admin/cms", { items }, { headers: { "X-Admin-Token": token } });
   return data;
 };
 
@@ -70,7 +117,6 @@ export const adminUploadImage = async (token, file) => {
   const { data } = await api.post("/admin/upload", fd, {
     headers: { "X-Admin-Token": token, "Content-Type": "multipart/form-data" },
   });
-  // Backend returns relative URL like '/api/files/...'; prepend public backend URL.
   const url = data?.url?.startsWith("http") ? data.url : `${BACKEND_URL}${data.url}`;
   return { ...data, url };
 };

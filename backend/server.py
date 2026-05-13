@@ -121,6 +121,8 @@ class Product(BaseModel):
     in_stock: bool = True
     featured: bool = False
     print_name: Optional[str] = None
+    stock_count: Optional[int] = None
+    status_label: str = "in_stock"  # in_stock | low_stock | out_of_stock | coming_soon
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -449,6 +451,8 @@ class ProductIn(BaseModel):
     in_stock: bool = True
     featured: bool = False
     print_name: Optional[str] = None
+    stock_count: Optional[int] = None
+    status_label: str = "in_stock"
 
 
 @api_router.post("/admin/products", response_model=Product)
@@ -580,6 +584,282 @@ async def list_orders(user: Optional[dict] = Depends(get_current_user)):
         {"_id": 0},
     ).sort("created_at", -1).to_list(200)
     return orders
+
+
+# ============================================================
+# SITE SETTINGS (admin-editable site-wide config)
+# ============================================================
+DEFAULT_SETTINGS = {
+    "id": "default",
+    "whatsapp_number": "+371 20677937",
+    "whatsapp_default_message": "Hello Tuncel Textile, I'm interested in your collection.",
+    "favicon_url": "",
+    "social": {
+        "instagram": "",
+        "facebook": "",
+        "twitter": "",
+        "linkedin": "",
+        "youtube": "",
+        "tiktok": "",
+    },
+    "iban": {
+        "bank_name": "Swedbank AS",
+        "account_holder": "Tuncel Textile SIA",
+        "iban": "",
+        "bic": "",
+        "reference_prefix": "TT",
+        "instructions": "Please use the order reference below in your transfer description. Your order will ship within 24h of payment confirmation.",
+    },
+}
+
+
+class SettingsIn(BaseModel):
+    whatsapp_number: Optional[str] = None
+    whatsapp_default_message: Optional[str] = None
+    favicon_url: Optional[str] = None
+    social: Optional[Dict[str, str]] = None
+    iban: Optional[Dict[str, str]] = None
+
+
+async def get_settings_doc() -> dict:
+    doc = await db.site_settings.find_one({"id": "default"}, {"_id": 0})
+    if not doc:
+        await db.site_settings.insert_one(dict(DEFAULT_SETTINGS))
+        return dict(DEFAULT_SETTINGS)
+    # backfill missing keys from defaults
+    for k, v in DEFAULT_SETTINGS.items():
+        if k not in doc:
+            doc[k] = v
+        elif isinstance(v, dict):
+            doc[k] = {**v, **(doc.get(k) or {})}
+    return doc
+
+
+@api_router.get("/settings")
+async def get_settings():
+    return await get_settings_doc()
+
+
+@api_router.put("/admin/settings")
+async def update_settings(payload: SettingsIn, _: bool = Depends(require_admin)):
+    update = {k: v for k, v in payload.model_dump().items() if v is not None}
+    await db.site_settings.update_one({"id": "default"}, {"$set": update}, upsert=True)
+    return await get_settings_doc()
+
+
+# ============================================================
+# IBAN CHECKOUT (alternative to Stripe)
+# ============================================================
+class IbanCheckoutRequest(BaseModel):
+    items: List[CartItemIn]
+    customer_email: EmailStr
+    customer_name: str
+    shipping_address: Optional[str] = None
+    note: Optional[str] = None
+
+
+@api_router.post("/checkout/iban")
+async def create_iban_order(req: IbanCheckoutRequest, user: Optional[dict] = Depends(get_current_user)):
+    if not req.items:
+        raise HTTPException(400, "Cart is empty")
+
+    total = 0.0
+    line_meta = []
+    for item in req.items:
+        prod = await db.products.find_one({"id": item.product_id}, {"_id": 0})
+        if not prod:
+            raise HTTPException(400, f"Product {item.product_id} not found")
+        qty = max(1, int(item.quantity))
+        total += float(prod["price"]) * qty
+        line_meta.append(f"{prod['name']} x{qty}")
+
+    total = round(total, 2)
+    if total <= 0:
+        raise HTTPException(400, "Invalid order total")
+
+    settings = await get_settings_doc()
+    iban_cfg = settings.get("iban", {}) or {}
+    prefix = iban_cfg.get("reference_prefix", "TT")
+    short_id = uuid.uuid4().hex[:6].upper()
+    reference = f"{prefix}-{short_id}"
+
+    transaction = {
+        "id": str(uuid.uuid4()),
+        "session_id": reference,  # reuse session_id field for unique lookup
+        "reference": reference,
+        "amount": total,
+        "currency": "eur",
+        "metadata": {"items": " | ".join(line_meta)[:480], "customer_name": req.customer_name},
+        "items": [it.model_dump() for it in req.items],
+        "customer_email": req.customer_email,
+        "customer_name": req.customer_name,
+        "shipping_address": req.shipping_address,
+        "note": req.note,
+        "user_id": user.get("user_id") if user else None,
+        "payment_status": "awaiting_bank_transfer",
+        "status": "open",
+        "payment_method": "iban",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.payment_transactions.insert_one(transaction)
+
+    return {
+        "reference": reference,
+        "amount": total,
+        "currency": "eur",
+        "iban": iban_cfg,
+        "items_summary": " | ".join(line_meta),
+    }
+
+
+@api_router.get("/checkout/iban/{reference}")
+async def get_iban_order(reference: str):
+    doc = await db.payment_transactions.find_one(
+        {"reference": reference}, {"_id": 0}
+    )
+    if not doc:
+        raise HTTPException(404, "Order not found")
+    settings = await get_settings_doc()
+    return {
+        "reference": doc.get("reference"),
+        "amount": doc.get("amount"),
+        "currency": doc.get("currency", "eur"),
+        "payment_status": doc.get("payment_status"),
+        "items_summary": (doc.get("metadata") or {}).get("items", ""),
+        "iban": settings.get("iban", {}),
+    }
+
+
+# ============================================================
+# HERO SLIDES (CMS - homepage hero manager)
+# ============================================================
+LANG_KEYS = ["en", "ru", "lv"]
+
+
+def _lang_dict(value):
+    if isinstance(value, dict):
+        return {k: value.get(k, "") for k in LANG_KEYS}
+    return {k: "" for k in LANG_KEYS}
+
+
+class HeroSlideIn(BaseModel):
+    image_url: str = ""
+    mobile_image_url: str = ""
+    video_url: str = ""
+    kicker: Dict[str, str] = Field(default_factory=lambda: {k: "" for k in LANG_KEYS})
+    title: Dict[str, str] = Field(default_factory=lambda: {k: "" for k in LANG_KEYS})
+    subtitle: Dict[str, str] = Field(default_factory=lambda: {k: "" for k in LANG_KEYS})
+    cta_label: Dict[str, str] = Field(default_factory=lambda: {k: "" for k in LANG_KEYS})
+    cta_url: str = "/shop/all"
+    blur_enabled: bool = True
+    overlay_opacity: float = 0.45
+    active: bool = True
+    sort_order: int = 0
+
+
+@api_router.get("/hero")
+async def list_hero_slides():
+    slides = await db.hero_slides.find({"active": True}, {"_id": 0}).sort("sort_order", 1).to_list(50)
+    return slides
+
+
+@api_router.get("/admin/hero")
+async def admin_list_hero(_: bool = Depends(require_admin)):
+    return await db.hero_slides.find({}, {"_id": 0}).sort("sort_order", 1).to_list(100)
+
+
+@api_router.post("/admin/hero")
+async def admin_create_hero(payload: HeroSlideIn, _: bool = Depends(require_admin)):
+    count = await db.hero_slides.count_documents({})
+    doc = payload.model_dump()
+    doc["id"] = str(uuid.uuid4())
+    doc["sort_order"] = payload.sort_order if payload.sort_order else count
+    doc["kicker"] = _lang_dict(doc["kicker"])
+    doc["title"] = _lang_dict(doc["title"])
+    doc["subtitle"] = _lang_dict(doc["subtitle"])
+    doc["cta_label"] = _lang_dict(doc["cta_label"])
+    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    await db.hero_slides.insert_one(doc)
+    return {k: v for k, v in doc.items() if k != "_id"}
+
+
+class HeroReorderIn(BaseModel):
+    ordered_ids: List[str]
+
+
+# NOTE: This static route MUST be registered BEFORE /admin/hero/{slide_id}
+# otherwise FastAPI will match "reorder" as a slide_id and return 404.
+@api_router.put("/admin/hero/reorder")
+async def admin_reorder_hero(payload: HeroReorderIn, _: bool = Depends(require_admin)):
+    for idx, sid in enumerate(payload.ordered_ids):
+        await db.hero_slides.update_one({"id": sid}, {"$set": {"sort_order": idx}})
+    return {"ok": True}
+
+
+@api_router.put("/admin/hero/{slide_id}")
+async def admin_update_hero(slide_id: str, payload: HeroSlideIn, _: bool = Depends(require_admin)):
+    update = payload.model_dump()
+    update["kicker"] = _lang_dict(update["kicker"])
+    update["title"] = _lang_dict(update["title"])
+    update["subtitle"] = _lang_dict(update["subtitle"])
+    update["cta_label"] = _lang_dict(update["cta_label"])
+    res = await db.hero_slides.update_one({"id": slide_id}, {"$set": update})
+    if res.matched_count == 0:
+        raise HTTPException(404, "Slide not found")
+    doc = await db.hero_slides.find_one({"id": slide_id}, {"_id": 0})
+    return doc
+
+
+@api_router.delete("/admin/hero/{slide_id}")
+async def admin_delete_hero(slide_id: str, _: bool = Depends(require_admin)):
+    res = await db.hero_slides.delete_one({"id": slide_id})
+    if res.deleted_count == 0:
+        raise HTTPException(404, "Slide not found")
+    return {"deleted": True}
+
+
+# ============================================================
+# CMS TEXT (editable global strings, multi-language)
+# ============================================================
+DEFAULT_CMS_ITEMS = [
+    {"key": "limited_edition", "label": "Limited edition tag", "values": {"en": "Limited edition · numbered & signed", "ru": "Лимитированный выпуск · с номером и подписью", "lv": "Limitēts izdevums · numurēts un parakstīts"}},
+    {"key": "handcrafted", "label": "Handcrafted tag", "values": {"en": "Hand-finished in our atelier", "ru": "Ручная финишная работа в нашем ателье", "lv": "Roku darbs mūsu ateljē"}},
+    {"key": "free_shipping", "label": "Free shipping tag", "values": {"en": "Complimentary shipping over €120", "ru": "Бесплатная доставка от €120", "lv": "Bezmaksas piegāde no €120"}},
+    {"key": "hero_strapline", "label": "Hero default strapline (used when no slides)", "values": {"en": "A two-person atelier crafting limited-run hoodies, tees and accessories.", "ru": "Маленькое ателье из двух мастеров, лимитированные тиражи худи, футболок и аксессуаров.", "lv": "Divu cilvēku ateljē — limitēti hūdiji, T-krekli un aksesuāri."}},
+]
+
+
+async def get_cms_doc() -> dict:
+    doc = await db.cms_text.find_one({"id": "default"}, {"_id": 0})
+    if not doc:
+        doc = {"id": "default", "items": DEFAULT_CMS_ITEMS}
+        await db.cms_text.insert_one(dict(doc))
+    return doc
+
+
+@api_router.get("/cms")
+async def get_cms():
+    return await get_cms_doc()
+
+
+class CmsItemIn(BaseModel):
+    key: str
+    label: Optional[str] = ""
+    values: Dict[str, str]
+
+
+class CmsIn(BaseModel):
+    items: List[CmsItemIn]
+
+
+@api_router.put("/admin/cms")
+async def update_cms(payload: CmsIn, _: bool = Depends(require_admin)):
+    items = []
+    for it in payload.items:
+        items.append({"key": it.key, "label": it.label or "", "values": _lang_dict(it.values)})
+    await db.cms_text.update_one({"id": "default"}, {"$set": {"items": items}}, upsert=True)
+    return await get_cms_doc()
 
 
 app.include_router(api_router)

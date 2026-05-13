@@ -4,8 +4,13 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { I18nProvider } from "@/contexts/I18nContext";
+import { SettingsProvider, useSettings } from "@/contexts/SettingsContext";
+import { CmsProvider } from "@/contexts/CmsContext";
 import { Navbar } from "@/components/Navbar";
 import { Footer, WhatsappFAB } from "@/components/Footer";
+import { CookieBanner } from "@/components/CookieBanner";
+import { useFavicon } from "@/hooks/useFavicon";
 import Home from "@/pages/Home";
 import Shop from "@/pages/Shop";
 import ProductDetail from "@/pages/ProductDetail";
@@ -15,8 +20,15 @@ import About from "@/pages/About";
 import Admin from "@/pages/Admin";
 import Account from "@/pages/Account";
 import AuthCallback from "@/pages/AuthCallback";
+import CookiePolicy from "@/pages/CookiePolicy";
+import IbanSuccess from "@/pages/IbanSuccess";
 
-// Synchronous detection of Emergent OAuth callback (race-condition safe)
+function FaviconBridge() {
+  const { settings } = useSettings();
+  useFavicon(settings?.favicon_url);
+  return null;
+}
+
 function AppRouter() {
   const location = useLocation();
   if (location.hash?.includes("session_id=")) {
@@ -29,10 +41,12 @@ function AppRouter() {
       <Route path="/product/:id" element={<ProductDetail />} />
       <Route path="/cart" element={<Cart />} />
       <Route path="/checkout/success" element={<CheckoutSuccess />} />
+      <Route path="/checkout/iban-success" element={<IbanSuccess />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/account" element={<Account />} />
       <Route path="/admin" element={<Admin />} />
       <Route path="/about" element={<About />} />
+      <Route path="/cookie-policy" element={<CookiePolicy />} />
       <Route path="*" element={<Home />} />
     </Routes>
   );
@@ -40,21 +54,29 @@ function AppRouter() {
 
 function App() {
   return (
-    <AuthProvider>
-      <CartProvider>
-        <BrowserRouter>
-          <div className="App flex min-h-screen flex-col bg-white text-black">
-            <Navbar />
-            <main className="flex-1">
-              <AppRouter />
-            </main>
-            <Footer />
-            <WhatsappFAB />
-            <Toaster position="bottom-center" />
-          </div>
-        </BrowserRouter>
-      </CartProvider>
-    </AuthProvider>
+    <I18nProvider>
+      <SettingsProvider>
+        <CmsProvider>
+          <AuthProvider>
+            <CartProvider>
+              <BrowserRouter>
+                <FaviconBridge />
+                <div className="App flex min-h-screen flex-col bg-white text-black">
+                  <Navbar />
+                  <main className="flex-1">
+                    <AppRouter />
+                  </main>
+                  <Footer />
+                  <WhatsappFAB />
+                  <CookieBanner />
+                  <Toaster position="bottom-center" />
+                </div>
+              </BrowserRouter>
+            </CartProvider>
+          </AuthProvider>
+        </CmsProvider>
+      </SettingsProvider>
+    </I18nProvider>
   );
 }
 
