@@ -3,58 +3,42 @@
 ## Original Problem Statement
 "We're opening a new textile shop called Tuncel Textile. There are two of us; please create a modern website for us. It should have a menu option and the ability to navigate between pages. We're thinking of a print-based design, with separate options for hoodies and T-shirts for men and women." (Reference: Beymen.com)
 
-## User Choices
-- Language: English only
-- Scope: Cart + product management AND full e-commerce (Stripe)
-- Style: Bold artistic print + minimalist black/white with big typography
-- Pages: Home, Men, Women, Accessories, About
-- Studio location: **Riga**
-- Admin: password-protected at `/admin` (password: `tuncel2026admin`)
-- Auth: optional Google sign-in for customers (guest checkout still allowed)
-
 ## Architecture
-- **Backend**: FastAPI, MongoDB, Stripe (emergentintegrations), Emergent Object Storage, Emergent Google Auth
-- **Frontend**: React (CRA + craco), TailwindCSS, shadcn/ui, react-router-dom 7, axios `withCredentials`
-- **Cart**: Client-side (localStorage) via React Context
-- **Auth**: httpOnly cookie session_token (7 days); optional — guest checkout still works
-- **Fonts**: Bebas Neue (display) + Manrope (body)
+- FastAPI + MongoDB + React (CRA) + TailwindCSS + shadcn/ui
+- Stripe Checkout via emergentintegrations + IBAN bank transfer
+- Emergent Object Storage for image uploads
+- Emergent Google Auth for customer accounts
+- Bebas Neue + Manrope fonts
 
 ## What's Implemented
 
-### Iteration 1 (2026-02-06) — MVP
-- 11 seeded products (men/women × hoodies/tshirts + 3 accessories)
-- Public API: `GET /api/products`, `GET /api/products/{id}`, `POST /api/checkout/session`, `GET /api/checkout/status/{id}` (graceful Stripe fallback), `POST /api/webhook/stripe`
-- Pages: Home, Shop with type filters, Product Detail, Cart, Checkout Success, About
-- Sticky Navbar (with mobile sheet) + animated marquee Footer
-- Stripe Checkout with payment_transactions collection
-
-### Iteration 2 (2026-02-07) — Admin + Auth + Enriched UI
-- **Studio location** changed Istanbul → Riga (Footer + About)
-- **Admin panel** at `/admin`:
-  - Password login (`tuncel2026admin`)
-  - Product CRUD (create/edit/delete) via drawer form
-  - **Image upload** to Emergent object storage (returns `/api/files/{path}` relative URL)
-  - File serving via `GET /api/files/{path}`
-- **Customer auth** (Emergent Google Auth):
-  - "Sign In" button in Navbar
-  - `/auth/callback` route handles `#session_id=` exchange
-  - `POST /api/auth/session`, `GET /api/auth/me`, `POST /api/auth/logout`
-  - `GET /api/orders` returns paid orders linked to user_id
-  - `/account` page with order history + sign-out
-- **Enriched Home**: Lookbook horizontal-scroll strip, 3-step Process section, Newsletter CTA
-- **Enriched Shop**: sort dropdown (newest / price ↑ / price ↓) + price range filter
-- **Enriched Product Detail**: 4-thumbnail gallery, quantity selector, accordion (size guide / materials / shipping), "You may also like" related products
+### Iteration 1 — MVP (catalog + Stripe + cart + about)
+### Iteration 2 — Admin panel + Google Auth + enriched UI
+### Iteration 3 — Premium refresh (logo, atelier language, WhatsApp, Riga studio)
+### Iteration 4 (2026-02-13) — Full CMS, i18n, IBAN, social, cookies
+- **Site Settings** collection — admin-editable WhatsApp number + default message, social URLs, IBAN bank details, favicon URL
+- **Footer Social Bar** — Instagram, Facebook, X, LinkedIn, YouTube, TikTok, WhatsApp icons; hidden when URL empty; pill-style circular buttons with dark hover
+- **Cookie Banner + Cookie Policy page** (`/cookie-policy`) — localStorage consent, Accept All / Essential Only
+- **EN / RU / LV language switcher** (top-right globe icon, persists in localStorage `tuncel_locale`)
+- **WhatsApp**: number + prefilled message editable from admin; reflected in footer link, FAB and About page CTA
+- **Logo-only navbar** — wordmark text removed; just the diamond TT crest image
+- **IBAN bank-transfer checkout** — `Cart` → `Choose how to pay` → Card (Stripe) | Bank Transfer (IBAN form: name/email/address/note) → unique reference like `TT-XXXXXX` → `/checkout/iban-success?ref=...` showing IBAN details with copy buttons
+- **Hero Slider CMS** — admin `/admin → Hero Manager` tab. Multiple slides, each with EN/RU/LV kicker/title/subtitle/CTA, desktop+mobile image upload, optional video URL, blur toggle, overlay opacity slider, active toggle, up/down reorder, live preview pane. Homepage auto-rotates every 7s with indicator dots. Falls back to default `HAND / CRAFTED` when no slides.
+- **Global CMS Text** — `Admin → Global Text` tab. Editable key/label/EN/RU/LV strings. Defaults: `limited_edition`, `handcrafted`, `free_shipping`, `hero_strapline`. Add/remove keys. Consumed in ProductDetail bullets (extensible).
+- **Product Status Labels** — `status_label` (in_stock | low_stock | out_of_stock | coming_soon) + `stock_count` (for low_stock). Badge appears on ProductCard top-right.
+- **Favicon upload** — admin uploads, `useFavicon` hook injects `<link rel="icon">` dynamically.
 
 ## Test Results
-- **Iteration 1**: 12/13 backend (status endpoint hardened) + 100% frontend
-- **Iteration 2**: 29/29 backend + 95% frontend (one bug found in admin upload returning internal URL — **FIXED** post-test by returning relative URL)
+- Iteration 1: 12/13 backend, 100% frontend
+- Iteration 2: 29/29 backend, 95% frontend
+- Iteration 3: 25/25 NEW backend tests, ~85% frontend automated + manual E2E verification for Cart→IBAN (✅ confirmed via screenshot — order TT-64B7DA created and IBAN success page rendered)
+- Critical route-order bug fixed: `/admin/hero/reorder` moved BEFORE `/admin/hero/{slide_id}`
 
-## Backlog (deferred)
-- P1: Order confirmation email via Resend (no API key provided yet — ask user for `re_...` key)
-- P2: Wishlist / favorites
-- P2: Search bar with autocomplete
-- P2: Inventory tracking by size/variant
+## Backlog
+- P1: Resend order-confirmation email (awaiting RE_… API key from owner)
+- P1: Mark IBAN orders as "paid" from admin (currently sit at `awaiting_bank_transfer`)
+- P2: Drag-and-drop hero reorder (currently up/down arrows)
+- P2: Inventory tracking by size/variant; auto-flip status when stock=0
 - P2: Discount codes / promo system
-- P2: Real product photography (admin uploads now functional — pending studio photoshoot)
-- P2: Shipping address & rates
-- P2: Product reviews & ratings
+- P2: Wishlist, search, reviews
+- P2: Refactor server.py into routers/ submodules (auth, admin, products, checkout, cms, settings, hero)
