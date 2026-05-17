@@ -201,6 +201,25 @@ async def seed_products():
             await db.products.insert_one(doc)
         logging.info("Seeded %d products", len(SEED_PRODUCTS))
 
+    # Seed FAQs if none exist
+    try:
+        faq_count = await db.faqs.count_documents({})
+        if faq_count == 0:
+            for idx, f in enumerate(DEFAULT_FAQS):
+                doc = {
+                    "id": str(uuid.uuid4()),
+                    "question": f["question"],
+                    "answer": f["answer"],
+                    "category": f.get("category", "general"),
+                    "sort_order": idx,
+                    "active": True,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                }
+                await db.faqs.insert_one(doc)
+            logging.info("Seeded %d FAQs", len(DEFAULT_FAQS))
+    except Exception as e:
+        logging.warning("FAQ seed skipped: %s", e)
+
 
 # ---------------------------- Product Routes ----------------------------
 @api_router.get("/")

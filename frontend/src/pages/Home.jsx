@@ -189,26 +189,3 @@ export default function Home() {
     </div>
   );
 }
-    >
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@email.com"
-              data-testid="newsletter-input"
-              className="flex-1 border border-white/30 bg-transparent px-5 py-4 text-sm text-white placeholder:text-white/40 focus:border-white focus:outline-none"
-            />
-            <button
-              type="submit"
-              data-testid="newsletter-submit"
-              className="inline-flex items-center justify-center gap-2 bg-white px-8 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] text-black hover:bg-neutral-200"
-            >
-              Subscribe
-            </button>
-          </form>
-        </div>
-      </section>
-    </div>
-  );
-}

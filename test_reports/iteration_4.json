@@ -1,0 +1,55 @@
+{
+  "summary": "Iteration 4 — Phase 1 (FAQ, Custom Requests, € currency, Admin new tabs) end-to-end testing. Backend: 17/17 NEW Phase-1 tests pass (FAQ public list with EN/RU/LV multilingual, FAQ admin CRUD, Custom Request submit returning CR-XXXXXX, admin list/update status with token, regression on products/settings/cms/hero/iban/admin-orders). Frontend: Fixed CRITICAL build-breaking syntax error in pages/Home.jsx (orphan JSX after function close — full app was 401/blank). FAQ page renders with 6 category filters (all/shipping/returns/payment/custom/general — note: 'custom' label is 'Custom orders'), Custom Request wizard loads. Currency: € is dominant on product cards, cart, account, checkout-success. FOUND $ leftovers in ProductDetail.jsx ('$120' in 2 lines of static copy), in Shop filter dropdown ('Under $40', '$40 – $80', '$80+'), and Admin product form label ('Price ($)'). CRITICAL: Admin.jsx nav array DOES NOT register FAQs or Custom Requests tabs — tab components FaqTab() and CustomRequestsTab() ARE defined in the file (lines 726 and 813) but never added to the nav buttons (line 103) nor to the conditional rendering (line 124). User cannot reach the new admin tabs from the UI.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "pages/Home.jsx", "issue": "FIXED by testing agent — orphan duplicated <input>...<button>...</form> block after the function's closing brace at line 191. SyntaxError 'Unexpected token (192:4)' broke the entire CRA build, every page returned blank-with-overlay. Removed dead lines 192-214. yarn build now succeeds (only minor eslint warnings).", "selector": "n/a", "priority": "CRITICAL"},
+      {"component": "pages/Admin.jsx (nav tabs)", "issue": "FaqTab (line 726) and CustomRequestsTab (line 813) components are defined but NEVER registered. Nav array at line 103-109 contains only ['products','orders','hero','cms','settings']. Conditional render at line 123-129 also missing the new tabs. Result: user logs into /admin and cannot see/click 'FAQs' or 'Custom Requests' tabs. Must add ['faqs','FAQs'] and ['custom-requests','Custom Requests'] to the tabs array AND `{tab==='faqs' && <FaqTab token={token}/>}` and `{tab==='custom-requests' && <CustomRequestsTab token={token}/>}` in render block.", "selector": "[data-testid='admin-tab-faqs'], [data-testid='admin-tab-custom-requests']", "priority": "CRITICAL"},
+      {"component": "pages/ProductDetail.jsx", "issue": "Currency: still uses '$120' in static English copy at line 229 ('Complimentary shipping over $120') and line 262 ('Complimentary shipping on orders over $120. 14-day returns...'). Should be '€30' to match seeded FAQ wording and IBAN settings.", "selector": "product detail page benefits list", "priority": "MEDIUM"},
+      {"component": "pages/Shop.jsx (price filter)", "issue": "Currency: filter dropdown options show 'Under $40', '$40 – $80', '$80+'. Should be € throughout.", "selector": "[data-testid='shop-price-filter']", "priority": "MEDIUM"},
+      {"component": "pages/Admin.jsx (line 237 ProductsTab)", "issue": "Field label still reads 'Price ($)' — should be 'Price (€)'.", "selector": "[data-testid='admin-field-price'] label", "priority": "LOW"}
+    ],
+    "integration_issues": [
+      {"flow": "Admin → FAQs / Custom Requests tabs", "issue": "Cannot test end-to-end via UI because the tab buttons do not render (see Admin.jsx critical bug above). However, the underlying tab components reference correct API helpers (adminListFaqs, adminCreateFaq, adminUpdateFaq, adminDeleteFaq, adminListCustomRequests, adminUpdateCustomRequest) and the backend endpoints all work — verified via test_phase1.py. Once nav is wired up, integration should work.", "affected_selectors": ["[data-testid='admin-tab-faqs']", "[data-testid='admin-tab-custom-requests']", "[data-testid='admin-new-faq']", "[data-testid^='faq-row-']"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_phase1.py",
+    "/app/test_reports/pytest/phase1_results.xml"
+  ],
+  "action_items": [
+    "Fix /app/frontend/src/pages/Admin.jsx — add ['faqs','FAQs'] and ['custom-requests','Custom Requests'] entries to the tab nav array (line 103) AND add `{tab==='faqs' && <FaqTab token={token}/>}` and `{tab==='custom-requests' && <CustomRequestsTab token={token}/>}` to the render block (line 124). The two components are already implemented in the same file (lines 726 and 813) — this is purely a wiring miss.",
+    "Replace remaining '$120' static copy in /app/frontend/src/pages/ProductDetail.jsx at lines 229 and 262 with '€30' (or whatever the new free-shipping threshold is) to align with FAQ wording.",
+    "Replace '$40 / $80' references in shop price-filter dropdown options (in /app/frontend/src/pages/Shop.jsx) with € equivalents.",
+    "Change Admin product-form label 'Price ($)' → 'Price (€)' at Admin.jsx line 237.",
+    "Optional: address eslint react-hooks/exhaustive-deps warnings in Admin.jsx useEffect calls (lines 275, 620, 733, 820) — wrap `load` in useCallback or add to deps."
+  ],
+  "critical_code_review_comments": [
+    "Home.jsx had a build-breaking orphan JSX block left over from a botched $→€ replace (issue called out in the agent-context-note). Fixed by deleting dead lines 192-214. Worth a final grep for similar orphan blocks: `grep -rn '^    >$' /app/frontend/src/pages/` returns nothing else, so this was the only one.",
+    "Admin.jsx is 972 lines — recommend splitting each *Tab function into its own file under /app/frontend/src/pages/admin/ (ProductsTab.jsx, FaqTab.jsx, CustomRequestsTab.jsx, etc.). With the tab wiring bug above, the file's size hid the regression — splitting would make this kind of miss obvious in code review.",
+    "server.py is now 1099 lines (was ~875 last iter). FAQ + Custom Requests routes added inline — also a candidate for routers/ split.",
+    "POST /api/custom-requests has NO admin auth required (by design — public form) but also NO rate limiting and NO basic spam protection (e.g. honeypot field, max-len check). Anyone can fill the DB with junk submissions. Recommend a simple max-length validation on idea_description (e.g. <=4000 chars) and a per-IP submission throttle.",
+    "FAQ POST/PUT accept arbitrary 'category' string — no enum validation. UI shows only 5 known categories; an admin typo will create an orphan category that filters can't reach.",
+    "CustomRequestStatusIn allows any string for status — should be Literal['new','reviewing','quoted','accepted','rejected','completed'] to prevent typos that break filters.",
+    "CustomRequest reference uses uuid4().hex[:6].upper() — 6 hex chars = 16M combinations; with low volume collision risk is negligible, but consider adding a unique index on `reference` in MongoDB just in case.",
+    "FAQ seed runs at startup unconditionally if count==0 — good (idempotent)."
+  ],
+  "updated_files": [
+    "/app/frontend/src/pages/Home.jsx (removed orphan JSX block at lines 192-214; build now passes)",
+    "/app/backend/tests/test_phase1.py (NEW — 17 tests covering FAQ public/admin CRUD, Custom Requests submit/list/update, and regression on products/settings/cms/hero/iban/admin-orders)"
+  ],
+  "success_rate": {
+    "backend": "100% — 17/17 Phase-1 tests pass. Full backend suite is now buildable and all new endpoints (FAQ, Custom Requests) work end-to-end with admin token gate.",
+    "frontend": "~70% — /faq, /custom-request, /shop/all, /cart, /admin (login + 5 visible tabs), product cards all render after Home.jsx fix. NOT verified end-to-end via UI: FAQs admin tab and Custom Requests admin tab (because they don't render — see CRITICAL bug). Currency switch is ~90% complete but 4 string-level $ leftovers remain (ProductDetail lines 229+262, Shop filter, Admin field label)."
+  },
+  "test_credentials": "Admin password: tuncel2026admin (X-Admin-Token header or via password input on /admin). Read /app/memory/test_credentials.md.",
+  "seed_data_creation": "Created and cleaned up: 1 TEST_PHASE1 FAQ (deleted in same test class). Created (not deleted): 1 Custom Request with reference CR-XXXXXX containing customer_name='TEST_PHASE1 Buyer', status walked through reviewing→quoted→accepted→completed. Also 1 IBAN test order with customer_name='TEST_PHASE1 IBAN'. Main agent can clean these via Mongo: db.custom_requests.deleteMany({customer_name:/^TEST_PHASE1/}) and similar for orders.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Phase 1 backend is solid (17/17 tests in /app/backend/tests/test_phase1.py — run with `pytest /app/backend/tests/test_phase1.py -v`). The main remaining issue is Admin.jsx tab wiring — once fixed, retest by: (1) login at /admin with tuncel2026admin, (2) click data-testid='admin-tab-faqs', verify [data-testid='admin-new-faq'] visible, create+edit+delete an FAQ, (3) click data-testid='admin-tab-custom-requests', verify CR- references appear in list, click row and update status. FAQ public page testids: faq-page, faq-cat-{all|shipping|returns|payment|custom|general}, faq-item-{idx}. Custom Request page testids likely follow custom-request-* pattern — verify by reading /app/frontend/src/pages/CustomRequest.jsx. Cart key in localStorage = 'tuncel_cart_v1'.",
+  "rca of the issue": "RCA — Home.jsx build break: The previous agent ran a global $→€ replace (per the request's agent-context-note). The patch script appears to have accidentally duplicated the newsletter <form> block: lines 156-188 contain the legitimate form; lines 192-214 are an orphan duplicate that starts with `>` (the closing > of an unclosed <form attr=...) followed by the same <input>+<button>+</form>+</div>+</section>+</div>+); + }. Because they sit after the function's closing `}` at line 191, babel-loader could not parse the file at all. Mitigation applied: removed lines 192-214; verified yarn build completes with exit 0. RCA — Admin tabs missing: The agent added FaqTab() and CustomRequestsTab() components (lines 726, 813) and added all the api.js helpers (adminListFaqs etc), but forgot to register them in the nav array at line 103 and the conditional render at line 124. The two new tabs were therefore implemented in isolation and never wired to the UI. Reproduction: log into /admin → only 5 tabs visible (Products / Orders / Hero Manager / Global Text / Settings). Expected: 7 tabs."
+}
