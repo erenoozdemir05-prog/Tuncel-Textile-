@@ -17,6 +17,12 @@ const LOOKBOOK = [
   "https://images.pexels.com/photos/8217430/pexels-photo-8217430.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=900&w=720",
 ];
 
+const cats = [
+  { label: "Men", to: "/shop/men", img: "https://images.pexels.com/photos/2587054/pexels-photo-2587054.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1200&w=900" },
+  { label: "Women", to: "/shop/women", img: "https://images.pexels.com/photos/1755428/pexels-photo-1755428.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1200&w=900" },
+  { label: "Accessories", to: "/shop/accessories", img: "https://images.pexels.com/photos/1152077/pexels-photo-1152077.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1200&w=900" },
+];
+
 const PROCESS = [
   { icon: Layers, kicker: "Step 01", title: "Sketch", body: "Every piece begins as a hand-drawn study at our table. No templates, no resampled assets — only the founder's pencil." },
   { icon: Hand, kicker: "Step 02", title: "Craft", body: "Heavyweight cotton, water-based finishes, hand-pulled in small editions. Each garment is signed and numbered." },

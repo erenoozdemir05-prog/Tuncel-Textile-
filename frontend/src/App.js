@@ -10,6 +10,7 @@ import { CmsProvider } from "@/contexts/CmsContext";
 import { Navbar } from "@/components/Navbar";
 import { Footer, WhatsappFAB } from "@/components/Footer";
 import { CookieBanner } from "@/components/CookieBanner";
+import { ChatWidget } from "@/components/ChatWidget";
 import { useFavicon } from "@/hooks/useFavicon";
 import Home from "@/pages/Home";
 import Shop from "@/pages/Shop";
@@ -25,6 +26,8 @@ import IbanSuccess from "@/pages/IbanSuccess";
 import FAQ from "@/pages/FAQ";
 import LegalPage from "@/pages/LegalPage";
 import CustomRequest from "@/pages/CustomRequest";
+import TrackOrder from "@/pages/TrackOrder";
+import ReturnRequest from "@/pages/ReturnRequest";
 
 function FaviconBridge() {
   const { settings } = useSettings();
@@ -51,6 +54,8 @@ function AppRouter() {
       <Route path="/about" element={<About />} />
       <Route path="/faq" element={<FAQ />} />
       <Route path="/custom-request" element={<CustomRequest />} />
+      <Route path="/track-order" element={<TrackOrder />} />
+      <Route path="/return-request" element={<ReturnRequest />} />
       <Route path="/legal/:slug" element={<LegalPage />} />
       <Route path="/cookie-policy" element={<CookiePolicy />} />
       <Route path="*" element={<Home />} />
@@ -74,6 +79,7 @@ function App() {
                   </main>
                   <Footer />
                   <WhatsappFAB />
+                  <ChatWidget />
                   <CookieBanner />
                   <Toaster position="bottom-center" />
                 </div>

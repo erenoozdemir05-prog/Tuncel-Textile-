@@ -88,6 +88,14 @@ export const adminMarkUnpaid = async (token, reference) => {
   const { data } = await api.post(`/admin/orders/${encodeURIComponent(reference)}/mark-unpaid`, {}, { headers: { "X-Admin-Token": token } });
   return data;
 };
+export const lookupOrder = async (reference, email) => {
+  const { data } = await api.post("/order-lookup", { reference, email });
+  return data;
+};
+export const adminUpdateFulfillment = async (token, reference, payload) => {
+  const { data } = await api.put(`/admin/orders/${encodeURIComponent(reference)}/fulfillment`, payload, { headers: { "X-Admin-Token": token } });
+  return data;
+};
 
 // ---- FAQs ----
 export const fetchFaqs = async () => {
@@ -122,6 +130,51 @@ export const adminListCustomRequests = async (token) => {
 };
 export const adminUpdateCustomRequest = async (token, id, payload) => {
   const { data } = await api.put(`/admin/custom-requests/${id}`, payload, { headers: { "X-Admin-Token": token } });
+  return data;
+};
+
+// ---- Returns ----
+export const submitReturn = async (payload) => {
+  const { data } = await api.post("/returns", payload);
+  return data;
+};
+export const adminListReturns = async (token) => {
+  const { data } = await api.get("/admin/returns", { headers: { "X-Admin-Token": token } });
+  return data;
+};
+export const adminUpdateReturn = async (token, id, payload) => {
+  const { data } = await api.put(`/admin/returns/${id}`, payload, { headers: { "X-Admin-Token": token } });
+  return data;
+};
+
+// ---- Live Chat ----
+export const chatStart = async (payload) => {
+  const { data } = await api.post("/chat/start", payload);
+  return data;
+};
+export const chatSend = async (sessionId, body) => {
+  const { data } = await api.post(`/chat/${sessionId}/message`, { body });
+  return data;
+};
+export const chatFetch = async (sessionId, since = null) => {
+  const params = since ? { since } : {};
+  const { data } = await api.get(`/chat/${sessionId}/messages`, { params });
+  return data;
+};
+export const adminChatSessions = async (token) => {
+  const { data } = await api.get("/admin/chat/sessions", { headers: { "X-Admin-Token": token } });
+  return data;
+};
+export const adminChatSession = async (token, sessionId) => {
+  const { data } = await api.get(`/admin/chat/${sessionId}`, { headers: { "X-Admin-Token": token } });
+  return data;
+};
+export const adminChatReply = async (token, sessionId, body) => {
+  const { data } = await api.post(`/admin/chat/${sessionId}/reply`, { body }, { headers: { "X-Admin-Token": token } });
+  return data;
+};
+export const adminChatClose = async (token, sessionId) => {
+  const { data } = await api.put(`/admin/chat/${sessionId}/close`, {}, { headers: { "X-Admin-Token": token } });
   return data;
 };
 

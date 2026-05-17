@@ -226,7 +226,7 @@ export default function ProductDetail() {
           <ul className="mt-8 space-y-2 border-t border-black/10 pt-6 text-sm text-neutral-700">
             <li className="flex items-center gap-2"><Check className="h-4 w-4" /> {cmsText(cmsItems, "limited_edition", locale, "Limited edition · numbered & signed")}</li>
             <li className="flex items-center gap-2"><Check className="h-4 w-4" /> {cmsText(cmsItems, "handcrafted", locale, "Hand-finished in our atelier")}</li>
-            <li className="flex items-center gap-2"><Check className="h-4 w-4" /> {cmsText(cmsItems, "free_shipping", locale, "Complimentary shipping over $120")}</li>
+            <li className="flex items-center gap-2"><Check className="h-4 w-4" /> {cmsText(cmsItems, "free_shipping", locale, "Complimentary shipping over €30")}</li>
           </ul>
 
           {/* Accordion details */}
@@ -259,7 +259,7 @@ export default function ProductDetail() {
             <AccordionItem value="shipping">
               <AccordionTrigger className="font-display text-lg uppercase tracking-[0.04em] hover:no-underline">Shipping & returns</AccordionTrigger>
               <AccordionContent className="text-sm leading-relaxed text-neutral-700">
-                Dispatched within 48 hours from our atelier in Riga. Complimentary shipping on orders over $120. 14-day returns on unworn pieces — limited editions are final sale.
+                Dispatched within 48 hours from our atelier in Riga. Complimentary shipping on orders over €30. 14-day returns on unworn pieces — limited editions are final sale.
               </AccordionContent>
             </AccordionItem>
           </Accordion>

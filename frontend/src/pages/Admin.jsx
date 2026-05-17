@@ -4,9 +4,11 @@ import {
   fetchProducts, fetchSettings, adminUpdateSettings,
   adminListHero, adminCreateHero, adminUpdateHero, adminDeleteHero, adminReorderHero,
   fetchCms, adminUpdateCms,
-  adminListOrders, adminMarkPaid, adminMarkUnpaid,
+  adminListOrders, adminMarkPaid, adminMarkUnpaid, adminUpdateFulfillment,
   adminListFaqs, adminCreateFaq, adminUpdateFaq, adminDeleteFaq,
   adminListCustomRequests, adminUpdateCustomRequest,
+  adminListReturns, adminUpdateReturn,
+  adminChatSessions, adminChatSession, adminChatReply, adminChatClose,
 } from "@/lib/api";
 import { toast } from "sonner";
 import { ArrowDown, ArrowUp, ImageIcon, Loader2, LogOut, Pencil, Plus, Save, Trash2, Upload, X } from "lucide-react";
@@ -105,6 +107,10 @@ export default function Admin() {
           ["orders", "Orders"],
           ["hero", "Hero Manager"],
           ["cms", "Global Text"],
+          ["faqs", "FAQs"],
+          ["custom-requests", "Custom Requests"],
+          ["returns", "Returns"],
+          ["chat", "Live Chat"],
           ["settings", "Settings"],
         ].map(([key, label]) => (
           <button
@@ -125,6 +131,10 @@ export default function Admin() {
         {tab === "orders" && <OrdersTab token={token} />}
         {tab === "hero" && <HeroTab token={token} />}
         {tab === "cms" && <CmsTab token={token} />}
+        {tab === "faqs" && <FaqTab token={token} />}
+        {tab === "custom-requests" && <CustomRequestsTab token={token} />}
+        {tab === "returns" && <ReturnsTab token={token} />}
+        {tab === "chat" && <ChatTab token={token} />}
         {tab === "settings" && <SettingsTab token={token} />}
       </div>
     </div>
@@ -234,7 +244,7 @@ function ProductsTab({ token }) {
           <Field label="Print name (badge)" value={form.print_name} onChange={(v) => setForm({ ...form, print_name: v })} />
           <Field label="Description" multiline value={form.description} onChange={(v) => setForm({ ...form, description: v })} />
           <div className="grid grid-cols-3 gap-3">
-            <Field label="Price ($)" type="number" value={form.price} onChange={(v) => setForm({ ...form, price: v })} testid="admin-field-price" />
+            <Field label="Price (€)" type="number" value={form.price} onChange={(v) => setForm({ ...form, price: v })} testid="admin-field-price" />
             <Select label="Category" value={form.category} onChange={(v) => setForm({ ...form, category: v })}
               options={[["men", "Men"], ["women", "Women"], ["accessories", "Accessories"]]} />
             <Select label="Type" value={form.product_type} onChange={(v) => setForm({ ...form, product_type: v })}
@@ -611,6 +621,7 @@ function OrdersTab({ token }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState("all"); // all | iban | card | paid | pending
+  const [expanded, setExpanded] = useState(null); // reference of currently expanded row
 
   const load = async () => {
     setLoading(true);
@@ -628,6 +639,13 @@ function OrdersTab({ token }) {
     if (!window.confirm(`Revert order ${ref} to AWAITING TRANSFER?`)) return;
     try { await adminMarkUnpaid(token, ref); toast.success("Reverted"); load(); }
     catch { toast.error("Failed"); }
+  };
+  const saveFulfillment = async (ref, payload) => {
+    try {
+      await adminUpdateFulfillment(token, ref, payload);
+      toast.success("Tracking updated");
+      load();
+    } catch { toast.error("Update failed"); }
   };
 
   const filtered = orders.filter((o) => {
@@ -684,8 +702,11 @@ function OrdersTab({ token }) {
                 const isIban = o.payment_method === "iban";
                 const isPaid = o.payment_status === "paid";
                 const date = o.created_at ? new Date(o.created_at).toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
+                const isExpanded = expanded === ref;
+                const fStatus = o.fulfillment_status || "pending";
                 return (
-                  <tr key={ref} data-testid={`order-row-${ref}`} className="border-b border-black/5 align-middle">
+                  <React.Fragment key={ref}>
+                  <tr data-testid={`order-row-${ref}`} className="border-b border-black/5 align-middle">
                     <td className="py-3 font-mono text-xs">{ref?.slice(0, 20)}</td>
                     <td className="text-xs text-neutral-600">{date}</td>
                     <td className="text-xs uppercase tracking-[0.15em]">{isIban ? "IBAN" : "Card"}</td>
@@ -694,8 +715,11 @@ function OrdersTab({ token }) {
                       <div className="text-neutral-500">{o.customer_email || "—"}</div>
                     </td>
                     <td className="font-semibold">{(o.currency === "eur" ? "€" : "$")}{Number(o.amount).toFixed(2)}</td>
-                    <td>{statusBadge(o.payment_status)}</td>
-                    <td className="py-3">
+                    <td>
+                      {statusBadge(o.payment_status)}
+                      <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-neutral-500">{fStatus.replace(/_/g, " ")}</div>
+                    </td>
+                    <td className="py-3 space-x-2 whitespace-nowrap">
                       {isIban && !isPaid && (
                         <button data-testid={`mark-paid-${ref}`} onClick={() => markPaid(ref)}
                           className="inline-flex items-center gap-1 bg-black px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white hover:bg-neutral-800">
@@ -708,8 +732,20 @@ function OrdersTab({ token }) {
                           Revert
                         </button>
                       )}
+                      <button data-testid={`order-toggle-${ref}`} onClick={() => setExpanded(isExpanded ? null : ref)}
+                        className="inline-flex items-center gap-1 border border-black/20 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] hover:bg-black hover:text-white">
+                        {isExpanded ? "Close" : "Tracking"}
+                      </button>
                     </td>
                   </tr>
+                  {isExpanded && (
+                    <tr className="border-b border-black/10 bg-neutral-50">
+                      <td colSpan={7} className="px-3 py-5">
+                        <FulfillmentEditor order={o} onSave={(p) => saveFulfillment(ref, p)} />
+                      </td>
+                    </tr>
+                  )}
+                  </React.Fragment>
                 );
               })}
             </tbody>
@@ -719,6 +755,82 @@ function OrdersTab({ token }) {
     </div>
   );
 }
+
+const FULFILLMENT_OPTIONS = ["pending", "processing", "shipped", "out_for_delivery", "delivered", "cancelled"];
+
+function FulfillmentEditor({ order, onSave }) {
+  const [form, setForm] = useState({
+    fulfillment_status: order.fulfillment_status || "pending",
+    tracking_carrier: order.tracking_carrier || "",
+    tracking_number: order.tracking_number || "",
+    tracking_url: order.tracking_url || "",
+    shipping_note: order.shipping_note || "",
+  });
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div>
+        <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500">Fulfillment status</label>
+        <select
+          data-testid={`ff-status-${order.reference}`}
+          value={form.fulfillment_status}
+          onChange={(e) => setForm({ ...form, fulfillment_status: e.target.value })}
+          className="mt-2 w-full appearance-none border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-black"
+        >
+          {FULFILLMENT_OPTIONS.map((s) => (<option key={s} value={s}>{s.replace(/_/g, " ")}</option>))}
+        </select>
+      </div>
+      <div>
+        <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500">Carrier</label>
+        <input
+          data-testid={`ff-carrier-${order.reference}`}
+          value={form.tracking_carrier}
+          onChange={(e) => setForm({ ...form, tracking_carrier: e.target.value })}
+          placeholder="DPD, Omniva, DHL…"
+          className="mt-2 w-full border border-black/15 px-3 py-2 text-sm outline-none focus:border-black"
+        />
+      </div>
+      <div>
+        <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500">Tracking number</label>
+        <input
+          data-testid={`ff-tracknum-${order.reference}`}
+          value={form.tracking_number}
+          onChange={(e) => setForm({ ...form, tracking_number: e.target.value })}
+          className="mt-2 w-full border border-black/15 px-3 py-2 font-mono text-sm outline-none focus:border-black"
+        />
+      </div>
+      <div>
+        <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500">Tracking URL</label>
+        <input
+          data-testid={`ff-trackurl-${order.reference}`}
+          value={form.tracking_url}
+          onChange={(e) => setForm({ ...form, tracking_url: e.target.value })}
+          placeholder="https://courier.com/track/…"
+          className="mt-2 w-full border border-black/15 px-3 py-2 text-sm outline-none focus:border-black"
+        />
+      </div>
+      <div className="sm:col-span-2">
+        <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500">Shipping note (shown to customer on /track-order)</label>
+        <textarea
+          data-testid={`ff-note-${order.reference}`}
+          rows={2}
+          value={form.shipping_note}
+          onChange={(e) => setForm({ ...form, shipping_note: e.target.value })}
+          className="mt-2 w-full border border-black/15 px-3 py-2 text-sm outline-none focus:border-black"
+        />
+      </div>
+      <div className="sm:col-span-2">
+        <button
+          data-testid={`ff-save-${order.reference}`}
+          onClick={() => onSave(form)}
+          className="inline-flex items-center gap-2 bg-black px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.25em] text-white hover:bg-neutral-800"
+        >
+          <Save className="h-3.5 w-3.5" /> Save tracking
+        </button>
+      </div>
+    </div>
+  );
+}
+
 
 /* ============================================================
    FAQ TAB
@@ -915,6 +1027,350 @@ const Info = ({ label, children }) => (
     <div className="mt-0.5 text-sm text-black">{children}</div>
   </div>
 );
+
+/* ============================================================
+   RETURNS TAB
+============================================================ */
+const RETURN_STATUS_OPTIONS = ["pending", "approved", "rejected", "in_transit", "received", "refunded", "exchanged", "cancelled"];
+
+function ReturnsTab({ token }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [filter, setFilter] = useState("all");
+  const [active, setActive] = useState(null);
+  const [edit, setEdit] = useState({ status: "pending", admin_notes: "" });
+
+  const load = async () => {
+    setLoading(true);
+    try { setItems(await adminListReturns(token)); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, []);
+
+  const openDetail = (r) => {
+    setActive(r);
+    setEdit({ status: r.status || "pending", admin_notes: r.admin_notes || "" });
+  };
+
+  const save = async () => {
+    try {
+      await adminUpdateReturn(token, active.id, edit);
+      toast.success("Return updated");
+      setActive(null);
+      load();
+    } catch { toast.error("Update failed"); }
+  };
+
+  const visible = items.filter((r) => filter === "all" || r.status === filter);
+
+  const statusBadge = (s) => {
+    const map = {
+      pending: "bg-amber-100 text-amber-900",
+      approved: "bg-blue-100 text-blue-900",
+      rejected: "bg-red-100 text-red-900",
+      in_transit: "bg-neutral-200 text-neutral-700",
+      received: "bg-purple-100 text-purple-900",
+      refunded: "bg-black text-white",
+      exchanged: "bg-black text-white",
+      cancelled: "bg-neutral-200 text-neutral-500",
+    };
+    return <span className={`inline-flex px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] ${map[s] || "bg-neutral-100 text-neutral-700"}`}>{(s || "pending").replace(/_/g, " ")}</span>;
+  };
+
+  return (
+    <div>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="font-display text-3xl uppercase tracking-[0.04em]">Returns & Exchanges</h2>
+          <p className="mt-1 text-sm text-neutral-600">Approve, reject and process refunds/exchanges submitted by customers.</p>
+        </div>
+        <div className="flex flex-wrap gap-1">
+          {[["all", "All"], ["pending", "Pending"], ["approved", "Approved"], ["rejected", "Rejected"], ["refunded", "Refunded"], ["exchanged", "Exchanged"]].map(([k, l]) => (
+            <button key={k} onClick={() => setFilter(k)} data-testid={`returns-filter-${k}`}
+              className={`px-3 py-2 text-[11px] uppercase tracking-[0.2em] ${filter === k ? "bg-black text-white" : "border border-black/15 hover:border-black"}`}>{l}</button>
+          ))}
+        </div>
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-neutral-500">Loading…</p>
+      ) : visible.length === 0 ? (
+        <div className="border border-dashed border-black/15 p-10 text-center text-sm text-neutral-500">No returns match this filter.</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px] text-sm">
+            <thead>
+              <tr className="border-b border-black/10 text-left text-[11px] uppercase tracking-[0.25em] text-neutral-500">
+                <th className="py-3">Reference</th><th>Date</th><th>Order</th><th>Customer</th><th>Type</th><th>Reason</th><th>Status</th><th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map((r) => (
+                <tr key={r.id} data-testid={`return-row-${r.reference}`} className="border-b border-black/5 align-middle">
+                  <td className="py-3 font-mono text-xs">{r.reference}</td>
+                  <td className="text-xs text-neutral-600">{r.created_at ? new Date(r.created_at).toLocaleDateString() : "—"}</td>
+                  <td className="py-3 font-mono text-xs">{r.order_reference}</td>
+                  <td className="text-xs">
+                    <div className="font-semibold">{r.customer_name || "—"}</div>
+                    <div className="text-neutral-500">{r.email}</div>
+                  </td>
+                  <td className="text-xs uppercase tracking-[0.15em]">{r.return_type}</td>
+                  <td className="text-xs">{(r.reason || "").replace(/_/g, " ")}</td>
+                  <td>{statusBadge(r.status)}</td>
+                  <td className="py-3">
+                    <button data-testid={`return-open-${r.reference}`} onClick={() => openDetail(r)}
+                      className="inline-flex items-center gap-1 border border-black/20 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] hover:bg-black hover:text-white">
+                      Open
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {active && (
+        <Drawer title={`Return · ${active.reference}`} wide onClose={() => setActive(null)} onSave={save}>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Info label="Order">{active.order_reference}</Info>
+            <Info label="Customer">{active.customer_name || "—"} · {active.email}</Info>
+            <Info label="Type">{active.return_type}</Info>
+            <Info label="Reason">{(active.reason || "").replace(/_/g, " ")}</Info>
+            {active.exchange_size && <Info label="Exchange size">{active.exchange_size}</Info>}
+            {active.iban_for_refund && <Info label="Refund IBAN"><span className="font-mono">{active.iban_for_refund}</span></Info>}
+          </div>
+          <div className="mt-5">
+            <div className="text-[10px] uppercase tracking-[0.25em] text-neutral-500">Customer description</div>
+            <div className="mt-1 whitespace-pre-wrap text-sm text-neutral-800">{active.description}</div>
+          </div>
+          {active.image_urls?.length > 0 && (
+            <div className="mt-5">
+              <div className="text-[10px] uppercase tracking-[0.25em] text-neutral-500">Photos ({active.image_urls.length})</div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {active.image_urls.map((u, i) => (
+                  <img key={i} src={u} alt={`return-${i}`} className="h-24 w-24 border border-black/10 object-cover" />
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500">Status</label>
+              <select
+                data-testid="return-edit-status"
+                value={edit.status}
+                onChange={(e) => setEdit({ ...edit, status: e.target.value })}
+                className="mt-2 w-full appearance-none border border-black/15 bg-white px-3 py-2 text-sm outline-none focus:border-black"
+              >
+                {RETURN_STATUS_OPTIONS.map((s) => (<option key={s} value={s}>{s.replace(/_/g, " ")}</option>))}
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500">Internal admin notes</label>
+              <textarea
+                data-testid="return-edit-notes"
+                rows={3}
+                value={edit.admin_notes}
+                onChange={(e) => setEdit({ ...edit, admin_notes: e.target.value })}
+                className="mt-2 w-full border border-black/15 px-3 py-2 text-sm outline-none focus:border-black"
+              />
+            </div>
+          </div>
+        </Drawer>
+      )}
+    </div>
+  );
+}
+
+
+/* ============================================================
+   CHAT TAB (admin live chat console)
+============================================================ */
+function ChatTab({ token }) {
+  const [sessions, setSessions] = useState([]);
+  const [activeId, setActiveId] = useState(null);
+  const [activeData, setActiveData] = useState(null);
+  const [draft, setDraft] = useState("");
+  const [loading, setLoading] = useState(false);
+  const scrollRef = React.useRef(null);
+
+  const loadSessions = async () => {
+    try { setSessions(await adminChatSessions(token)); } catch { /* ignore */ }
+  };
+
+  const loadSession = async (id) => {
+    setLoading(true);
+    try {
+      const d = await adminChatSession(token, id);
+      setActiveData(d);
+      setActiveId(id);
+    } finally { setLoading(false); }
+  };
+
+  useEffect(() => {
+    loadSessions();
+    const t = setInterval(loadSessions, 5000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!activeId) return undefined;
+    const t = setInterval(() => loadSession(activeId), 4000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId]);
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [activeData?.messages?.length]);
+
+  const reply = async (e) => {
+    e?.preventDefault();
+    if (!draft.trim() || !activeId) return;
+    const body = draft.trim();
+    setDraft("");
+    try {
+      await adminChatReply(token, activeId, body);
+      await loadSession(activeId);
+      loadSessions();
+    } catch { toast.error("Reply failed"); }
+  };
+
+  const closeChat = async () => {
+    if (!activeId) return;
+    if (!window.confirm("Close this chat session?")) return;
+    try {
+      await adminChatClose(token, activeId);
+      toast.success("Chat closed");
+      await loadSession(activeId);
+      loadSessions();
+    } catch { toast.error("Failed"); }
+  };
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h2 className="font-display text-3xl uppercase tracking-[0.04em]">Live Chat</h2>
+        <p className="mt-1 text-sm text-neutral-600">Reply to customers using the chat widget. Auto-refresh every 5 seconds.</p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-0 border border-black/10 lg:grid-cols-[300px_1fr]" style={{ minHeight: 560 }}>
+        {/* SESSIONS LIST */}
+        <div className="border-b border-black/10 lg:border-b-0 lg:border-r">
+          <div className="border-b border-black/10 px-4 py-3 text-[11px] uppercase tracking-[0.25em] text-neutral-500">
+            Conversations ({sessions.length})
+          </div>
+          <div className="max-h-[520px] overflow-y-auto">
+            {sessions.length === 0 ? (
+              <p className="p-6 text-center text-sm text-neutral-500">No chats yet.</p>
+            ) : (
+              sessions.map((s) => (
+                <button
+                  key={s.id}
+                  data-testid={`chat-session-${s.id}`}
+                  onClick={() => loadSession(s.id)}
+                  className={`block w-full border-b border-black/5 px-4 py-3 text-left transition-colors ${
+                    activeId === s.id ? "bg-black text-white" : "hover:bg-neutral-50"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="font-display text-sm uppercase tracking-[0.04em]">{s.customer_name || "Visitor"}</div>
+                    {s.unread_for_admin > 0 && (
+                      <span className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-semibold text-white">{s.unread_for_admin}</span>
+                    )}
+                  </div>
+                  <div className={`mt-0.5 text-[10px] uppercase tracking-[0.2em] ${activeId === s.id ? "text-white/60" : "text-neutral-500"}`}>
+                    {s.status || "open"} · {s.updated_at ? new Date(s.updated_at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
+                  </div>
+                  {s.customer_email && (
+                    <div className={`mt-1 truncate text-xs ${activeId === s.id ? "text-white/70" : "text-neutral-600"}`}>{s.customer_email}</div>
+                  )}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* CHAT PANEL */}
+        <div className="flex flex-col">
+          {!activeData ? (
+            <div className="flex flex-1 items-center justify-center p-8 text-center text-sm text-neutral-400">
+              Select a conversation on the left.
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between border-b border-black/10 px-5 py-3">
+                <div>
+                  <div className="font-display text-lg uppercase tracking-[0.04em]">
+                    {activeData.session.customer_name || "Visitor"}
+                  </div>
+                  <div className="text-[10px] uppercase tracking-[0.25em] text-neutral-500">
+                    {activeData.session.customer_email || "no email"} · {activeData.session.status}
+                  </div>
+                </div>
+                {activeData.session.status === "open" && (
+                  <button onClick={closeChat} data-testid="chat-admin-close"
+                    className="border border-black/20 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] hover:bg-black hover:text-white">
+                    Close chat
+                  </button>
+                )}
+              </div>
+              <div ref={scrollRef} className="flex-1 overflow-y-auto bg-neutral-50 p-5" style={{ maxHeight: 440 }} data-testid="chat-admin-messages">
+                {loading && activeData.messages.length === 0 ? (
+                  <p className="text-center text-xs text-neutral-400">Loading…</p>
+                ) : activeData.messages.length === 0 ? (
+                  <p className="text-center text-xs text-neutral-400">No messages.</p>
+                ) : (
+                  activeData.messages.map((m) => (
+                    <div
+                      key={m.id}
+                      className={`mb-3 max-w-[75%] px-3 py-2 text-sm leading-relaxed ${
+                        m.sender === "admin" ? "ml-auto bg-black text-white" : "ml-0 bg-white text-black border border-black/10"
+                      }`}
+                    >
+                      {m.body}
+                      <div className={`mt-1 text-[9px] uppercase tracking-[0.2em] ${m.sender === "admin" ? "text-white/60" : "text-neutral-500"}`}>
+                        {m.sender === "admin" ? "You · Atelier" : (activeData.session.customer_name || "Customer")} · {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              {activeData.session.status === "open" ? (
+                <form onSubmit={reply} className="flex items-center gap-2 border-t border-black/10 p-3">
+                  <input
+                    data-testid="chat-admin-draft"
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    placeholder="Type your reply…"
+                    className="flex-1 border border-black/15 px-3 py-2 text-sm outline-none focus:border-black"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!draft.trim()}
+                    data-testid="chat-admin-send"
+                    className="bg-black px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-white disabled:opacity-40"
+                  >
+                    Send
+                  </button>
+                </form>
+              ) : (
+                <div className="border-t border-black/10 px-5 py-4 text-[11px] uppercase tracking-[0.25em] text-neutral-400">
+                  This conversation is closed.
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
 
 /* ============================================================
    SHARED UI HELPERS

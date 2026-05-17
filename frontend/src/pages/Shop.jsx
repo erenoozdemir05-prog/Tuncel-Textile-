@@ -25,9 +25,9 @@ const SORTS = [
 
 const PRICE_RANGES = [
   { key: "all", label: "All Prices" },
-  { key: "u40", label: "Under $40", max: 40 },
-  { key: "40-80", label: "$40 – $80", min: 40, max: 80 },
-  { key: "80p", label: "$80+", min: 80 },
+  { key: "u40", label: "Under €40", max: 40 },
+  { key: "40-80", label: "€40 – €80", min: 40, max: 80 },
+  { key: "80p", label: "€80+", min: 80 },
 ];
 
 export default function Shop() {

@@ -61,6 +61,8 @@ export const Footer = () => {
             <li><Link to="/about" className="tx-link">{t("nav.atelier")}</Link></li>
             <li><Link to="/faq" className="tx-link">FAQ</Link></li>
             <li><Link to="/custom-request" className="tx-link">Custom Request</Link></li>
+            <li><Link to="/track-order" className="tx-link" data-testid="footer-track-order">Track Order</Link></li>
+            <li><Link to="/return-request" className="tx-link" data-testid="footer-return">Returns & Exchanges</Link></li>
           </ul>
         </div>
 
@@ -116,7 +118,7 @@ export const WhatsappFAB = () => {
       rel="noopener noreferrer"
       data-testid="whatsapp-fab"
       aria-label="Chat on WhatsApp"
-      className="group fixed bottom-20 right-4 z-50 inline-flex items-center gap-2 bg-black px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.25em] text-white shadow-2xl ring-1 ring-white/10 transition-all hover:bg-[#25D366] hover:text-white sm:bottom-24 sm:right-6 sm:px-5 sm:py-3.5"
+      className="group fixed bottom-[90px] right-4 z-50 inline-flex items-center gap-2 bg-black px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.25em] text-white shadow-2xl ring-1 ring-white/10 transition-all hover:bg-[#25D366] hover:text-white sm:bottom-28 sm:right-8 sm:px-5 sm:py-3.5"
     >
       <svg viewBox="0 0 32 32" className="h-4 w-4" fill="currentColor"><path d="M19.11 17.29c-.3-.15-1.76-.87-2.04-.97-.27-.1-.47-.15-.66.15-.2.3-.76.97-.93 1.17-.17.2-.34.22-.64.07-.3-.15-1.27-.47-2.42-1.49-.9-.8-1.5-1.79-1.67-2.09-.17-.3-.02-.46.13-.61.13-.13.3-.34.45-.51.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.66-1.6-.91-2.18-.24-.58-.49-.5-.66-.5h-.56c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.49 0 1.47 1.07 2.89 1.22 3.09.15.2 2.1 3.21 5.08 4.5.71.31 1.27.49 1.7.63.71.23 1.36.2 1.87.12.57-.08 1.76-.72 2.01-1.42.25-.7.25-1.3.18-1.42-.07-.13-.27-.2-.57-.35zm-5.07 6.95h-.01a9.94 9.94 0 0 1-5.06-1.39l-.36-.21-3.76.99 1-3.67-.24-.38a9.93 9.93 0 0 1-1.52-5.3c0-5.49 4.47-9.96 9.97-9.96 2.66 0 5.16 1.04 7.04 2.92a9.9 9.9 0 0 1 2.92 7.04c0 5.49-4.47 9.96-9.98 9.96zm8.49-18.45A11.86 11.86 0 0 0 14.04 2C7.46 2 2.11 7.35 2.1 13.92c0 2.1.55 4.15 1.59 5.96L2 26l6.27-1.65a11.91 11.91 0 0 0 5.76 1.47h.01c6.58 0 11.93-5.35 11.94-11.92a11.85 11.85 0 0 0-3.49-8.46z" /></svg>
       <span className="hidden sm:inline">{t("common.chat_with_us")}</span>

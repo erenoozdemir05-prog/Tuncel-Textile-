@@ -793,6 +793,92 @@ async def admin_mark_unpaid(reference: str, _: bool = Depends(require_admin)):
 
 
 # ============================================================
+# ORDER FULFILLMENT / TRACKING (Phase 2)
+# ============================================================
+FULFILLMENT_STATUSES = ["pending", "processing", "shipped", "out_for_delivery", "delivered", "cancelled"]
+
+
+class OrderLookupIn(BaseModel):
+    reference: str
+    email: EmailStr
+
+
+def _public_order_view(doc: dict) -> dict:
+    """Strip internal/sensitive fields; only return what customer needs to see."""
+    return {
+        "reference": doc.get("reference") or doc.get("session_id"),
+        "customer_name": doc.get("customer_name"),
+        "customer_email": doc.get("customer_email"),
+        "amount": doc.get("amount"),
+        "currency": doc.get("currency", "eur"),
+        "payment_status": doc.get("payment_status"),
+        "payment_method": doc.get("payment_method"),
+        "fulfillment_status": doc.get("fulfillment_status", "pending"),
+        "tracking_carrier": doc.get("tracking_carrier"),
+        "tracking_number": doc.get("tracking_number"),
+        "tracking_url": doc.get("tracking_url"),
+        "shipping_note": doc.get("shipping_note"),
+        "shipping_address": doc.get("shipping_address"),
+        "items_summary": (doc.get("metadata") or {}).get("items", ""),
+        "items": doc.get("items", []),
+        "created_at": doc.get("created_at"),
+        "updated_at": doc.get("updated_at"),
+        "shipped_at": doc.get("shipped_at"),
+        "delivered_at": doc.get("delivered_at"),
+    }
+
+
+@api_router.post("/order-lookup")
+async def public_order_lookup(payload: OrderLookupIn):
+    """Customer-facing order tracking — must provide reference + matching email."""
+    ref = payload.reference.strip().upper()
+    email = payload.email.strip().lower()
+    doc = await db.payment_transactions.find_one(
+        {"$or": [{"reference": ref}, {"session_id": ref}]},
+        {"_id": 0},
+    )
+    if not doc:
+        raise HTTPException(404, "Order not found")
+    stored_email = (doc.get("customer_email") or "").strip().lower()
+    if stored_email != email:
+        # Don't reveal whether ref exists — same 404 message
+        raise HTTPException(404, "Order not found")
+    return _public_order_view(doc)
+
+
+class OrderFulfillmentIn(BaseModel):
+    fulfillment_status: Optional[str] = None
+    tracking_carrier: Optional[str] = None
+    tracking_number: Optional[str] = None
+    tracking_url: Optional[str] = None
+    shipping_note: Optional[str] = None
+
+
+@api_router.put("/admin/orders/{reference}/fulfillment")
+async def admin_update_fulfillment(reference: str, payload: OrderFulfillmentIn, _: bool = Depends(require_admin)):
+    update = {k: v for k, v in payload.model_dump().items() if v is not None}
+    if "fulfillment_status" in update and update["fulfillment_status"] not in FULFILLMENT_STATUSES:
+        raise HTTPException(400, f"Invalid status. Allowed: {', '.join(FULFILLMENT_STATUSES)}")
+    now = datetime.now(timezone.utc).isoformat()
+    update["updated_at"] = now
+    if update.get("fulfillment_status") == "shipped":
+        update["shipped_at"] = now
+    if update.get("fulfillment_status") == "delivered":
+        update["delivered_at"] = now
+    res = await db.payment_transactions.update_one(
+        {"$or": [{"reference": reference}, {"session_id": reference}]},
+        {"$set": update},
+    )
+    if res.matched_count == 0:
+        raise HTTPException(404, "Order not found")
+    doc = await db.payment_transactions.find_one(
+        {"$or": [{"reference": reference}, {"session_id": reference}]},
+        {"_id": 0},
+    )
+    return _public_order_view(doc)
+
+
+# ============================================================
 # HERO SLIDES (CMS - homepage hero manager)
 # ============================================================
 LANG_KEYS = ["en", "ru", "lv"]
@@ -1077,6 +1163,232 @@ async def admin_update_custom_request(request_id: str, payload: CustomRequestSta
     if res.matched_count == 0:
         raise HTTPException(404, "Request not found")
     return await db.custom_requests.find_one({"id": request_id}, {"_id": 0})
+
+
+# ============================================================
+# RETURNS / EXCHANGES (Phase 3)
+# ============================================================
+RETURN_STATUSES = ["pending", "approved", "rejected", "in_transit", "received", "refunded", "exchanged", "cancelled"]
+RETURN_TYPES = ["refund", "exchange"]
+RETURN_REASONS = ["size_too_small", "size_too_big", "not_as_described", "quality_issue", "wrong_item", "changed_mind", "other"]
+
+
+class ReturnIn(BaseModel):
+    order_reference: str
+    email: EmailStr
+    return_type: str  # refund | exchange
+    reason: str
+    description: str
+    items: List[str] = []  # list of product names or product_ids from the order
+    image_urls: List[str] = []
+    exchange_size: Optional[str] = None
+    iban_for_refund: Optional[str] = None
+
+
+@api_router.post("/returns")
+async def submit_return(payload: ReturnIn):
+    ref = payload.order_reference.strip().upper()
+    email = payload.email.strip().lower()
+    if payload.return_type not in RETURN_TYPES:
+        raise HTTPException(400, f"Invalid return_type. Allowed: {', '.join(RETURN_TYPES)}")
+    if payload.reason not in RETURN_REASONS:
+        raise HTTPException(400, f"Invalid reason. Allowed: {', '.join(RETURN_REASONS)}")
+    if len(payload.description) > 4000:
+        raise HTTPException(400, "Description too long (max 4000 chars)")
+
+    order = await db.payment_transactions.find_one(
+        {"$or": [{"reference": ref}, {"session_id": ref}]},
+        {"_id": 0},
+    )
+    if not order:
+        raise HTTPException(404, "Order not found. Please check the reference.")
+    stored_email = (order.get("customer_email") or "").strip().lower()
+    if stored_email != email:
+        raise HTTPException(404, "Order not found. Please check the reference.")
+
+    short_id = uuid.uuid4().hex[:6].upper()
+    doc = payload.model_dump()
+    doc["id"] = str(uuid.uuid4())
+    doc["reference"] = f"RT-{short_id}"
+    doc["order_reference"] = ref
+    doc["customer_name"] = order.get("customer_name")
+    doc["status"] = "pending"
+    doc["admin_notes"] = ""
+    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    doc["updated_at"] = doc["created_at"]
+    await db.returns.insert_one(doc)
+    return {"reference": doc["reference"], "id": doc["id"], "status": doc["status"]}
+
+
+@api_router.get("/admin/returns")
+async def admin_list_returns(_: bool = Depends(require_admin)):
+    return await db.returns.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
+
+
+class ReturnStatusIn(BaseModel):
+    status: Optional[str] = None
+    admin_notes: Optional[str] = None
+
+
+@api_router.put("/admin/returns/{return_id}")
+async def admin_update_return(return_id: str, payload: ReturnStatusIn, _: bool = Depends(require_admin)):
+    update = {k: v for k, v in payload.model_dump().items() if v is not None}
+    if "status" in update and update["status"] not in RETURN_STATUSES:
+        raise HTTPException(400, f"Invalid status. Allowed: {', '.join(RETURN_STATUSES)}")
+    update["updated_at"] = datetime.now(timezone.utc).isoformat()
+    res = await db.returns.update_one({"id": return_id}, {"$set": update})
+    if res.matched_count == 0:
+        raise HTTPException(404, "Return not found")
+    return await db.returns.find_one({"id": return_id}, {"_id": 0})
+
+
+# ============================================================
+# LIVE CHAT (Phase 4) — polling-based widget
+# ============================================================
+class ChatStartIn(BaseModel):
+    customer_name: Optional[str] = None
+    customer_email: Optional[EmailStr] = None
+    initial_message: Optional[str] = None
+
+
+class ChatMessageIn(BaseModel):
+    body: str
+
+
+@api_router.post("/chat/start")
+async def chat_start(payload: ChatStartIn):
+    session_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    doc = {
+        "id": session_id,
+        "customer_name": payload.customer_name or "Visitor",
+        "customer_email": payload.customer_email,
+        "status": "open",  # open | closed
+        "last_customer_at": now,
+        "last_admin_at": None,
+        "unread_for_admin": 0,
+        "unread_for_customer": 0,
+        "created_at": now,
+        "updated_at": now,
+    }
+    await db.chat_sessions.insert_one(doc)
+
+    if payload.initial_message:
+        msg = {
+            "id": str(uuid.uuid4()),
+            "session_id": session_id,
+            "sender": "customer",
+            "body": payload.initial_message[:4000],
+            "created_at": now,
+        }
+        await db.chat_messages.insert_one(msg)
+        await db.chat_sessions.update_one(
+            {"id": session_id},
+            {"$set": {"updated_at": now, "last_customer_at": now}, "$inc": {"unread_for_admin": 1}},
+        )
+
+    return {"session_id": session_id}
+
+
+@api_router.post("/chat/{session_id}/message")
+async def chat_send_message(session_id: str, payload: ChatMessageIn):
+    sess = await db.chat_sessions.find_one({"id": session_id}, {"_id": 0})
+    if not sess:
+        raise HTTPException(404, "Chat session not found")
+    if sess.get("status") == "closed":
+        raise HTTPException(400, "Chat is closed")
+    if not payload.body or not payload.body.strip():
+        raise HTTPException(400, "Empty message")
+    body = payload.body.strip()[:4000]
+    now = datetime.now(timezone.utc).isoformat()
+    msg = {
+        "id": str(uuid.uuid4()),
+        "session_id": session_id,
+        "sender": "customer",
+        "body": body,
+        "created_at": now,
+    }
+    await db.chat_messages.insert_one(msg)
+    await db.chat_sessions.update_one(
+        {"id": session_id},
+        {"$set": {"updated_at": now, "last_customer_at": now, "status": "open"}, "$inc": {"unread_for_admin": 1}},
+    )
+    return {k: v for k, v in msg.items() if k != "_id"}
+
+
+@api_router.get("/chat/{session_id}/messages")
+async def chat_get_messages(session_id: str, since: Optional[str] = None):
+    sess = await db.chat_sessions.find_one({"id": session_id}, {"_id": 0})
+    if not sess:
+        raise HTTPException(404, "Chat session not found")
+    q = {"session_id": session_id}
+    if since:
+        q["created_at"] = {"$gt": since}
+    msgs = await db.chat_messages.find(q, {"_id": 0}).sort("created_at", 1).to_list(500)
+    # Mark customer's view as read (clear unread_for_customer)
+    if not since:  # full fetch -> consider as opening the panel
+        await db.chat_sessions.update_one({"id": session_id}, {"$set": {"unread_for_customer": 0}})
+    return {
+        "session": {
+            "id": sess["id"],
+            "status": sess.get("status", "open"),
+            "customer_name": sess.get("customer_name"),
+            "unread_for_customer": sess.get("unread_for_customer", 0),
+        },
+        "messages": msgs,
+    }
+
+
+@api_router.get("/admin/chat/sessions")
+async def admin_chat_sessions(_: bool = Depends(require_admin)):
+    sessions = await db.chat_sessions.find({}, {"_id": 0}).sort("updated_at", -1).to_list(500)
+    return sessions
+
+
+@api_router.get("/admin/chat/{session_id}")
+async def admin_chat_session(session_id: str, _: bool = Depends(require_admin)):
+    sess = await db.chat_sessions.find_one({"id": session_id}, {"_id": 0})
+    if not sess:
+        raise HTTPException(404, "Chat session not found")
+    msgs = await db.chat_messages.find({"session_id": session_id}, {"_id": 0}).sort("created_at", 1).to_list(500)
+    # Mark admin's view as read
+    await db.chat_sessions.update_one({"id": session_id}, {"$set": {"unread_for_admin": 0}})
+    return {"session": sess, "messages": msgs}
+
+
+@api_router.post("/admin/chat/{session_id}/reply")
+async def admin_chat_reply(session_id: str, payload: ChatMessageIn, _: bool = Depends(require_admin)):
+    sess = await db.chat_sessions.find_one({"id": session_id}, {"_id": 0})
+    if not sess:
+        raise HTTPException(404, "Chat session not found")
+    if not payload.body or not payload.body.strip():
+        raise HTTPException(400, "Empty message")
+    body = payload.body.strip()[:4000]
+    now = datetime.now(timezone.utc).isoformat()
+    msg = {
+        "id": str(uuid.uuid4()),
+        "session_id": session_id,
+        "sender": "admin",
+        "body": body,
+        "created_at": now,
+    }
+    await db.chat_messages.insert_one(msg)
+    await db.chat_sessions.update_one(
+        {"id": session_id},
+        {"$set": {"updated_at": now, "last_admin_at": now, "status": "open"}, "$inc": {"unread_for_customer": 1}},
+    )
+    return {k: v for k, v in msg.items() if k != "_id"}
+
+
+@api_router.put("/admin/chat/{session_id}/close")
+async def admin_chat_close(session_id: str, _: bool = Depends(require_admin)):
+    res = await db.chat_sessions.update_one(
+        {"id": session_id},
+        {"$set": {"status": "closed", "updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    if res.matched_count == 0:
+        raise HTTPException(404, "Chat session not found")
+    return {"ok": True}
 
 
 app.include_router(api_router)

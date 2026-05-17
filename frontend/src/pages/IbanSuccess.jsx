@@ -85,8 +85,15 @@ export default function IbanSuccess() {
 
       <div className="mt-10 flex flex-wrap gap-3">
         <Link
-          to="/shop/all"
+          to={`/track-order?ref=${encodeURIComponent(order.reference)}`}
+          data-testid="iban-track-link"
           className="inline-flex items-center gap-2 bg-black px-7 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] text-white"
+        >
+          Track Order →
+        </Link>
+        <Link
+          to="/shop/all"
+          className="inline-flex items-center gap-2 border border-black px-7 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] text-black hover:bg-black hover:text-white"
         >
           Continue Shopping
         </Link>
