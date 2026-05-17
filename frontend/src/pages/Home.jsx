@@ -5,26 +5,9 @@ import { ProductCard } from "@/components/ProductCard";
 import { HeroSlider } from "@/components/HeroSlider";
 import { useCms } from "@/contexts/CmsContext";
 import { useI18n } from "@/contexts/I18nContext";
+import { useSettings } from "@/contexts/SettingsContext";
 import { ArrowRight, Hand, Layers, Package } from "lucide-react";
 import { toast } from "sonner";
-
-const CATS = [
-  {
-    to: "/shop/men",
-    label: "Men",
-    img: "https://images.pexels.com/photos/2540152/pexels-photo-2540152.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1200&w=900",
-  },
-  {
-    to: "/shop/women",
-    label: "Women",
-    img: "https://images.pexels.com/photos/8945179/pexels-photo-8945179.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1200&w=900",
-  },
-  {
-    to: "/shop/accessories",
-    label: "Accessories",
-    img: "https://images.pexels.com/photos/16039231/pexels-photo-16039231.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1200&w=900",
-  },
-];
 
 const LOOKBOOK = [
   "https://images.pexels.com/photos/8217340/pexels-photo-8217340.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=900&w=720",
@@ -73,11 +56,11 @@ export default function Home() {
           </Link>
         </div>
         <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
-          {CATS.map((c, i) => (
+          {cats.map((c, i) => (
             <Link
               to={c.to}
-              key={c.label}
-              data-testid={`cat-card-${c.label.toLowerCase()}`}
+              key={c.label || i}
+              data-testid={`cat-card-${(c.label || "").toLowerCase()}`}
               className="group relative aspect-[3/4] overflow-hidden bg-neutral-100"
             >
               <img src={c.img} alt={c.label} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
@@ -184,6 +167,29 @@ export default function Home() {
             onSubmit={handleSubscribe}
             className="flex flex-col gap-3 sm:flex-row"
           >
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="your@email.com"
+              data-testid="newsletter-input"
+              className="flex-1 border border-white/30 bg-transparent px-5 py-4 text-sm text-white placeholder:text-white/40 focus:border-white focus:outline-none"
+            />
+            <button
+              type="submit"
+              data-testid="newsletter-submit"
+              className="inline-flex items-center justify-center gap-2 bg-white px-8 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] text-black hover:bg-neutral-200"
+            >
+              Subscribe
+            </button>
+          </form>
+        </div>
+      </section>
+    </div>
+  );
+}
+    >
             <input
               type="email"
               required

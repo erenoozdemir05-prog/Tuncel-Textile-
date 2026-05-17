@@ -138,7 +138,7 @@ export default function ProductDetail() {
         <div className="order-3 flex flex-col">
           <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">{product.product_type} · {product.category}</div>
           <h1 className="font-display mt-2 text-5xl uppercase leading-none tracking-[0.02em] sm:text-7xl">{product.name}</h1>
-          <div className="mt-4 text-2xl font-semibold">${Number(product.price).toFixed(2)}</div>
+          <div className="mt-4 text-2xl font-semibold">€{Number(product.price).toFixed(2)}</div>
 
           <p className="mt-8 max-w-md text-[15px] leading-relaxed text-neutral-700">{product.description}</p>
 

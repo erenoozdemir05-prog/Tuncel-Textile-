@@ -89,6 +89,50 @@ export const adminMarkUnpaid = async (token, reference) => {
   return data;
 };
 
+// ---- FAQs ----
+export const fetchFaqs = async () => {
+  const { data } = await api.get("/faqs");
+  return data;
+};
+export const adminListFaqs = async (token) => {
+  const { data } = await api.get("/admin/faqs", { headers: { "X-Admin-Token": token } });
+  return data;
+};
+export const adminCreateFaq = async (token, payload) => {
+  const { data } = await api.post("/admin/faqs", payload, { headers: { "X-Admin-Token": token } });
+  return data;
+};
+export const adminUpdateFaq = async (token, id, payload) => {
+  const { data } = await api.put(`/admin/faqs/${id}`, payload, { headers: { "X-Admin-Token": token } });
+  return data;
+};
+export const adminDeleteFaq = async (token, id) => {
+  const { data } = await api.delete(`/admin/faqs/${id}`, { headers: { "X-Admin-Token": token } });
+  return data;
+};
+
+// ---- Custom Requests ----
+export const submitCustomRequest = async (payload) => {
+  const { data } = await api.post("/custom-requests", payload);
+  return data;
+};
+export const adminListCustomRequests = async (token) => {
+  const { data } = await api.get("/admin/custom-requests", { headers: { "X-Admin-Token": token } });
+  return data;
+};
+export const adminUpdateCustomRequest = async (token, id, payload) => {
+  const { data } = await api.put(`/admin/custom-requests/${id}`, payload, { headers: { "X-Admin-Token": token } });
+  return data;
+};
+
+// ---- Uploads (public for custom request images) ----
+export const uploadPublicImage = async (token, file) => {
+  // Reuses admin upload for now (token still required to keep it safe).
+  // Public upload via the same endpoint with admin token = no.
+  // We expose a custom-request specific public endpoint? — fallback: use base64 inline preview, never upload.
+  return null;
+};
+
 // ---- Auth ----
 export const exchangeSession = async (sessionId) => {
   const { data } = await api.post("/auth/session", { session_id: sessionId });

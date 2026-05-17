@@ -59,7 +59,8 @@ export const Footer = () => {
             <li><Link to="/shop/women" className="tx-link">{t("nav.women")}</Link></li>
             <li><Link to="/shop/accessories" className="tx-link">{t("nav.accessories")}</Link></li>
             <li><Link to="/about" className="tx-link">{t("nav.atelier")}</Link></li>
-            <li><Link to="/cookie-policy" className="tx-link">Cookie Policy</Link></li>
+            <li><Link to="/faq" className="tx-link">FAQ</Link></li>
+            <li><Link to="/custom-request" className="tx-link">Custom Request</Link></li>
           </ul>
         </div>
 
@@ -78,10 +79,17 @@ export const Footer = () => {
               </a>
             </li>
             <li>
-              <a href="mailto:hello@tunceltextile.com" className="tx-link">
-                hello@tunceltextile.com
+              <a href={`mailto:${settings?.contact_email || "tunceltextile@gmail.com"}`} className="tx-link">
+                {settings?.contact_email || "tunceltextile@gmail.com"}
               </a>
             </li>
+            <li className="pt-3 text-xs uppercase tracking-[0.25em] text-white/50">Legal</li>
+            <li><Link to="/legal/privacy" className="tx-link">Privacy</Link></li>
+            <li><Link to="/legal/terms-of-use" className="tx-link">Terms of Use</Link></li>
+            <li><Link to="/legal/terms-of-sale" className="tx-link">Terms of Sale</Link></li>
+            <li><Link to="/legal/imprint" className="tx-link">Imprint</Link></li>
+            <li><Link to="/cookie-policy" className="tx-link">Cookies</Link></li>
+            <li><Link to="/legal/accessibility" className="tx-link">Accessibility</Link></li>
           </ul>
         </div>
       </div>

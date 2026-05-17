@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useI18n } from "@/contexts/I18nContext";
 
 const FALLBACK_HERO = {
@@ -13,13 +13,22 @@ const FALLBACK_HERO = {
 export const HeroSlider = ({ slides = [] }) => {
   const { locale, t } = useI18n();
   const [idx, setIdx] = useState(0);
+  const [animDir, setAnimDir] = useState(1);
   const list = slides.length > 0 ? slides : [FALLBACK_HERO];
 
   useEffect(() => {
     if (list.length <= 1) return;
-    const id = setInterval(() => setIdx((i) => (i + 1) % list.length), 7000);
+    const id = setInterval(() => {
+      setAnimDir(1);
+      setIdx((i) => (i + 1) % list.length);
+    }, 8000);
     return () => clearInterval(id);
   }, [list.length]);
+
+  const go = (dir) => {
+    setAnimDir(dir);
+    setIdx((i) => (i + dir + list.length) % list.length);
+  };
 
   const s = list[idx] || list[0];
   const pick = (obj, def = "") => (obj && (obj[locale] || obj.en)) || def;
@@ -28,31 +37,22 @@ export const HeroSlider = ({ slides = [] }) => {
 
   return (
     <section className="relative h-[90vh] w-full overflow-hidden bg-black" data-testid="hero-slider">
-      {/* Background media */}
-      {s.video_url ? (
-        <video
-          src={s.video_url}
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-      ) : (
-        <picture>
-          {s.mobile_image_url && <source media="(max-width: 640px)" srcSet={s.mobile_image_url} />}
-          <img
-            src={s.image_url || FALLBACK_HERO.image_url}
-            alt="Hero"
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-        </picture>
-      )}
+      {/* Background media — keyed so each slide remounts with fade animation */}
+      <div key={idx} className={`absolute inset-0 ${animDir > 0 ? "animate-[txFadeRight_900ms_cubic-bezier(0.22,1,0.36,1)]" : "animate-[txFadeLeft_900ms_cubic-bezier(0.22,1,0.36,1)]"}`}>
+        {s.video_url ? (
+          <video src={s.video_url} autoPlay muted loop playsInline className="absolute inset-0 h-full w-full object-cover" />
+        ) : (
+          <picture>
+            {s.mobile_image_url && <source media="(max-width: 640px)" srcSet={s.mobile_image_url} />}
+            <img src={s.image_url || FALLBACK_HERO.image_url} alt="Hero" className="absolute inset-0 h-full w-full object-cover" />
+          </picture>
+        )}
+      </div>
       {s.blur_enabled && <div className="absolute inset-0 backdrop-blur-[1px]" />}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/80" style={{ opacity: 1 }} />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/80" />
       <div className="absolute inset-0" style={{ background: `rgba(0,0,0,${overlay})` }} />
 
-      <div className="relative z-10 mx-auto flex h-full max-w-[1400px] flex-col justify-end px-5 pb-10 sm:px-8 sm:pb-14">
+      <div key={`copy-${idx}`} className="relative z-10 mx-auto flex h-full max-w-[1400px] flex-col justify-end px-5 pb-16 sm:px-8 sm:pb-20 animate-[txFadeUp_700ms_cubic-bezier(0.22,1,0.36,1)]">
         <div className="text-[11px] uppercase tracking-[0.4em] text-white/80">
           {fallbackMode ? t("hero.kicker") : pick(s.kicker, t("hero.kicker"))}
         </div>
@@ -98,13 +98,35 @@ export const HeroSlider = ({ slides = [] }) => {
         </div>
       </div>
 
+      {/* Arrows */}
+      {list.length > 1 && (
+        <>
+          <button
+            onClick={() => go(-1)}
+            aria-label="Previous slide"
+            data-testid="hero-prev"
+            className="absolute left-3 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 items-center justify-center border border-white/40 bg-black/30 text-white backdrop-blur-md transition-all hover:border-white hover:bg-white hover:text-black md:flex"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <button
+            onClick={() => go(1)}
+            aria-label="Next slide"
+            data-testid="hero-next"
+            className="absolute right-3 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 items-center justify-center border border-white/40 bg-black/30 text-white backdrop-blur-md transition-all hover:border-white hover:bg-white hover:text-black md:flex"
+          >
+            <ArrowRight className="h-5 w-5" />
+          </button>
+        </>
+      )}
+
       {/* Slide indicators */}
       {list.length > 1 && (
         <div className="absolute bottom-6 right-5 z-20 flex gap-2 sm:right-8">
           {list.map((_, i) => (
             <button
               key={i}
-              onClick={() => setIdx(i)}
+              onClick={() => { setAnimDir(i > idx ? 1 : -1); setIdx(i); }}
               aria-label={`Slide ${i + 1}`}
               data-testid={`hero-dot-${i}`}
               className={`h-1.5 transition-all ${i === idx ? "w-10 bg-white" : "w-5 bg-white/40 hover:bg-white/70"}`}

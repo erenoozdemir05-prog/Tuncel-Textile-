@@ -5,6 +5,8 @@ import {
   adminListHero, adminCreateHero, adminUpdateHero, adminDeleteHero, adminReorderHero,
   fetchCms, adminUpdateCms,
   adminListOrders, adminMarkPaid, adminMarkUnpaid,
+  adminListFaqs, adminCreateFaq, adminUpdateFaq, adminDeleteFaq,
+  adminListCustomRequests, adminUpdateCustomRequest,
 } from "@/lib/api";
 import { toast } from "sonner";
 import { ArrowDown, ArrowUp, ImageIcon, Loader2, LogOut, Pencil, Plus, Save, Trash2, Upload, X } from "lucide-react";
@@ -212,7 +214,7 @@ function ProductsTab({ token }) {
                   <td className="font-display text-lg">{p.name}</td>
                   <td className="capitalize">{p.category}</td>
                   <td className="capitalize">{p.product_type}</td>
-                  <td>${Number(p.price).toFixed(2)}</td>
+                  <td>€{Number(p.price).toFixed(2)}</td>
                   <td className="capitalize text-xs">{(p.status_label || "in_stock").replace("_", " ")}{p.status_label === "low_stock" && p.stock_count ? ` · ${p.stock_count}` : ""}</td>
                   <td>{p.featured ? "Yes" : "—"}</td>
                   <td className="flex gap-2 py-3">
@@ -526,10 +528,46 @@ function SettingsTab({ token }) {
       </div>
 
       <section>
-        <h3 className="font-display text-xl uppercase tracking-[0.04em]">WhatsApp</h3>
+        <h3 className="font-display text-xl uppercase tracking-[0.04em]">WhatsApp & Email</h3>
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Number (with +country)" value={s.whatsapp_number || ""} onChange={(v) => u("whatsapp_number", v)} />
-          <Field label="Default prefilled message" value={s.whatsapp_default_message || ""} onChange={(v) => u("whatsapp_default_message", v)} multiline />
+          <Field label="WhatsApp number (with +country)" value={s.whatsapp_number || ""} onChange={(v) => u("whatsapp_number", v)} />
+          <Field label="Contact email" value={s.contact_email || ""} onChange={(v) => u("contact_email", v)} testid="settings-contact-email" />
+          <div className="sm:col-span-2">
+            <Field label="WhatsApp default prefilled message" value={s.whatsapp_default_message || ""} onChange={(v) => u("whatsapp_default_message", v)} multiline />
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h3 className="font-display text-xl uppercase tracking-[0.04em]">Homepage Category Cards</h3>
+        <p className="mt-1 text-xs uppercase tracking-[0.25em] text-neutral-500">The three cards under "Three rooms. One language." Replace images and titles per language.</p>
+        <div className="mt-4 space-y-6">
+          {(s.category_cards || []).map((card, idx) => (
+            <div key={idx} className="border border-black/10 p-5" data-testid={`settings-cat-card-${card.slug || idx}`}>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field label="Slug" value={card.slug || ""} onChange={(v) => { const list = [...s.category_cards]; list[idx] = { ...list[idx], slug: v }; u("category_cards", list); }} />
+                <Field label="Link (to)" value={card.to || ""} onChange={(v) => { const list = [...s.category_cards]; list[idx] = { ...list[idx], to: v }; u("category_cards", list); }} />
+              </div>
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {["en", "ru", "lv"].map((lng) => (
+                  <Field key={lng} label={`Title (${lng})`} value={card.title?.[lng] || ""} onChange={(v) => { const list = [...s.category_cards]; list[idx] = { ...list[idx], title: { ...(list[idx].title || {}), [lng]: v } }; u("category_cards", list); }} />
+                ))}
+              </div>
+              <div className="mt-3">
+                <ImagePicker label="Card image"
+                  value={card.image_url || ""}
+                  onChange={(v) => { const list = [...s.category_cards]; list[idx] = { ...list[idx], image_url: v }; u("category_cards", list); }}
+                  onUpload={async (file) => {
+                    setUploadingKey(`cat-${idx}`);
+                    try { const res = await adminUploadImage(token, file); const list = [...s.category_cards]; list[idx] = { ...list[idx], image_url: res.url }; u("category_cards", list); toast.success("Uploaded"); }
+                    catch { toast.error("Upload failed"); }
+                    finally { setUploadingKey(null); }
+                  }}
+                  uploading={uploadingKey === `cat-${idx}`}
+                />
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -681,6 +719,202 @@ function OrdersTab({ token }) {
     </div>
   );
 }
+
+/* ============================================================
+   FAQ TAB
+============================================================ */
+function FaqTab({ token }) {
+  const [items, setItems] = useState([]);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState({ question: { en: "", ru: "", lv: "" }, answer: { en: "", ru: "", lv: "" }, category: "general", active: true, sort_order: 0 });
+  const [activeLang, setActiveLang] = useState("en");
+
+  const load = async () => setItems(await adminListFaqs(token));
+  useEffect(() => { load(); }, []);
+
+  const start = (it = null) => {
+    setForm(it ? {
+      ...it,
+      question: { en: "", ru: "", lv: "", ...(it.question || {}) },
+      answer: { en: "", ru: "", lv: "", ...(it.answer || {}) },
+    } : { question: { en: "", ru: "", lv: "" }, answer: { en: "", ru: "", lv: "" }, category: "general", active: true, sort_order: items.length });
+    setActiveLang("en");
+    setEditing(it ? it.id : "new");
+  };
+
+  const save = async () => {
+    try {
+      if (editing === "new") await adminCreateFaq(token, form);
+      else await adminUpdateFaq(token, editing, form);
+      toast.success("Saved");
+      setEditing(null);
+      load();
+    } catch { toast.error("Save failed"); }
+  };
+
+  const remove = async (id) => {
+    if (!window.confirm("Delete this FAQ?")) return;
+    await adminDeleteFaq(token, id);
+    toast.success("Deleted");
+    load();
+  };
+
+  return (
+    <>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h2 className="font-display text-3xl uppercase tracking-[0.04em]">FAQ</h2>
+          <p className="mt-1 text-sm text-neutral-600">Public FAQ shown at /faq. Multilingual.</p>
+        </div>
+        <button onClick={() => start()} data-testid="admin-new-faq" className="inline-flex items-center gap-2 bg-black px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.25em] text-white">
+          <Plus className="h-3.5 w-3.5" /> New FAQ
+        </button>
+      </div>
+      <ul className="divide-y divide-black/10 border-y border-black/10">
+        {items.map((f) => (
+          <li key={f.id} data-testid={`faq-row-${f.id}`} className="flex items-center justify-between gap-4 py-4">
+            <div className="min-w-0 flex-1">
+              <div className="font-display text-lg uppercase tracking-[0.04em] line-clamp-1">{f.question?.en || "—"}</div>
+              <div className="mt-1 text-[11px] uppercase tracking-[0.2em] text-neutral-500">{f.category} · {f.active ? "active" : "hidden"}</div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => start(f)} className="inline-flex items-center gap-1 border border-black/20 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] hover:bg-black hover:text-white"><Pencil className="h-3 w-3" /> Edit</button>
+              <button onClick={() => remove(f.id)} className="inline-flex items-center gap-1 border border-black/20 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] hover:bg-red-600 hover:text-white"><Trash2 className="h-3 w-3" /></button>
+            </div>
+          </li>
+        ))}
+        {items.length === 0 && <li className="py-10 text-center text-sm text-neutral-500">No FAQs yet.</li>}
+      </ul>
+
+      {editing && (
+        <Drawer title={editing === "new" ? "New FAQ" : "Edit FAQ"} onClose={() => setEditing(null)} onSave={save}>
+          <div className="flex gap-1">
+            {LANGS.map((l) => (
+              <button key={l} onClick={() => setActiveLang(l)} className={`px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] ${activeLang === l ? "bg-black text-white" : "border border-black/15"}`}>{l.toUpperCase()}</button>
+            ))}
+          </div>
+          <Field label={`Question (${activeLang})`} value={form.question[activeLang]} onChange={(v) => setForm({ ...form, question: { ...form.question, [activeLang]: v } })} />
+          <Field label={`Answer (${activeLang})`} multiline value={form.answer[activeLang]} onChange={(v) => setForm({ ...form, answer: { ...form.answer, [activeLang]: v } })} />
+          <div className="grid grid-cols-2 gap-3">
+            <Select label="Category" value={form.category} onChange={(v) => setForm({ ...form, category: v })}
+              options={[["shipping", "Shipping"], ["returns", "Returns"], ["payment", "Payment"], ["custom", "Custom"], ["general", "General"]]} />
+            <Field label="Order" type="number" value={form.sort_order} onChange={(v) => setForm({ ...form, sort_order: Number(v) })} />
+          </div>
+          <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} /> Active</label>
+        </Drawer>
+      )}
+    </>
+  );
+}
+
+/* ============================================================
+   CUSTOM REQUESTS TAB
+============================================================ */
+function CustomRequestsTab({ token }) {
+  const [items, setItems] = useState([]);
+  const [active, setActive] = useState(null);
+  const [notes, setNotes] = useState("");
+  const [status, setStatus] = useState("new");
+
+  const load = async () => setItems(await adminListCustomRequests(token));
+  useEffect(() => { load(); }, []);
+
+  const open = (req) => {
+    setActive(req);
+    setNotes(req.admin_notes || "");
+    setStatus(req.status || "new");
+  };
+
+  const save = async () => {
+    await adminUpdateCustomRequest(token, active.id, { status, admin_notes: notes });
+    toast.success("Updated");
+    setActive(null);
+    load();
+  };
+
+  const statusBadge = (s) => {
+    const cls = { new: "bg-amber-100 text-amber-900", reviewing: "bg-blue-100 text-blue-900", quoted: "bg-neutral-200", accepted: "bg-black text-white", rejected: "bg-red-100 text-red-900", completed: "bg-black text-white" }[s] || "bg-neutral-100";
+    return <span className={`inline-flex px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] ${cls}`}>{s}</span>;
+  };
+
+  return (
+    <>
+      <div className="mb-6 flex items-center justify-between">
+        <h2 className="font-display text-3xl uppercase tracking-[0.04em]">Custom Requests</h2>
+        <span className="text-[11px] uppercase tracking-[0.25em] text-neutral-500">{items.length} total</span>
+      </div>
+      {items.length === 0 ? (
+        <div className="border border-dashed border-black/15 p-10 text-center text-sm text-neutral-500">No custom requests yet.</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[800px] text-sm">
+            <thead>
+              <tr className="border-b border-black/10 text-left text-[11px] uppercase tracking-[0.25em] text-neutral-500">
+                <th className="py-3">Reference</th><th>Date</th><th>Customer</th><th>Product</th><th>Qty</th><th>Status</th><th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((r) => (
+                <tr key={r.id} data-testid={`custom-row-${r.reference}`} className="border-b border-black/5 align-middle">
+                  <td className="py-3 font-mono text-xs">{r.reference}</td>
+                  <td className="text-xs text-neutral-600">{r.created_at ? new Date(r.created_at).toLocaleDateString() : "—"}</td>
+                  <td className="text-xs">
+                    <div className="font-semibold">{r.customer_name}</div>
+                    <div className="text-neutral-500">{r.email}</div>
+                  </td>
+                  <td className="capitalize">{r.product_type}</td>
+                  <td>{r.quantity}</td>
+                  <td>{statusBadge(r.status)}</td>
+                  <td className="py-3"><button onClick={() => open(r)} className="inline-flex items-center gap-1 border border-black/20 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] hover:bg-black hover:text-white"><Pencil className="h-3 w-3" /> Open</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {active && (
+        <Drawer title={`Request ${active.reference}`} onClose={() => setActive(null)} onSave={save} wide>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <Info label="Customer">{active.customer_name}</Info>
+            <Info label="Email">{active.email}</Info>
+            <Info label="Phone">{active.phone || "—"}</Info>
+            <Info label="Preferred">{active.contact_preference || "—"}</Info>
+            <Info label="Product">{active.product_type}</Info>
+            <Info label="Style">{active.design_style || "—"}</Info>
+            <Info label="Placement">{active.print_placement || "—"}</Info>
+            <Info label="Color">{active.primary_color || "—"}</Info>
+            <Info label="Quantity">{active.quantity}</Info>
+            <Info label="Budget">{active.budget_range || "—"}</Info>
+          </div>
+          <div>
+            <label className="text-[11px] uppercase tracking-[0.25em] text-neutral-500">Brief</label>
+            <p className="mt-2 whitespace-pre-wrap rounded border border-black/10 bg-neutral-50 p-3 text-sm leading-relaxed">{active.idea_description}</p>
+          </div>
+          {active.image_urls?.length > 0 && (
+            <div>
+              <label className="text-[11px] uppercase tracking-[0.25em] text-neutral-500">References</label>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {active.image_urls.map((u, i) => (<img key={i} src={u} alt={`ref-${i}`} className="h-24 w-24 object-cover" />))}
+              </div>
+            </div>
+          )}
+          <Select label="Status" value={status} onChange={setStatus}
+            options={[["new", "New"], ["reviewing", "Reviewing"], ["quoted", "Quoted"], ["accepted", "Accepted"], ["rejected", "Rejected"], ["completed", "Completed"]]} />
+          <Field label="Admin notes (private)" multiline value={notes} onChange={setNotes} />
+          <a href={`mailto:${active.email}?subject=Your Tuncel Textile request ${active.reference}`} className="inline-flex w-fit items-center gap-2 border border-black px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.25em] hover:bg-black hover:text-white">Reply by email</a>
+        </Drawer>
+      )}
+    </>
+  );
+}
+
+const Info = ({ label, children }) => (
+  <div>
+    <div className="text-[10px] uppercase tracking-[0.25em] text-neutral-500">{label}</div>
+    <div className="mt-0.5 text-sm text-black">{children}</div>
+  </div>
+);
 
 /* ============================================================
    SHARED UI HELPERS

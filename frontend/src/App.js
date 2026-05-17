@@ -22,6 +22,9 @@ import Account from "@/pages/Account";
 import AuthCallback from "@/pages/AuthCallback";
 import CookiePolicy from "@/pages/CookiePolicy";
 import IbanSuccess from "@/pages/IbanSuccess";
+import FAQ from "@/pages/FAQ";
+import LegalPage from "@/pages/LegalPage";
+import CustomRequest from "@/pages/CustomRequest";
 
 function FaviconBridge() {
   const { settings } = useSettings();
@@ -46,6 +49,9 @@ function AppRouter() {
       <Route path="/account" element={<Account />} />
       <Route path="/admin" element={<Admin />} />
       <Route path="/about" element={<About />} />
+      <Route path="/faq" element={<FAQ />} />
+      <Route path="/custom-request" element={<CustomRequest />} />
+      <Route path="/legal/:slug" element={<LegalPage />} />
       <Route path="/cookie-policy" element={<CookiePolicy />} />
       <Route path="*" element={<Home />} />
     </Routes>

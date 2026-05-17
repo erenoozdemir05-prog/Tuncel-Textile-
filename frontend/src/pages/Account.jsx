@@ -92,7 +92,7 @@ export default function Account() {
                     {(o.items || []).reduce((s, i) => s + (i.quantity || 1), 0)} items · {(o.metadata?.items || "").slice(0, 80)}
                   </div>
                 </div>
-                <div className="text-right font-semibold">${Number(o.amount).toFixed(2)}</div>
+                <div className="text-right font-semibold">€{Number(o.amount).toFixed(2)}</div>
                 <span className="inline-flex w-fit bg-black px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.25em] text-white">
                   Paid
                 </span>

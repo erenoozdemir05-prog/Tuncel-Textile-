@@ -70,7 +70,7 @@ export default function CheckoutSuccess() {
             Thank you. Your prints are on the press. We’ll send a confirmation email shortly.
           </p>
           <div className="mt-3 text-[11px] uppercase tracking-[0.25em] text-neutral-500">
-            Total · ${Number(state.amount).toFixed(2)}
+            Total · €{Number(state.amount).toFixed(2)}
           </div>
           <Link
             to="/shop/all"

@@ -187,7 +187,7 @@ export default function Cart() {
                           <Plus className="h-3 w-3" />
                         </button>
                       </div>
-                      <div className="font-semibold">${(it.price * it.quantity).toFixed(2)}</div>
+                      <div className="font-semibold">€{(it.price * it.quantity).toFixed(2)}</div>
                     </div>
                   </div>
                 </div>
@@ -207,7 +207,7 @@ const Summary = ({ t, subtotal, onCheckout, loading }) => (
     <div className="mt-6 space-y-3 text-sm">
       <div className="flex justify-between">
         <span className="text-neutral-600">{t("cart.subtotal")}</span>
-        <span data-testid="cart-subtotal" className="font-semibold">${subtotal.toFixed(2)}</span>
+        <span data-testid="cart-subtotal" className="font-semibold">€{subtotal.toFixed(2)}</span>
       </div>
       <div className="flex justify-between">
         <span className="text-neutral-600">{t("cart.shipping")}</span>
@@ -215,7 +215,7 @@ const Summary = ({ t, subtotal, onCheckout, loading }) => (
       </div>
       <div className="mt-4 flex justify-between border-t border-black/10 pt-4 text-base font-semibold">
         <span>{t("cart.total")}</span>
-        <span>${subtotal.toFixed(2)}</span>
+        <span>€{subtotal.toFixed(2)}</span>
       </div>
     </div>
     {onCheckout && (

@@ -287,7 +287,7 @@ async def create_checkout(req: CheckoutRequest, http_request: Request, user: Opt
         "id": str(uuid.uuid4()),
         "session_id": session.session_id,
         "amount": total,
-        "currency": "usd",
+        "currency": "eur",
         "metadata": metadata,
         "items": [it.model_dump() for it in req.items],
         "customer_email": req.customer_email or (user.get("email") if user else None),
@@ -593,6 +593,7 @@ DEFAULT_SETTINGS = {
     "id": "default",
     "whatsapp_number": "+371 20677937",
     "whatsapp_default_message": "Hello Tuncel Textile, I'm interested in your collection.",
+    "contact_email": "tunceltextile@gmail.com",
     "favicon_url": "https://customer-assets.emergentagent.com/job_tuncel-textile/artifacts/x9q410pf_WhatsApp_Image_2026-05-06_at_18.11.35-removebg-preview.png",
     "social": {
         "instagram": "",
@@ -610,15 +611,25 @@ DEFAULT_SETTINGS = {
         "reference_prefix": "TT",
         "instructions": "Please use the order reference below in your transfer description. Your order will ship within 24h of payment confirmation.",
     },
+    "category_cards": [
+        {"slug": "men", "to": "/shop/men", "image_url": "https://images.pexels.com/photos/2540152/pexels-photo-2540152.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1200&w=900",
+         "title": {"en": "Men", "ru": "Мужчины", "lv": "Vīriešiem"}},
+        {"slug": "women", "to": "/shop/women", "image_url": "https://images.pexels.com/photos/8945179/pexels-photo-8945179.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1200&w=900",
+         "title": {"en": "Women", "ru": "Женщины", "lv": "Sievietēm"}},
+        {"slug": "accessories", "to": "/shop/accessories", "image_url": "https://images.pexels.com/photos/16039231/pexels-photo-16039231.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1200&w=900",
+         "title": {"en": "Accessories", "ru": "Аксессуары", "lv": "Aksesuāri"}},
+    ],
 }
 
 
 class SettingsIn(BaseModel):
     whatsapp_number: Optional[str] = None
     whatsapp_default_message: Optional[str] = None
+    contact_email: Optional[str] = None
     favicon_url: Optional[str] = None
     social: Optional[Dict[str, str]] = None
     iban: Optional[Dict[str, str]] = None
+    category_cards: Optional[List[Dict]] = None
 
 
 async def get_settings_doc() -> dict:
@@ -856,8 +867,33 @@ async def admin_delete_hero(slide_id: str, _: bool = Depends(require_admin)):
 DEFAULT_CMS_ITEMS = [
     {"key": "limited_edition", "label": "Limited edition tag", "values": {"en": "Limited edition · numbered & signed", "ru": "Лимитированный выпуск · с номером и подписью", "lv": "Limitēts izdevums · numurēts un parakstīts"}},
     {"key": "handcrafted", "label": "Handcrafted tag", "values": {"en": "Hand-finished in our atelier", "ru": "Ручная финишная работа в нашем ателье", "lv": "Roku darbs mūsu ateljē"}},
-    {"key": "free_shipping", "label": "Free shipping tag", "values": {"en": "Complimentary shipping over €120", "ru": "Бесплатная доставка от €120", "lv": "Bezmaksas piegāde no €120"}},
+    {"key": "free_shipping", "label": "Free shipping tag", "values": {"en": "Complimentary shipping on orders over €30", "ru": "Бесплатная доставка от €30", "lv": "Bezmaksas piegāde no €30"}},
     {"key": "hero_strapline", "label": "Hero default strapline (used when no slides)", "values": {"en": "A two-person atelier crafting limited-run hoodies, tees and accessories.", "ru": "Маленькое ателье из двух мастеров, лимитированные тиражи худи, футболок и аксессуаров.", "lv": "Divu cilvēku ateljē — limitēti hūdiji, T-krekli un aksesuāri."}},
+    {"key": "legal_privacy", "label": "Privacy Policy body", "values": {
+        "en": "## Tuncel Textile · Privacy Policy\n\nWe collect only the data needed to process your order: your name, email, shipping address and order details. We never sell or rent personal data to third parties. Payment processing is handled by Stripe (card payments) and your bank (IBAN transfers) — we never see or store full card details.\n\n**What we keep**\n- Account and contact details\n- Order, payment status and shipping addresses\n- Optional chat/contact form messages\n\n**Your rights**\nYou may request a copy or deletion of your data at any time by writing to tunceltextile@gmail.com.\n\n**Updates**\nWe will revise this policy as our atelier grows. The latest version always lives at /legal/privacy.",
+        "ru": "## Tuncel Textile · Политика конфиденциальности\n\nМы собираем только данные, необходимые для обработки заказа. Платежи обрабатывают Stripe и ваш банк — мы не храним данные карт.\n\nДля запроса копии или удаления данных напишите на tunceltextile@gmail.com.",
+        "lv": "## Tuncel Textile · Privātuma politika\n\nMēs apkopojam tikai datus, kas nepieciešami pasūtījuma apstrādei. Maksājumus apstrādā Stripe un jūsu banka — mēs neglabājam karšu datus.\n\nLai pieprasītu kopiju vai datu dzēšanu, rakstiet uz tunceltextile@gmail.com.",
+    }},
+    {"key": "legal_terms_of_use", "label": "Terms of Use", "values": {
+        "en": "## Terms of Use\n\nBy using tunceltextile.com you agree to use the site for lawful purposes only. Content, designs and photography are © Tuncel Textile and may not be reproduced without permission. We reserve the right to update these terms at any time.",
+        "ru": "## Условия использования\n\nИспользуя сайт, вы соглашаетесь использовать его в законных целях. Контент защищён авторским правом Tuncel Textile.",
+        "lv": "## Lietošanas noteikumi\n\nLietojot vietni, jūs piekrītat to izmantot likumīgiem mērķiem. Saturs aizsargāts ar Tuncel Textile autortiesībām.",
+    }},
+    {"key": "legal_terms_of_sale", "label": "Terms of Sale", "values": {
+        "en": "## Terms of Sale\n\n**Orders** — All orders are subject to availability and acceptance. We may refuse or cancel any order at our sole discretion.\n\n**Pricing** — All prices are shown in Euro (€) and include applicable taxes unless stated otherwise. Shipping is free on orders over €30.\n\n**Payment** — We accept card payments via Stripe and direct IBAN bank transfers. IBAN orders ship within 24 hours of payment confirmation.\n\n**Shipping** — Pieces dispatch within 48 hours from our Riga atelier. Delivery times depend on destination.\n\n**Returns** — Limited editions are final sale. Standard pieces may be returned unworn within 14 days.\n\n**Liability** — Our liability is limited to the value of the order.",
+        "ru": "## Условия продажи\n\nВсе заказы подлежат подтверждению. Цены указаны в евро (€). Бесплатная доставка от €30. Лимитированные выпуски возврату не подлежат.",
+        "lv": "## Pārdošanas noteikumi\n\nVisi pasūtījumi tiek apstiprināti pēc to saņemšanas. Cenas ir EUR (€). Bezmaksas piegāde no €30. Limitētie izdevumi nav atgriežami.",
+    }},
+    {"key": "legal_imprint", "label": "Imprint", "values": {
+        "en": "## Imprint\n\n**Tuncel Textile SIA**\nAtelier · Riga, Latvia\n\nEmail · tunceltextile@gmail.com\nWhatsApp · +371 20677937\n\nResponsible for content under EU regulations: Tuncel Textile founders.",
+        "ru": "## Выходные данные\n\nTuncel Textile SIA · Рига, Латвия\nE-mail: tunceltextile@gmail.com",
+        "lv": "## Impresums\n\nTuncel Textile SIA · Rīga, Latvija\nE-pasts: tunceltextile@gmail.com",
+    }},
+    {"key": "legal_accessibility", "label": "Accessibility Statement", "values": {
+        "en": "## Accessibility Statement\n\nWe believe shopping should be effortless for everyone. We work to maintain WCAG 2.1 AA standards across the site: keyboard navigation, focus rings, alt text on all product imagery, and readable type. If you experience any barrier, please write to tunceltextile@gmail.com and we will respond within 48 hours.",
+        "ru": "## Заявление о доступности\n\nМы стремимся к стандартам WCAG 2.1 AA. О любых проблемах сообщайте: tunceltextile@gmail.com.",
+        "lv": "## Pieejamības paziņojums\n\nMēs ievērojam WCAG 2.1 AA standartus. Ja saskaras ar šķēršļiem, rakstiet uz tunceltextile@gmail.com.",
+    }},
 ]
 
 
@@ -891,6 +927,137 @@ async def update_cms(payload: CmsIn, _: bool = Depends(require_admin)):
         items.append({"key": it.key, "label": it.label or "", "values": _lang_dict(it.values)})
     await db.cms_text.update_one({"id": "default"}, {"$set": {"items": items}}, upsert=True)
     return await get_cms_doc()
+
+
+# ============================================================
+# FAQ (admin-managed, multi-language)
+# ============================================================
+class FaqIn(BaseModel):
+    question: Dict[str, str]
+    answer: Dict[str, str]
+    category: str = "general"
+    sort_order: int = 0
+    active: bool = True
+
+
+@api_router.get("/faqs")
+async def list_faqs():
+    items = await db.faqs.find({"active": True}, {"_id": 0}).sort("sort_order", 1).to_list(200)
+    return items
+
+
+@api_router.get("/admin/faqs")
+async def admin_list_faqs(_: bool = Depends(require_admin)):
+    return await db.faqs.find({}, {"_id": 0}).sort("sort_order", 1).to_list(500)
+
+
+@api_router.post("/admin/faqs")
+async def admin_create_faq(payload: FaqIn, _: bool = Depends(require_admin)):
+    count = await db.faqs.count_documents({})
+    doc = payload.model_dump()
+    doc["id"] = str(uuid.uuid4())
+    doc["sort_order"] = doc.get("sort_order") or count
+    doc["question"] = _lang_dict(doc["question"])
+    doc["answer"] = _lang_dict(doc["answer"])
+    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    await db.faqs.insert_one(doc)
+    return {k: v for k, v in doc.items() if k != "_id"}
+
+
+@api_router.put("/admin/faqs/{faq_id}")
+async def admin_update_faq(faq_id: str, payload: FaqIn, _: bool = Depends(require_admin)):
+    update = payload.model_dump()
+    update["question"] = _lang_dict(update["question"])
+    update["answer"] = _lang_dict(update["answer"])
+    res = await db.faqs.update_one({"id": faq_id}, {"$set": update})
+    if res.matched_count == 0:
+        raise HTTPException(404, "FAQ not found")
+    return await db.faqs.find_one({"id": faq_id}, {"_id": 0})
+
+
+@api_router.delete("/admin/faqs/{faq_id}")
+async def admin_delete_faq(faq_id: str, _: bool = Depends(require_admin)):
+    res = await db.faqs.delete_one({"id": faq_id})
+    if res.deleted_count == 0:
+        raise HTTPException(404, "FAQ not found")
+    return {"deleted": True}
+
+
+# Seed default FAQs if none exist
+DEFAULT_FAQS = [
+    {"question": {"en": "How long until my order ships?", "ru": "Когда отправят мой заказ?", "lv": "Cik ilgā laikā tiks nosūtīts mans pasūtījums?"},
+     "answer": {"en": "We dispatch from our Riga atelier within 48 hours of confirmed payment. Card orders confirm instantly; IBAN transfers confirm within 24 hours of receipt.",
+                "ru": "Мы отправляем из нашего ателье в Риге в течение 48 часов после подтверждения платежа.",
+                "lv": "Mēs nosūtām no mūsu ateljē Rīgā 48 stundu laikā pēc apstiprināta maksājuma."}, "category": "shipping"},
+    {"question": {"en": "Do you offer free shipping?", "ru": "Есть ли бесплатная доставка?", "lv": "Vai ir bezmaksas piegāde?"},
+     "answer": {"en": "Yes — complimentary shipping on all orders over €30, anywhere in the EU.",
+                "ru": "Да, бесплатная доставка по ЕС от €30.",
+                "lv": "Jā, bezmaksas piegāde ES virs €30."}, "category": "shipping"},
+    {"question": {"en": "Can you make a custom piece for me?", "ru": "Можете ли вы сделать кастомную вещь?", "lv": "Vai jūs varat izgatavot pielāgotu apģērbu?"},
+     "answer": {"en": "Yes. Use our Custom Request form to share your idea, references, quantities and budget. We respond within 24 hours with a quote.",
+                "ru": "Да. Заполните форму индивидуального заказа.",
+                "lv": "Jā. Aizpildiet pielāgota pasūtījuma formu."}, "category": "custom"},
+    {"question": {"en": "What is your return policy?", "ru": "Какая у вас политика возврата?", "lv": "Kāda ir jūsu atgriešanas politika?"},
+     "answer": {"en": "Standard pieces may be returned unworn within 14 days. Limited-edition drops and bespoke pieces are final sale.",
+                "ru": "Обычные вещи можно вернуть в течение 14 дней. Лимитированные — без возврата.",
+                "lv": "Standarta gabalus var atgriezt 14 dienu laikā. Limitētie izdevumi nav atgriežami."}, "category": "returns"},
+    {"question": {"en": "Which payment methods do you accept?", "ru": "Какие способы оплаты вы принимаете?", "lv": "Kādas maksāšanas metodes pieņemat?"},
+     "answer": {"en": "Card payments (Visa, Mastercard, AmEx via Stripe) and direct IBAN bank transfer. Both flows give you a unique order reference.",
+                "ru": "Картой (через Stripe) и банковским переводом IBAN.",
+                "lv": "Ar karti (Stripe) un IBAN pārskaitījumu."}, "category": "payment"},
+]
+
+
+# ============================================================
+# CUSTOM REQUESTS (bespoke / custom apparel inquiries)
+# ============================================================
+class CustomRequestIn(BaseModel):
+    customer_name: str
+    email: EmailStr
+    phone: Optional[str] = None
+    product_type: str  # hoodie | tshirt | tote | other
+    design_style: Optional[str] = None  # minimalist | typographic | graphic | mascot | other
+    idea_description: str
+    image_urls: List[str] = []
+    print_placement: Optional[str] = None  # front | back | sleeve | chest | full
+    primary_color: Optional[str] = None
+    quantity: int = 1
+    budget_range: Optional[str] = None
+    contact_preference: Optional[str] = None  # email | whatsapp
+
+
+@api_router.post("/custom-requests")
+async def submit_custom_request(payload: CustomRequestIn):
+    short_id = uuid.uuid4().hex[:6].upper()
+    doc = payload.model_dump()
+    doc["id"] = str(uuid.uuid4())
+    doc["reference"] = f"CR-{short_id}"
+    doc["status"] = "new"  # new | reviewing | quoted | accepted | rejected | completed
+    doc["admin_notes"] = ""
+    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    doc["updated_at"] = doc["created_at"]
+    await db.custom_requests.insert_one(doc)
+    return {"reference": doc["reference"], "id": doc["id"], "status": doc["status"]}
+
+
+@api_router.get("/admin/custom-requests")
+async def admin_list_custom_requests(_: bool = Depends(require_admin)):
+    return await db.custom_requests.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
+
+
+class CustomRequestStatusIn(BaseModel):
+    status: Optional[str] = None
+    admin_notes: Optional[str] = None
+
+
+@api_router.put("/admin/custom-requests/{request_id}")
+async def admin_update_custom_request(request_id: str, payload: CustomRequestStatusIn, _: bool = Depends(require_admin)):
+    update = {k: v for k, v in payload.model_dump().items() if v is not None}
+    update["updated_at"] = datetime.now(timezone.utc).isoformat()
+    res = await db.custom_requests.update_one({"id": request_id}, {"$set": update})
+    if res.matched_count == 0:
+        raise HTTPException(404, "Request not found")
+    return await db.custom_requests.find_one({"id": request_id}, {"_id": 0})
 
 
 app.include_router(api_router)

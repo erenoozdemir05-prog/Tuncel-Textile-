@@ -63,7 +63,7 @@ export const ProductCard = ({ product }) => {
           </div>
         </div>
         <div className="font-body text-sm font-semibold text-black">
-          ${Number(product.price).toFixed(2)}
+          €{Number(product.price).toFixed(2)}
         </div>
       </div>
     </Link>
