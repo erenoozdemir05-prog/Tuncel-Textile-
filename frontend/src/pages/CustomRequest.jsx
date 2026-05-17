@@ -24,7 +24,7 @@ const STYLES = [
 ];
 
 const PLACEMENTS = ["Front chest", "Centre front", "Centre back", "Left sleeve", "Right sleeve", "Hood / collar", "Full print"];
-const BUDGETS = ["Under €500", "€500 – €1 500", "€1 500 – €5 000", "€5 000+"];
+const BUDGETS = ["Under €50 · 1 piece", "€50 – €150 · few pieces", "€150 – €500 · small drop", "€500 – €1 500 · larger run", "€1 500+ · wholesale"];
 
 export default function CustomRequest() {
   const { settings } = useSettings();
@@ -36,7 +36,7 @@ export default function CustomRequest() {
     customer_name: "", email: "", phone: "",
     product_type: "hoodie", design_style: "minimalist",
     idea_description: "", print_placement: "Centre front",
-    primary_color: "#0B0B0B", quantity: 25, budget_range: "€500 – €1 500",
+    primary_color: "#0B0B0B", quantity: 1, budget_range: "€50 – €150 · few pieces",
     contact_preference: "email",
   });
 
@@ -102,12 +102,13 @@ export default function CustomRequest() {
           hand-finished by us.
         </h1>
         <p className="mt-8 max-w-2xl text-[15px] leading-[1.7] text-neutral-700">
-          From a single piece to a small wholesale run — share your concept below and one of the founders will reply personally within 24 hours with a sample mock-up and a transparent quote. Limited capacity each season.
+          From <strong className="text-black">a single tee for yourself</strong> to a small-batch drop or wholesale run — share your concept below and one of the founders will reply personally within <strong className="text-black">24 hours</strong> with a sample mock-up and a transparent quote. Starting from <strong className="text-black">€35</strong> per piece.
         </p>
         <div className="mt-6 flex flex-wrap gap-3 text-[11px] uppercase tracking-[0.25em] text-neutral-500">
           <span className="inline-flex items-center gap-1"><Check className="h-3.5 w-3.5" /> Free design consultation</span>
           <span className="inline-flex items-center gap-1"><Check className="h-3.5 w-3.5" /> Sample mock-up included</span>
           <span className="inline-flex items-center gap-1"><Check className="h-3.5 w-3.5" /> Made in our Riga atelier</span>
+          <span className="inline-flex items-center gap-1"><Check className="h-3.5 w-3.5" /> Minimum 1 piece — no MOQ</span>
         </div>
       </section>
 

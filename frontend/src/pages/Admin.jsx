@@ -9,6 +9,7 @@ import {
   adminListCustomRequests, adminUpdateCustomRequest,
   adminListReturns, adminUpdateReturn,
   adminChatSessions, adminChatSession, adminChatReply, adminChatClose,
+  adminListGiftCards, adminUpdateGiftCard, adminAnalytics,
 } from "@/lib/api";
 import { toast } from "sonner";
 import { ArrowDown, ArrowUp, ImageIcon, Loader2, LogOut, Pencil, Plus, Save, Trash2, Upload, X } from "lucide-react";
@@ -36,7 +37,7 @@ const EMPTY_SLIDE = {
 export default function Admin() {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) || "");
   const [password, setPassword] = useState("");
-  const [tab, setTab] = useState("products");
+  const [tab, setTab] = useState("analytics");
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -103,6 +104,7 @@ export default function Admin() {
       {/* TABS */}
       <nav className="flex flex-wrap gap-1 border-b border-black/10 py-4">
         {[
+          ["analytics", "Analytics"],
           ["products", "Products"],
           ["orders", "Orders"],
           ["hero", "Hero Manager"],
@@ -111,6 +113,7 @@ export default function Admin() {
           ["custom-requests", "Custom Requests"],
           ["returns", "Returns"],
           ["chat", "Live Chat"],
+          ["gift-cards", "Gift Cards"],
           ["settings", "Settings"],
         ].map(([key, label]) => (
           <button
@@ -135,6 +138,8 @@ export default function Admin() {
         {tab === "custom-requests" && <CustomRequestsTab token={token} />}
         {tab === "returns" && <ReturnsTab token={token} />}
         {tab === "chat" && <ChatTab token={token} />}
+        {tab === "gift-cards" && <GiftCardsTab token={token} />}
+        {tab === "analytics" && <AnalyticsTab token={token} />}
         {tab === "settings" && <SettingsTab token={token} />}
       </div>
     </div>
@@ -1447,6 +1452,198 @@ function ChatTab({ token }) {
   );
 }
 
+
+
+
+/* ============================================================
+   GIFT CARDS TAB
+============================================================ */
+const GIFT_STATUS_OPTIONS = ["pending_payment", "active", "partially_used", "redeemed", "cancelled", "expired"];
+
+function GiftCardsTab({ token }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [filter, setFilter] = useState("all");
+
+  const load = async () => {
+    setLoading(true);
+    try { setItems(await adminListGiftCards(token)); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, []);
+
+  const setStatus = async (id, status) => {
+    if (!window.confirm(`Set gift card status to "${status}"?`)) return;
+    try { await adminUpdateGiftCard(token, id, { status }); toast.success("Updated"); load(); }
+    catch { toast.error("Failed"); }
+  };
+
+  const visible = items.filter((g) => filter === "all" || g.status === filter);
+  const totalIssued = items.filter((g) => g.status !== "pending_payment").reduce((s, g) => s + (g.amount || 0), 0);
+  const totalRedeemed = items.filter((g) => g.status !== "pending_payment").reduce((s, g) => s + ((g.amount || 0) - (g.balance || 0)), 0);
+
+  return (
+    <div>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="font-display text-3xl uppercase tracking-[0.04em]">Gift Cards</h2>
+          <p className="mt-1 text-sm text-neutral-600">
+            Issued: <strong className="text-black">€{totalIssued.toFixed(2)}</strong> · Redeemed: <strong className="text-black">€{totalRedeemed.toFixed(2)}</strong>
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-1">
+          {[["all", "All"], ["active", "Active"], ["pending_payment", "Pending"], ["partially_used", "Partially used"], ["redeemed", "Redeemed"], ["expired", "Expired"]].map(([k, l]) => (
+            <button key={k} onClick={() => setFilter(k)} data-testid={`gc-filter-${k}`}
+              className={`px-3 py-2 text-[11px] uppercase tracking-[0.2em] ${filter === k ? "bg-black text-white" : "border border-black/15 hover:border-black"}`}>{l}</button>
+          ))}
+        </div>
+      </div>
+
+      {loading ? <p className="text-sm text-neutral-500">Loading…</p>
+       : visible.length === 0 ? <div className="border border-dashed border-black/15 p-10 text-center text-sm text-neutral-500">No gift cards.</div>
+       : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px] text-sm">
+            <thead>
+              <tr className="border-b border-black/10 text-left text-[11px] uppercase tracking-[0.25em] text-neutral-500">
+                <th className="py-3">Reference</th><th>Code</th><th>Amount</th><th>Balance</th><th>Recipient</th><th>Status</th><th>Expires</th><th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map((g) => (
+                <tr key={g.id} data-testid={`gc-row-${g.reference}`} className="border-b border-black/5 align-middle">
+                  <td className="py-3 font-mono text-xs">{g.reference}</td>
+                  <td className="py-3 font-mono text-xs">{g.code}</td>
+                  <td className="font-semibold">€{Number(g.amount).toFixed(2)}</td>
+                  <td className="font-semibold">€{Number(g.balance ?? g.amount).toFixed(2)}</td>
+                  <td className="text-xs">
+                    <div className="font-semibold">{g.recipient_name || g.buyer_name || "—"}</div>
+                    <div className="text-neutral-500">{g.recipient_email || g.buyer_email}</div>
+                  </td>
+                  <td><span className={`inline-flex px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] ${g.status === "active" ? "bg-emerald-100 text-emerald-900" : g.status === "redeemed" ? "bg-black text-white" : g.status === "cancelled" ? "bg-red-100 text-red-900" : "bg-neutral-100 text-neutral-700"}`}>{g.status.replace(/_/g, " ")}</span></td>
+                  <td className="text-xs text-neutral-600">{(g.expires_at || "").slice(0, 10)}</td>
+                  <td className="py-3 space-x-1 whitespace-nowrap">
+                    {g.status === "pending_payment" && (
+                      <button data-testid={`gc-activate-${g.reference}`} onClick={() => setStatus(g.id, "active")}
+                        className="inline-flex items-center gap-1 bg-black px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white hover:bg-neutral-800">Activate</button>
+                    )}
+                    {g.status === "active" && (
+                      <button data-testid={`gc-cancel-${g.reference}`} onClick={() => setStatus(g.id, "cancelled")}
+                        className="inline-flex items-center gap-1 border border-black/20 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] hover:bg-black hover:text-white">Cancel</button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   ANALYTICS TAB
+============================================================ */
+function AnalyticsTab({ token }) {
+  const [days, setDays] = useState(30);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const load = async (d = days) => {
+    setLoading(true);
+    try { setData(await adminAnalytics(token, d)); }
+    catch { toast.error("Failed to load analytics"); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { load(days); /* eslint-disable-next-line */ }, [days]);
+
+  if (loading && !data) return <p className="text-sm text-neutral-500">Loading analytics…</p>;
+  if (!data) return <p className="text-sm text-neutral-500">No data</p>;
+
+  // Build a simple bar chart for daily revenue
+  const maxRev = Math.max(1, ...data.daily.map((d) => d.revenue));
+
+  return (
+    <div data-testid="analytics-tab">
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="font-display text-3xl uppercase tracking-[0.04em]">Atelier Analytics</h2>
+          <p className="mt-1 text-sm text-neutral-600">A snapshot of the last {data.range_days} days.</p>
+        </div>
+        <div className="flex gap-1">
+          {[[7, "7d"], [30, "30d"], [90, "90d"], [365, "1y"]].map(([d, l]) => (
+            <button key={d} onClick={() => setDays(d)} data-testid={`analytics-range-${d}`}
+              className={`px-4 py-2 text-[11px] uppercase tracking-[0.2em] ${days === d ? "bg-black text-white" : "border border-black/15 hover:border-black"}`}>{l}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* KPI cards */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <Kpi label="Revenue" value={`€${data.revenue.toFixed(2)}`} accent />
+        <Kpi label="Paid orders" value={data.orders_count} sub={`AOV €${data.aov.toFixed(2)}`} />
+        <Kpi label="Returns" value={data.returns_count} sub={`Rate ${data.return_rate_pct}%`} />
+        <Kpi label="Custom requests" value={data.custom_requests_count} />
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <Kpi label="AI replies" value={data.chat_ai_replies} sub={`${data.chat_ai_share_pct}% of all`} />
+        <Kpi label="Human replies" value={data.chat_human_replies} />
+        <Kpi label="Active gift cards" value={data.gift_cards_active} />
+        <Kpi label="Gift card revenue" value={`€${data.gift_cards_revenue.toFixed(2)}`} />
+      </div>
+
+      {/* Daily revenue chart */}
+      <section className="mt-10">
+        <div className="text-[11px] uppercase tracking-[0.25em] text-neutral-500">Daily revenue</div>
+        <div className="mt-3 flex items-end gap-1.5 border-b border-black/10 pb-3" style={{ minHeight: 180 }}>
+          {data.daily.length === 0 ? (
+            <p className="py-12 text-sm text-neutral-400">No paid orders yet in this period.</p>
+          ) : data.daily.map((d) => (
+            <div key={d.date} className="flex flex-1 flex-col items-center gap-1" title={`${d.date} · €${d.revenue.toFixed(2)} · ${d.orders} orders`}>
+              <div className="w-full bg-black" style={{ height: `${(d.revenue / maxRev) * 160}px`, minHeight: 2 }} />
+              <div className="text-[8px] uppercase tracking-[0.18em] text-neutral-400">{d.date.slice(5)}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Top products */}
+      <section className="mt-10">
+        <div className="text-[11px] uppercase tracking-[0.25em] text-neutral-500">Top products</div>
+        {data.top_products.length === 0 ? (
+          <p className="mt-3 text-sm text-neutral-400">No product sales yet.</p>
+        ) : (
+          <table className="mt-3 w-full text-sm">
+            <thead>
+              <tr className="border-b border-black/10 text-left text-[11px] uppercase tracking-[0.25em] text-neutral-500">
+                <th className="py-2">#</th><th>Product</th><th>Units</th><th>Revenue</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.top_products.map((p, i) => (
+                <tr key={p.product_id} className="border-b border-black/5">
+                  <td className="py-2 font-mono text-xs text-neutral-500">{i + 1}</td>
+                  <td className="font-display text-base uppercase tracking-[0.02em]">{p.name}</td>
+                  <td>{p.units}</td>
+                  <td className="font-semibold">€{p.revenue.toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
+    </div>
+  );
+}
+
+const Kpi = ({ label, value, sub = null, accent = false }) => (
+  <div className={`border p-5 ${accent ? "border-black bg-black text-white" : "border-black/15"}`}>
+    <div className={`text-[10px] uppercase tracking-[0.25em] ${accent ? "text-white/60" : "text-neutral-500"}`}>{label}</div>
+    <div className="font-display mt-1 text-4xl uppercase tracking-[0.04em]">{value}</div>
+    {sub && <div className={`mt-1 text-[10px] uppercase tracking-[0.2em] ${accent ? "text-white/60" : "text-neutral-500"}`}>{sub}</div>}
+  </div>
+);
 
 
 

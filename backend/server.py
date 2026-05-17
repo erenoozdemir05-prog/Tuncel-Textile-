@@ -334,17 +334,26 @@ async def create_checkout(req: CheckoutRequest, http_request: Request, user: Opt
 @api_router.get("/checkout/status/{session_id}", response_model=CheckoutStatusOut)
 async def checkout_status(session_id: str, http_request: Request):
     existing = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})
-    if not existing:
+    gift_card = None if existing else await db.gift_cards.find_one({"stripe_session_id": session_id}, {"_id": 0})
+    if not existing and not gift_card:
         raise HTTPException(404, "Transaction not found")
 
     # If already finalized, return immediately
-    if existing.get("payment_status") in ("paid", "failed", "expired"):
+    if existing and existing.get("payment_status") in ("paid", "failed", "expired"):
         return CheckoutStatusOut(
             session_id=session_id,
             status=existing.get("status", "complete"),
             payment_status=existing["payment_status"],
             amount_total=float(existing.get("amount", 0)),
-            currency=existing.get("currency", "usd"),
+            currency=existing.get("currency", "eur"),
+        )
+    if gift_card and gift_card.get("status") in ("active", "redeemed", "partially_used", "cancelled", "expired"):
+        return CheckoutStatusOut(
+            session_id=session_id,
+            status="complete",
+            payment_status="paid",
+            amount_total=float(gift_card.get("amount", 0)),
+            currency=gift_card.get("currency", "eur"),
         )
 
     host_url = str(http_request.base_url)
@@ -377,12 +386,26 @@ async def checkout_status(session_id: str, http_request: Request):
         {"$set": update},
     )
 
+    # If this session belongs to a gift card and just got paid, activate it
+    if new_payment_status == "paid":
+        gc = await db.gift_cards.find_one({"stripe_session_id": session_id}, {"_id": 0})
+        if gc and gc.get("status") == "pending_payment":
+            now = datetime.now(timezone.utc).isoformat()
+            await db.gift_cards.update_one(
+                {"stripe_session_id": session_id},
+                {"$set": {"status": "active", "activated_at": now, "updated_at": now}},
+            )
+            # Email the recipient (or buyer if no recipient) — fire and forget
+            recipient = gc.get("recipient_email") or gc.get("buyer_email")
+            if recipient:
+                _send_gift_card_email(gc, recipient)
+
     return CheckoutStatusOut(
         session_id=session_id,
         status=new_status,
         payment_status=new_payment_status,
-        amount_total=float(status.amount_total) / 100.0 if status.amount_total else float(existing.get("amount", 0)),
-        currency=status.currency or "usd",
+        amount_total=float(status.amount_total) / 100.0 if status.amount_total else float(existing.get("amount", 0)) if existing else 0,
+        currency=status.currency or "eur",
     )
 
 
@@ -1347,7 +1370,6 @@ def _send_admin_notification_email(subject: str, html_body: str) -> None:
             "subject": subject,
             "html": html_body,
         }
-        # Resend SDK is synchronous; spawn it in a thread without awaiting
         async def _bg():
             try:
                 await asyncio.to_thread(resend.Emails.send, params)
@@ -1356,6 +1378,54 @@ def _send_admin_notification_email(subject: str, html_body: str) -> None:
         asyncio.create_task(_bg())
     except Exception as e:
         logging.warning("Resend dispatch failed: %s", e)
+
+
+def _send_gift_card_email(gc: dict, to_email: str) -> None:
+    """Send the gift card email with code and amount."""
+    if not RESEND_API_KEY:
+        return
+    html = f"""
+    <div style='font-family:Manrope,Arial,sans-serif;max-width:560px;margin:0 auto;'>
+      <div style='background:#000;color:#fff;padding:32px 28px;text-align:center;'>
+        <div style='font-family:"Bebas Neue",sans-serif;letter-spacing:.18em;font-size:14px;color:rgba(255,255,255,.6);'>TUNCEL ATELIER</div>
+        <h1 style='font-family:"Bebas Neue",sans-serif;letter-spacing:.04em;font-size:48px;margin:8px 0 0;'>A gift for you</h1>
+        <div style='font-size:14px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.7);margin-top:12px;'>From {gc.get("buyer_name") or "a friend"}</div>
+      </div>
+      <div style='padding:28px;background:#fff;'>
+        {'<p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#333;font-style:italic;border-left:3px solid #000;padding-left:14px;">' + (gc.get("message") or "") + '</p>' if gc.get("message") else ""}
+        <div style='background:#0B0B0B;color:#fff;padding:24px;text-align:center;'>
+          <div style='font-size:11px;letter-spacing:.3em;text-transform:uppercase;opacity:.6;'>Your code · €{float(gc.get("amount", 0)):.2f}</div>
+          <div style='font-family:"Courier New",monospace;font-size:24px;letter-spacing:.16em;font-weight:700;margin-top:10px;'>{gc.get("code")}</div>
+          <div style='font-size:10px;letter-spacing:.25em;text-transform:uppercase;opacity:.5;margin-top:14px;'>Valid until {(gc.get("expires_at") or "")[:10]}</div>
+        </div>
+        <table style='width:100%;border-collapse:collapse;margin-top:24px;'>
+          <tr><td style='padding:6px 0;color:#888;text-transform:uppercase;font-size:11px;letter-spacing:.18em;'>Reference</td><td style='text-align:right;font-family:monospace;font-size:13px;'>{gc.get("reference")}</td></tr>
+          <tr><td style='padding:6px 0;color:#888;text-transform:uppercase;font-size:11px;letter-spacing:.18em;'>Balance</td><td style='text-align:right;font-weight:600;font-size:14px;'>€{float(gc.get("balance", 0)):.2f}</td></tr>
+        </table>
+        <p style='margin-top:32px;text-align:center;'>
+          <a href='https://tuncel-textile.preview.emergentagent.com/shop/all' style='display:inline-block;background:#000;color:#fff;padding:14px 28px;text-decoration:none;letter-spacing:.2em;font-size:12px;text-transform:uppercase;'>Browse the collection →</a>
+        </p>
+        <p style='margin-top:24px;font-size:12px;color:#888;line-height:1.6;text-align:center;'>
+          Apply the code at checkout. Need help? Reply to this email or chat with us at tunceltextile.com.
+        </p>
+      </div>
+    </div>
+    """
+    try:
+        params = {
+            "from": f"Tuncel Atelier <{SENDER_EMAIL}>",
+            "to": [to_email],
+            "subject": f"🎁 You received a Tuncel Atelier gift card — €{float(gc.get('amount', 0)):.0f}",
+            "html": html,
+        }
+        async def _bg():
+            try:
+                await asyncio.to_thread(resend.Emails.send, params)
+            except Exception as ex:
+                logging.warning("Gift card email failed: %s", ex)
+        asyncio.create_task(_bg())
+    except Exception as e:
+        logging.warning("Gift card email dispatch failed: %s", e)
 
 
 class ChatStartIn(BaseModel):
@@ -1549,6 +1619,234 @@ async def admin_chat_close(session_id: str, _: bool = Depends(require_admin)):
     if res.matched_count == 0:
         raise HTTPException(404, "Chat session not found")
     return {"ok": True}
+
+
+# ============================================================
+# GIFT CARDS (Phase 6)
+# ============================================================
+import random
+import string
+
+
+def _generate_gift_code() -> str:
+    """Generate a 16-char alphanumeric code in 4×4 groups separated by '-'."""
+    alphabet = string.ascii_uppercase + string.digits
+    alphabet = alphabet.replace("O", "").replace("0", "").replace("I", "").replace("1", "")
+    groups = ["".join(random.choices(alphabet, k=4)) for _ in range(4)]
+    return "-".join(groups)
+
+
+GIFT_DENOMINATIONS = [25, 50, 100, 150, 250]
+
+
+class GiftCardPurchaseIn(BaseModel):
+    amount: float
+    buyer_name: str
+    buyer_email: EmailStr
+    recipient_name: Optional[str] = None
+    recipient_email: Optional[EmailStr] = None
+    message: Optional[str] = None
+    deliver_at: Optional[str] = None  # ISO date string
+
+
+@api_router.post("/gift-cards/checkout")
+async def gift_card_checkout(req: GiftCardPurchaseIn, request: Request):
+    if req.amount <= 0 or req.amount > 1000:
+        raise HTTPException(400, "Amount must be between €1 and €1000")
+    if not STRIPE_API_KEY:
+        raise HTTPException(500, "Payments not configured")
+
+    short_id = uuid.uuid4().hex[:6].upper()
+    reference = f"GC-{short_id}"
+    code = _generate_gift_code()
+
+    # Create Stripe checkout session
+    host_url = str(request.base_url).rstrip("/")
+    success_url = f"{host_url}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}&ref={reference}&type=gift"
+    cancel_url = f"{host_url}/gift-cards"
+
+    stripe = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=f"{host_url}/api/webhook/stripe")
+    session = await stripe.create_checkout_session(CheckoutSessionRequest(
+        amount=float(req.amount),
+        currency="eur",
+        success_url=success_url,
+        cancel_url=cancel_url,
+        metadata={
+            "type": "gift_card",
+            "reference": reference,
+            "code": code,
+            "buyer_email": req.buyer_email,
+            "recipient_email": req.recipient_email or "",
+        },
+    ))
+
+    now = datetime.now(timezone.utc).isoformat()
+    expiry = (datetime.now(timezone.utc) + timedelta(days=365)).isoformat()
+    await db.gift_cards.insert_one({
+        "id": str(uuid.uuid4()),
+        "reference": reference,
+        "code": code,
+        "amount": float(req.amount),
+        "balance": float(req.amount),
+        "currency": "eur",
+        "status": "pending_payment",  # pending_payment | active | redeemed | partially_used | cancelled | expired
+        "buyer_name": req.buyer_name,
+        "buyer_email": req.buyer_email,
+        "recipient_name": req.recipient_name,
+        "recipient_email": req.recipient_email,
+        "message": req.message,
+        "deliver_at": req.deliver_at,
+        "stripe_session_id": session.session_id,
+        "created_at": now,
+        "expires_at": expiry,
+        "redemptions": [],
+    })
+
+    return {"reference": reference, "checkout_url": session.url, "session_id": session.session_id}
+
+
+@api_router.get("/gift-cards/validate/{code}")
+async def gift_card_validate(code: str):
+    """Public: check if a gift card code is valid and return its balance."""
+    code = code.strip().upper()
+    card = await db.gift_cards.find_one({"code": code}, {"_id": 0, "buyer_email": 0, "buyer_name": 0})
+    if not card:
+        raise HTTPException(404, "Gift card not found")
+    if card.get("status") not in ("active", "partially_used"):
+        raise HTTPException(400, f"This card is {card.get('status')}")
+    # Check expiry
+    try:
+        exp = datetime.fromisoformat(card["expires_at"].replace("Z", "+00:00"))
+        if exp < datetime.now(timezone.utc):
+            await db.gift_cards.update_one({"code": code}, {"$set": {"status": "expired"}})
+            raise HTTPException(400, "This card has expired")
+    except (KeyError, ValueError):
+        pass
+    return {
+        "code": card["code"],
+        "balance": card["balance"],
+        "currency": card.get("currency", "eur"),
+        "status": card["status"],
+        "expires_at": card.get("expires_at"),
+    }
+
+
+@api_router.get("/admin/gift-cards")
+async def admin_list_gift_cards(_: bool = Depends(require_admin)):
+    return await db.gift_cards.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
+
+
+class GiftCardAdminIn(BaseModel):
+    status: Optional[str] = None  # active | cancelled | expired
+    admin_notes: Optional[str] = None
+
+
+@api_router.put("/admin/gift-cards/{card_id}")
+async def admin_update_gift_card(card_id: str, payload: GiftCardAdminIn, _: bool = Depends(require_admin)):
+    update = {k: v for k, v in payload.model_dump().items() if v is not None}
+    update["updated_at"] = datetime.now(timezone.utc).isoformat()
+    res = await db.gift_cards.update_one({"id": card_id}, {"$set": update})
+    if res.matched_count == 0:
+        raise HTTPException(404, "Gift card not found")
+    return await db.gift_cards.find_one({"id": card_id}, {"_id": 0})
+
+
+# ============================================================
+# ANALYTICS (Phase 6)
+# ============================================================
+@api_router.get("/admin/analytics")
+async def admin_analytics(days: int = 30, _: bool = Depends(require_admin)):
+    """Aggregate key metrics for the last `days` days (default 30)."""
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+
+    # Orders
+    all_orders = await db.payment_transactions.find(
+        {"created_at": {"$gte": since}}, {"_id": 0}
+    ).to_list(2000)
+    paid_orders = [o for o in all_orders if o.get("payment_status") in ("paid", "complete")]
+    revenue = sum(float(o.get("amount", 0)) for o in paid_orders)
+    aov = (revenue / len(paid_orders)) if paid_orders else 0
+
+    # By day for chart
+    day_buckets: Dict[str, Dict[str, float]] = {}
+    for o in paid_orders:
+        d = (o.get("created_at") or "")[:10]
+        if not d:
+            continue
+        b = day_buckets.setdefault(d, {"orders": 0, "revenue": 0.0})
+        b["orders"] += 1
+        b["revenue"] += float(o.get("amount", 0))
+    daily = [{"date": d, **v} for d, v in sorted(day_buckets.items())]
+
+    # Top products by revenue
+    product_totals: Dict[str, Dict[str, float]] = {}
+    for o in paid_orders:
+        for it in o.get("items", []) or []:
+            pid = it.get("product_id")
+            if not pid:
+                continue
+            qty = int(it.get("quantity", 1))
+            # Estimate revenue contribution per item: amount / total_units in order
+            total_units = sum(int(x.get("quantity", 1)) for x in (o.get("items") or []))
+            unit_share = (float(o.get("amount", 0)) / total_units) if total_units else 0
+            entry = product_totals.setdefault(pid, {"product_id": pid, "units": 0, "revenue": 0.0})
+            entry["units"] += qty
+            entry["revenue"] += unit_share * qty
+    # enrich with product name
+    top_ids = sorted(product_totals.values(), key=lambda x: x["revenue"], reverse=True)[:5]
+    for entry in top_ids:
+        prod = await db.products.find_one({"id": entry["product_id"]}, {"_id": 0, "name": 1})
+        entry["name"] = (prod or {}).get("name", entry["product_id"])
+
+    # Returns
+    returns = await db.returns.find({"created_at": {"$gte": since}}, {"_id": 0}).to_list(500)
+    refunded_count = sum(1 for r in returns if r.get("status") == "refunded")
+    exchanged_count = sum(1 for r in returns if r.get("status") == "exchanged")
+    return_rate = (len(returns) / len(paid_orders) * 100) if paid_orders else 0
+
+    # Chat AI vs human
+    msg_since = since
+    chat_msgs = await db.chat_messages.find(
+        {"created_at": {"$gte": msg_since}, "sender": {"$in": ["admin", "ai"]}},
+        {"_id": 0, "sender": 1},
+    ).to_list(5000)
+    ai_count = sum(1 for m in chat_msgs if m["sender"] == "ai")
+    human_count = sum(1 for m in chat_msgs if m["sender"] == "admin")
+    total_replies = ai_count + human_count
+    ai_share = (ai_count / total_replies * 100) if total_replies else 0
+
+    # Custom requests
+    custom_reqs = await db.custom_requests.count_documents({"created_at": {"$gte": since}})
+
+    # Gift cards
+    gift_active = await db.gift_cards.count_documents({"status": "active"})
+    gift_revenue = 0.0
+    gc_paid = await db.gift_cards.find(
+        {"status": {"$in": ["active", "partially_used", "redeemed"]}, "created_at": {"$gte": since}},
+        {"_id": 0, "amount": 1},
+    ).to_list(500)
+    gift_revenue = sum(float(g.get("amount", 0)) for g in gc_paid)
+
+    return {
+        "range_days": days,
+        "since": since,
+        "revenue": round(revenue, 2),
+        "orders_count": len(paid_orders),
+        "all_orders_count": len(all_orders),
+        "aov": round(aov, 2),
+        "daily": daily,
+        "top_products": top_ids,
+        "returns_count": len(returns),
+        "refunded_count": refunded_count,
+        "exchanged_count": exchanged_count,
+        "return_rate_pct": round(return_rate, 1),
+        "chat_ai_replies": ai_count,
+        "chat_human_replies": human_count,
+        "chat_ai_share_pct": round(ai_share, 1),
+        "custom_requests_count": custom_reqs,
+        "gift_cards_active": gift_active,
+        "gift_cards_revenue": round(gift_revenue, 2),
+    }
 
 
 app.include_router(api_router)

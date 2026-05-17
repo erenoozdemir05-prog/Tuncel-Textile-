@@ -158,6 +158,51 @@ export default function Home() {
         </div>
       </section>
 
+      {/* BESPOKE CTA — strong path into Custom Request */}
+      <section className="border-b border-black/10 bg-white" data-testid="bespoke-cta">
+        <div className="mx-auto grid max-w-[1400px] grid-cols-1 items-stretch px-0 sm:px-0 lg:grid-cols-[1.1fr_1fr]">
+          <div className="flex flex-col justify-between gap-10 border-r border-black/10 px-5 py-20 sm:px-12 sm:py-24">
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">Bespoke · Made for you</div>
+              <h2 className="font-display mt-3 text-5xl uppercase leading-[0.95] tracking-[0.02em] sm:text-7xl">
+                Have an idea?
+                <br />
+                <span className="text-neutral-400">We'll make it.</span>
+              </h2>
+              <p className="mt-6 max-w-md text-[15px] leading-[1.7] text-neutral-700">
+                From a single tee for yourself to a small drop for your brand. No MOQ — start at just one piece. Free design consultation. Reply within 24 hours.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-4">
+              <Link
+                to="/custom-request"
+                data-testid="home-custom-cta"
+                className="group inline-flex items-center gap-3 bg-black px-7 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] text-white transition-colors hover:bg-neutral-800"
+              >
+                Start a Custom Request
+                <span className="transition-transform group-hover:translate-x-1">→</span>
+              </Link>
+              <span className="text-[11px] uppercase tracking-[0.25em] text-neutral-500">Starting from €35</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-px bg-black/10">
+            {[
+              { label: "Single piece", body: "Just one for you" },
+              { label: "Small drop", body: "5–50 units" },
+              { label: "Wholesale", body: "50+ units" },
+              { label: "Print on hoodie", body: "Heavyweight" },
+              { label: "Tee · long sleeve", body: "Heavy cotton" },
+              { label: "Tote · cap", body: "Heavy canvas" },
+            ].map((c) => (
+              <div key={c.label} className="bg-white p-6">
+                <div className="text-[10px] uppercase tracking-[0.25em] text-neutral-400">{c.body}</div>
+                <div className="font-display mt-2 text-2xl uppercase tracking-[0.04em]">{c.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* NEWSLETTER */}
       <section className="bg-black text-white">
         <div className="mx-auto grid max-w-[1400px] grid-cols-1 items-center gap-10 px-5 py-20 sm:px-8 md:grid-cols-2">

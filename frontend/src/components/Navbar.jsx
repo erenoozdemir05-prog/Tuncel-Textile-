@@ -17,6 +17,7 @@ export const Navbar = () => {
     { to: "/shop/men", label: t("nav.men") },
     { to: "/shop/women", label: t("nav.women") },
     { to: "/shop/accessories", label: t("nav.accessories") },
+    { to: "/custom-request", label: "Custom" },
     { to: "/about", label: t("nav.atelier") },
   ];
 

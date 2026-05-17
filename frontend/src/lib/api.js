@@ -178,6 +178,30 @@ export const adminChatClose = async (token, sessionId) => {
   return data;
 };
 
+// ---- Gift Cards ----
+export const purchaseGiftCard = async (payload) => {
+  const { data } = await api.post("/gift-cards/checkout", payload);
+  return data;
+};
+export const validateGiftCard = async (code) => {
+  const { data } = await api.get(`/gift-cards/validate/${encodeURIComponent(code)}`);
+  return data;
+};
+export const adminListGiftCards = async (token) => {
+  const { data } = await api.get("/admin/gift-cards", { headers: { "X-Admin-Token": token } });
+  return data;
+};
+export const adminUpdateGiftCard = async (token, id, payload) => {
+  const { data } = await api.put(`/admin/gift-cards/${id}`, payload, { headers: { "X-Admin-Token": token } });
+  return data;
+};
+
+// ---- Analytics ----
+export const adminAnalytics = async (token, days = 30) => {
+  const { data } = await api.get(`/admin/analytics?days=${days}`, { headers: { "X-Admin-Token": token } });
+  return data;
+};
+
 // ---- Uploads (public for custom request images) ----
 export const uploadPublicImage = async (token, file) => {
   // Reuses admin upload for now (token still required to keep it safe).

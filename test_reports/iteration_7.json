@@ -1,0 +1,40 @@
+{
+  "summary": "Phase 6 review — backend 20/20 PASS (analytics, gift cards CRUD, validate, checkout-status flip). Frontend mostly passes: WhatsApp FAB premium pill, Bespoke CTA, Navbar Custom link, granular cookie banner (3 buttons + 4-cat modal), CustomRequest budgets/qty=1, Gift Cards page with all 5 denominations + custom + submit, Admin Analytics default tab with 8 KPIs + 4 range buttons, Admin Gift Cards tab with filter pills. Two real bugs found: (1) Cookie 'Save preferences' does NOT persist consent to localStorage v2 key (only Accept All / Reject All work). (2) Footer link navigation timed out (footer-gift) — possibly broken router-link wiring or testid on non-anchor.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "CookieBanner.jsx (savePrefs flow)", "issue": "Clicking [data-testid=cookie-save] after toggling a category does NOT write to localStorage key 'tuncel_cookie_consent_v2'. 'Accept All' writes correctly (verified value: {essential:true,analytics:true,marketing:true,preferences:true,ts:...}). Likely cause: clicking toggle button inside parent <label> double-fires (label re-toggles state) and/or savePrefs() click is being absorbed by the surrounding label element. Modal closes visually but persistence never happens.", "selector": "[data-testid='cookie-save']", "priority": "HIGH"},
+      {"component": "Footer / footer-gift link", "issue": "Clicking [data-testid='footer-gift'] does not navigate to /gift-cards within 8s. URL pattern wait timed out from /. Other home-custom-cta navigation works fine and scrolls to top. Likely footer-gift is not wired as a React Router <Link to='/gift-cards'> or the link click is intercepted.", "selector": "[data-testid='footer-gift']", "priority": "HIGH"}
+    ],
+    "integration_issues": [
+      {"flow": "ScrollToTop after footer navigation", "issue": "When trying to test ScrollToTop via footer link (FAQ/gift-cards), the navigation either didn't fire OR scrollY remained near the previous scroll (1771 from 1785). However the same ScrollToTop works perfectly for the Bespoke CTA flow (Home → /custom-request gave scrollY=0). Root cause appears tied to the footer link bug above — page is not actually navigating, so ScrollToTop never runs.", "affected_selectors": ["[data-testid='footer-gift']", "a[href='/faq']"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_phase6.py",
+    "/app/test_reports/pytest/phase6_results.xml"
+  ],
+  "action_items": [
+    "Fix CookieBanner savePrefs persistence — likely change the wrapping <label> to a <div> OR add event.stopPropagation() in the toggle button's onClick OR move savePrefs out of any element that swallows clicks. Verify localStorage.getItem('tuncel_cookie_consent_v2') is set after clicking Save preferences.",
+    "Fix Footer 'footer-gift' (and possibly all footer links) — ensure it is a real React Router <Link to='/gift-cards' data-testid='footer-gift'> so SPA navigation fires and ScrollToTop runs. Same probably affects footer-faq, footer-track-order, footer-return-request.",
+    "After fix, re-run /app/backend/tests/test_phase6.py and re-validate the cookie-modal + footer link Playwright flows."
+  ],
+  "critical_code_review_comments": [
+    "server.py is now ~1869 lines — strongly recommend splitting into routers/: products.py, checkout.py, admin.py, chat.py, gift_cards.py, analytics.py. Maintainability is degrading.",
+    "GiftCardPurchaseIn.amount accepts float; spec says 'no MOQ from €35' for custom apparel but gift_card_checkout allows €0.01 (only rejects <=0). Consider min 5 or 10.",
+    "Gift card code uses random.choices — not cryptographically secure. For value-bearing codes use secrets.choice.",
+    "admin_analytics builds top_products with N+1 DB queries (one find_one per top_id). Acceptable for top_5 but worth a single $in query.",
+    "Cookie consent storage key is correct ('tuncel_cookie_consent_v2'), but DEFAULT_PREFS in saved state include extra 'ts' key — UI tests must allow extra keys when asserting."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_phase6.py (new)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "~85%"},
+  "test_credentials": "Admin: tuncel2026admin (worked).",
+  "seed_data_creation": "Seeded gift_cards (TEST-* codes, GC-UPDTEST, GC-SEEDACT) in DB during pytest; teardown_module cleans them up after the run.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend Phase 6 fully green via /app/backend/tests/test_phase6.py. Two frontend bugs remain: (a) CookieBanner 'Save preferences' does not write to localStorage tuncel_cookie_consent_v2 (Accept All works). (b) Footer-gift link does not SPA-navigate — likely all footer links are <a href> reloading the page instead of <Link>. Admin Analytics tab is correctly DEFAULT, has all 8 KPIs and 4 range buttons. Gift Cards admin tab has filter pills (ALL/Active/Pending/Partially used/Redeemed/Expired). Stripe gift card creation real-hits Stripe — limit reruns. checkout/status flip from pending_payment→active is verified via DB seed.",
+  "rca of the issue": "Cookie 'Save preferences' bug: the entire category row is a <label> with the toggle <button> nested inside. Clicking the button propagates a click to the label which acts like a second click on the contained button (or React batches state in a way that prevents the latest prefs from being captured). When Save fires immediately after, the rendered prefs in scope are not what the user actually selected. Mitigation: replace outer <label> with <div> OR add e.stopPropagation() on the button.onClick, OR convert toggle to a real input[type=checkbox] with htmlFor."
+}

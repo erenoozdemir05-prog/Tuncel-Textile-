@@ -12,6 +12,7 @@ import { Footer, WhatsappFAB } from "@/components/Footer";
 import { CookieBanner } from "@/components/CookieBanner";
 import { ChatWidget } from "@/components/ChatWidget";
 import { ShippingBar } from "@/components/ShippingBar";
+import ScrollToTop from "@/components/ScrollToTop";
 import { useFavicon } from "@/hooks/useFavicon";
 import Home from "@/pages/Home";
 import Shop from "@/pages/Shop";
@@ -29,6 +30,7 @@ import LegalPage from "@/pages/LegalPage";
 import CustomRequest from "@/pages/CustomRequest";
 import TrackOrder from "@/pages/TrackOrder";
 import ReturnRequest from "@/pages/ReturnRequest";
+import GiftCards from "@/pages/GiftCards";
 
 function FaviconBridge() {
   const { settings } = useSettings();
@@ -57,6 +59,7 @@ function AppRouter() {
       <Route path="/custom-request" element={<CustomRequest />} />
       <Route path="/track-order" element={<TrackOrder />} />
       <Route path="/return-request" element={<ReturnRequest />} />
+      <Route path="/gift-cards" element={<GiftCards />} />
       <Route path="/legal/:slug" element={<LegalPage />} />
       <Route path="/cookie-policy" element={<CookiePolicy />} />
       <Route path="*" element={<Home />} />
@@ -72,6 +75,7 @@ function App() {
           <AuthProvider>
             <CartProvider>
               <BrowserRouter>
+                <ScrollToTop />
                 <FaviconBridge />
                 <div className="App flex min-h-screen flex-col bg-white text-black">
                   <Navbar />
