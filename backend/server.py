@@ -1278,6 +1278,29 @@ Sign off as "— Atelier AI" so the customer knows it's a first-line auto-reply.
 """
 
 
+async def _run_ai_reply(session_id: str, customer_message: str) -> None:
+    """Background task: generate AI reply and persist. Never raises."""
+    try:
+        reply = await _generate_ai_reply(session_id, customer_message)
+        if not reply:
+            return
+        now = datetime.now(timezone.utc).isoformat()
+        await db.chat_messages.insert_one({
+            "id": str(uuid.uuid4()),
+            "session_id": session_id,
+            "sender": "ai",
+            "body": reply,
+            "created_at": now,
+        })
+        await db.chat_sessions.update_one(
+            {"id": session_id},
+            {"$set": {"updated_at": now}, "$inc": {"unread_for_customer": 1}},
+        )
+    except Exception as e:
+        logging.warning("AI background reply failed: %s", e)
+
+
+
 async def _generate_ai_reply(session_id: str, customer_message: str) -> Optional[str]:
     """Generate an AI auto-reply using Claude Sonnet via Emergent LLM key. Returns None on failure."""
     if not AI_REPLY_ENABLED or not EMERGENT_LLM_KEY:
@@ -1394,22 +1417,8 @@ async def chat_start(payload: ChatStartIn):
             """
         )
 
-        # AI auto-reply
-        ai_reply = await _generate_ai_reply(session_id, payload.initial_message[:4000])
-        if ai_reply:
-            ai_now = datetime.now(timezone.utc).isoformat()
-            ai_msg = {
-                "id": str(uuid.uuid4()),
-                "session_id": session_id,
-                "sender": "ai",
-                "body": ai_reply,
-                "created_at": ai_now,
-            }
-            await db.chat_messages.insert_one(ai_msg)
-            await db.chat_sessions.update_one(
-                {"id": session_id},
-                {"$set": {"updated_at": ai_now}, "$inc": {"unread_for_customer": 1}},
-            )
+        # AI auto-reply — fire-and-forget so customer sees their message immediately
+        asyncio.create_task(_run_ai_reply(session_id, payload.initial_message[:4000]))
 
     return {"session_id": session_id}
 
@@ -1462,21 +1471,7 @@ async def chat_send_message(session_id: str, payload: ChatMessageIn):
             admin_active_recently = False
 
     if not admin_active_recently:
-        ai_reply = await _generate_ai_reply(session_id, body)
-        if ai_reply:
-            ai_now = datetime.now(timezone.utc).isoformat()
-            ai_msg = {
-                "id": str(uuid.uuid4()),
-                "session_id": session_id,
-                "sender": "ai",
-                "body": ai_reply,
-                "created_at": ai_now,
-            }
-            await db.chat_messages.insert_one(ai_msg)
-            await db.chat_sessions.update_one(
-                {"id": session_id},
-                {"$set": {"updated_at": ai_now}, "$inc": {"unread_for_customer": 1}},
-            )
+        asyncio.create_task(_run_ai_reply(session_id, body))
 
     return {k: v for k, v in msg.items() if k != "_id"}
 
