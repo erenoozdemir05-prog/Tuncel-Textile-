@@ -1193,10 +1193,60 @@ function ChatTab({ token }) {
   const [activeData, setActiveData] = useState(null);
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
+  const [soundOn, setSoundOn] = useState(() => {
+    const v = localStorage.getItem("tuncel_admin_chat_sound");
+    return v === null ? true : v === "true";
+  });
   const scrollRef = React.useRef(null);
+  const lastUnreadTotal = React.useRef(0);
+  const audioCtxRef = React.useRef(null);
+
+  const playDing = () => {
+    if (!soundOn) return;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!audioCtxRef.current) audioCtxRef.current = new AC();
+      const ctx = audioCtxRef.current;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.4);
+    } catch { /* noop */ }
+  };
+
+  const requestBrowserNotify = () => {
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "default") Notification.requestPermission();
+  };
+
+  const browserNotify = (title, body) => {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    try {
+      const n = new Notification(title, { body, icon: "/favicon.ico", tag: "tuncel-chat" });
+      setTimeout(() => n.close(), 7000);
+    } catch { /* noop */ }
+  };
 
   const loadSessions = async () => {
-    try { setSessions(await adminChatSessions(token)); } catch { /* ignore */ }
+    try {
+      const list = await adminChatSessions(token);
+      // detect new unread arrivals
+      const total = list.reduce((s, x) => s + (x.unread_for_admin || 0), 0);
+      if (total > lastUnreadTotal.current && lastUnreadTotal.current >= 0) {
+        playDing();
+        const latest = [...list].sort((a, b) => (b.updated_at || "").localeCompare(a.updated_at || ""))[0];
+        if (latest) browserNotify(`New message from ${latest.customer_name || "Visitor"}`, "Open Atelier Admin to reply.");
+      }
+      lastUnreadTotal.current = total;
+      setSessions(list);
+    } catch { /* ignore */ }
   };
 
   const loadSession = async (id) => {
@@ -1251,9 +1301,27 @@ function ChatTab({ token }) {
 
   return (
     <div>
-      <div className="mb-6">
-        <h2 className="font-display text-3xl uppercase tracking-[0.04em]">Live Chat</h2>
-        <p className="mt-1 text-sm text-neutral-600">Reply to customers using the chat widget. Auto-refresh every 5 seconds.</p>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="font-display text-3xl uppercase tracking-[0.04em]">Live Chat</h2>
+          <p className="mt-1 text-sm text-neutral-600">AI replies first · you take over when needed. New-message sound &amp; email alerts.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            data-testid="chat-sound-toggle"
+            onClick={() => { const v = !soundOn; setSoundOn(v); localStorage.setItem("tuncel_admin_chat_sound", String(v)); if (v) playDing(); }}
+            className={`inline-flex items-center gap-2 border px-3 py-2 text-[10px] uppercase tracking-[0.2em] ${soundOn ? "border-black bg-black text-white" : "border-black/20 text-neutral-600 hover:border-black"}`}
+          >
+            {soundOn ? "Sound on" : "Sound off"}
+          </button>
+          <button
+            data-testid="chat-notify-permission"
+            onClick={requestBrowserNotify}
+            className="inline-flex items-center gap-2 border border-black/20 px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-neutral-600 hover:border-black"
+          >
+            Enable browser alerts
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-0 border border-black/10 lg:grid-cols-[300px_1fr]" style={{ minHeight: 560 }}>
@@ -1323,19 +1391,29 @@ function ChatTab({ token }) {
                 ) : activeData.messages.length === 0 ? (
                   <p className="text-center text-xs text-neutral-400">No messages.</p>
                 ) : (
-                  activeData.messages.map((m) => (
-                    <div
-                      key={m.id}
-                      className={`mb-3 max-w-[75%] px-3 py-2 text-sm leading-relaxed ${
-                        m.sender === "admin" ? "ml-auto bg-black text-white" : "ml-0 bg-white text-black border border-black/10"
-                      }`}
-                    >
-                      {m.body}
-                      <div className={`mt-1 text-[9px] uppercase tracking-[0.2em] ${m.sender === "admin" ? "text-white/60" : "text-neutral-500"}`}>
-                        {m.sender === "admin" ? "You · Atelier" : (activeData.session.customer_name || "Customer")} · {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  activeData.messages.map((m) => {
+                    const isAi = m.sender === "ai";
+                    const isAdmin = m.sender === "admin";
+                    return (
+                      <div
+                        key={m.id}
+                        className={`mb-3 max-w-[75%] px-3 py-2 text-sm leading-relaxed ${
+                          isAdmin
+                            ? "ml-auto bg-black text-white"
+                            : isAi
+                            ? "ml-auto border border-purple-200 bg-purple-50 text-black"
+                            : "ml-0 bg-white text-black border border-black/10"
+                        }`}
+                      >
+                        {m.body}
+                        <div className={`mt-1 text-[9px] uppercase tracking-[0.2em] ${
+                          isAdmin ? "text-white/60" : isAi ? "text-purple-700" : "text-neutral-500"
+                        }`}>
+                          {isAdmin ? "You · Atelier" : isAi ? "Atelier AI · auto" : (activeData.session.customer_name || "Customer")} · {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
               {activeData.session.status === "open" ? (

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { chatStart, chatSend, chatFetch } from "@/lib/api";
-import { MessageCircle, Send, X } from "lucide-react";
+import { MessageCircle, Send, X, Sparkles } from "lucide-react";
 
 const STORAGE_KEY = "tuncel_chat_session";
 const POLL_MS = 3000;
@@ -117,7 +117,10 @@ export function ChatWidget() {
           <div className="flex items-center justify-between border-b border-black bg-black px-4 py-3 text-white">
             <div>
               <div className="font-display text-base uppercase tracking-[0.18em]">Atelier chat</div>
-              <div className="text-[10px] uppercase tracking-[0.25em] text-white/60">Usually replies in 1h</div>
+              <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.25em] text-white/70">
+                <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+                AI Supported · usually replies in seconds
+              </div>
             </div>
             <button data-testid="chat-close" onClick={() => setOpen(false)} aria-label="Close chat" className="p-1 hover:bg-white/10">
               <X className="h-4 w-4" />
@@ -165,21 +168,35 @@ export function ChatWidget() {
                 {messages.length === 0 ? (
                   <p className="text-center text-xs text-neutral-400">No messages yet.</p>
                 ) : (
-                  messages.map((m) => (
-                    <div
-                      key={m.id}
-                      className={`mb-3 max-w-[80%] px-3 py-2 text-sm leading-relaxed ${
-                        m.sender === "admin"
-                          ? "ml-0 bg-neutral-100 text-black"
-                          : "ml-auto bg-black text-white"
-                      }`}
-                    >
-                      {m.body}
-                      <div className={`mt-1 text-[9px] uppercase tracking-[0.2em] ${m.sender === "admin" ? "text-neutral-500" : "text-white/60"}`}>
-                        {m.sender === "admin" ? "Atelier" : "You"} · {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  messages.map((m) => {
+                    const isAi = m.sender === "ai";
+                    const isAdmin = m.sender === "admin";
+                    const fromAtelierSide = isAi || isAdmin;
+                    return (
+                      <div
+                        key={m.id}
+                        className={`mb-3 max-w-[80%] px-3 py-2 text-sm leading-relaxed ${
+                          isAi
+                            ? "ml-0 border border-purple-200 bg-purple-50 text-black"
+                            : isAdmin
+                            ? "ml-0 bg-neutral-100 text-black"
+                            : "ml-auto bg-black text-white"
+                        }`}
+                      >
+                        {isAi && (
+                          <div className="mb-1 flex items-center gap-1 text-[9px] uppercase tracking-[0.2em] text-purple-700">
+                            <Sparkles className="h-2.5 w-2.5" /> Atelier AI
+                          </div>
+                        )}
+                        {m.body}
+                        <div className={`mt-1 text-[9px] uppercase tracking-[0.2em] ${
+                          isAi ? "text-purple-600" : fromAtelierSide ? "text-neutral-500" : "text-white/60"
+                        }`}>
+                          {isAi ? "Auto-reply" : isAdmin ? "Atelier" : "You"} · {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
               <form onSubmit={send} className="flex items-center gap-2 border-t border-black/10 p-3">
@@ -205,15 +222,22 @@ export function ChatWidget() {
         </div>
       )}
 
-      {/* FAB */}
+      {/* FAB with always-visible AI Chat label */}
       <button
         type="button"
         data-testid="chat-fab"
         onClick={() => setOpen((o) => !o)}
-        aria-label="Open chat"
-        className="relative flex h-14 w-14 items-center justify-center rounded-full bg-black text-white shadow-xl transition-transform hover:scale-105"
+        aria-label="Open AI-supported live chat"
+        className="relative inline-flex items-center gap-2 rounded-full bg-black px-4 py-3 pl-3 text-white shadow-xl transition-transform hover:scale-105 sm:px-5 sm:py-3.5"
       >
-        <MessageCircle className="h-6 w-6" />
+        <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white/10">
+          <MessageCircle className="h-5 w-5" />
+          <Sparkles className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 text-emerald-300" />
+        </span>
+        <span className="flex flex-col items-start leading-tight">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">AI Chat</span>
+          <span className="text-[8.5px] uppercase tracking-[0.2em] text-white/60">Live · with humans</span>
+        </span>
         {unread > 0 && !open && (
           <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-semibold text-white">
             {unread}

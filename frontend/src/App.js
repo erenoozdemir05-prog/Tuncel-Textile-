@@ -11,6 +11,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer, WhatsappFAB } from "@/components/Footer";
 import { CookieBanner } from "@/components/CookieBanner";
 import { ChatWidget } from "@/components/ChatWidget";
+import { ShippingBar } from "@/components/ShippingBar";
 import { useFavicon } from "@/hooks/useFavicon";
 import Home from "@/pages/Home";
 import Shop from "@/pages/Shop";
@@ -74,6 +75,7 @@ function App() {
                 <FaviconBridge />
                 <div className="App flex min-h-screen flex-col bg-white text-black">
                   <Navbar />
+                  <ShippingBar />
                   <main className="flex-1">
                     <AppRouter />
                   </main>

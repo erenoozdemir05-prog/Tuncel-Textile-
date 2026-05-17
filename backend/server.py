@@ -17,6 +17,9 @@ from emergentintegrations.payments.stripe.checkout import (
     CheckoutStatusResponse,
     CheckoutSessionRequest,
 )
+from emergentintegrations.llm.chat import LlmChat, UserMessage
+import asyncio
+import resend
 
 
 ROOT_DIR = Path(__file__).parent
@@ -30,6 +33,13 @@ STRIPE_API_KEY = os.environ.get("STRIPE_API_KEY", "")
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "tuncel-admin-2026")
 APP_NAME = os.environ.get("APP_NAME", "tuncel-textile")
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+ADMIN_NOTIFY_EMAIL = os.environ.get("ADMIN_NOTIFY_EMAIL", "")
+AI_REPLY_ENABLED = os.environ.get("AI_REPLY_ENABLED", "true").lower() == "true"
+
+if RESEND_API_KEY:
+    resend.api_key = RESEND_API_KEY
 
 STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
 storage_key: Optional[str] = None
@@ -1245,6 +1255,86 @@ async def admin_update_return(return_id: str, payload: ReturnStatusIn, _: bool =
 # ============================================================
 # LIVE CHAT (Phase 4) — polling-based widget
 # ============================================================
+
+CHAT_SYSTEM_PROMPT = """You are the AI concierge for Tuncel Textile — a premium minimalist textile atelier in Riga, Latvia, run by two founders.
+
+Brand voice: warm, confident, concise. Talk like a thoughtful maker, not a corporate bot. Use 1–3 short sentences per reply.
+
+What you know:
+- We sell premium hoodies, T-shirts and accessories. Bold typographic prints, hand-finished in our Riga atelier.
+- Currency: EUR (€). Free shipping in the EU on orders over €30.
+- Payment: card (Stripe) or IBAN bank transfer (we issue a reference like TT-XXXXXX).
+- Same-day shipping for orders placed before 14:00 CET. Otherwise within 48 hours.
+- Standard pieces: 14-day return window. Limited drops & bespoke = final sale.
+- We accept custom/bespoke orders — point users to /custom-request.
+- Order tracking is at /track-order (needs reference + email).
+- Returns are at /return-request.
+
+Languages: reply in the language the customer used (Turkish / English / Russian / Latvian).
+
+When you don't know the answer (specific order status, prices not in stock list, technical defects, anything personal) say: "Let me get one of the founders to reply — usually within an hour." DO NOT make up order numbers, prices, or shipping ETAs.
+
+Sign off as "— Atelier AI" so the customer knows it's a first-line auto-reply.
+"""
+
+
+async def _generate_ai_reply(session_id: str, customer_message: str) -> Optional[str]:
+    """Generate an AI auto-reply using Claude Sonnet via Emergent LLM key. Returns None on failure."""
+    if not AI_REPLY_ENABLED or not EMERGENT_LLM_KEY:
+        return None
+    try:
+        # Load last N messages for context (excluding the one just inserted)
+        recent = await db.chat_messages.find(
+            {"session_id": session_id}, {"_id": 0}
+        ).sort("created_at", 1).to_list(20)
+        # Build conversational context manually in the prompt (Llm chat library handles per-session memory if session_id reused)
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"tt-chat-{session_id}",
+            system_message=CHAT_SYSTEM_PROMPT,
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+
+        # Compose a short history to give the AI memory across polls (last 6 turns)
+        history_block = ""
+        for m in recent[-6:-1]:  # exclude the just-inserted current msg (last element)
+            who = "Customer" if m["sender"] == "customer" else ("AI" if m["sender"] == "ai" else "Founder")
+            history_block += f"{who}: {m['body']}\n"
+        prompt_text = (
+            (f"Recent conversation:\n{history_block}\n" if history_block else "")
+            + f"Customer: {customer_message}\n\nReply in 1–3 short sentences. Match the customer's language."
+        )
+        msg = UserMessage(text=prompt_text)
+        reply = await chat.send_message(msg)
+        if not reply or not str(reply).strip():
+            return None
+        return str(reply).strip()[:2000]
+    except Exception as e:
+        logging.warning("AI reply failed: %s", e)
+        return None
+
+
+def _send_admin_notification_email(subject: str, html_body: str) -> None:
+    """Fire-and-forget admin email via Resend. Safe-no-ops if key missing."""
+    if not RESEND_API_KEY or not ADMIN_NOTIFY_EMAIL:
+        return
+    try:
+        params = {
+            "from": f"Tuncel Atelier <{SENDER_EMAIL}>",
+            "to": [ADMIN_NOTIFY_EMAIL],
+            "subject": subject,
+            "html": html_body,
+        }
+        # Resend SDK is synchronous; spawn it in a thread without awaiting
+        async def _bg():
+            try:
+                await asyncio.to_thread(resend.Emails.send, params)
+            except Exception as ex:
+                logging.warning("Resend send failed: %s", ex)
+        asyncio.create_task(_bg())
+    except Exception as e:
+        logging.warning("Resend dispatch failed: %s", e)
+
+
 class ChatStartIn(BaseModel):
     customer_name: Optional[str] = None
     customer_email: Optional[EmailStr] = None
@@ -1287,6 +1377,40 @@ async def chat_start(payload: ChatStartIn):
             {"$set": {"updated_at": now, "last_customer_at": now}, "$inc": {"unread_for_admin": 1}},
         )
 
+        # Email notify admin
+        _send_admin_notification_email(
+            subject=f"🟢 New chat — {doc['customer_name']}",
+            html_body=f"""
+            <div style='font-family:Manrope,Arial,sans-serif;max-width:560px;'>
+              <h2 style='margin:0 0 8px;font-family:"Bebas Neue",sans-serif;letter-spacing:.08em;text-transform:uppercase;'>New atelier chat</h2>
+              <p style='color:#666;margin:0 0 16px;'>A customer just started a conversation.</p>
+              <table style='width:100%;border-collapse:collapse;margin-bottom:18px;'>
+                <tr><td style='padding:6px 0;color:#888;text-transform:uppercase;font-size:11px;letter-spacing:.18em;'>From</td><td>{doc['customer_name']}</td></tr>
+                <tr><td style='padding:6px 0;color:#888;text-transform:uppercase;font-size:11px;letter-spacing:.18em;'>Email</td><td>{doc.get('customer_email') or '—'}</td></tr>
+              </table>
+              <div style='border-left:3px solid #000;padding:10px 16px;background:#fafafa;'>{payload.initial_message[:1000]}</div>
+              <p style='margin-top:24px;'><a href='https://tuncel-textile.preview.emergentagent.com/admin' style='display:inline-block;background:#000;color:#fff;padding:12px 24px;text-decoration:none;letter-spacing:.18em;font-size:12px;'>Open Atelier Admin →</a></p>
+            </div>
+            """
+        )
+
+        # AI auto-reply
+        ai_reply = await _generate_ai_reply(session_id, payload.initial_message[:4000])
+        if ai_reply:
+            ai_now = datetime.now(timezone.utc).isoformat()
+            ai_msg = {
+                "id": str(uuid.uuid4()),
+                "session_id": session_id,
+                "sender": "ai",
+                "body": ai_reply,
+                "created_at": ai_now,
+            }
+            await db.chat_messages.insert_one(ai_msg)
+            await db.chat_sessions.update_one(
+                {"id": session_id},
+                {"$set": {"updated_at": ai_now}, "$inc": {"unread_for_customer": 1}},
+            )
+
     return {"session_id": session_id}
 
 
@@ -1313,6 +1437,47 @@ async def chat_send_message(session_id: str, payload: ChatMessageIn):
         {"id": session_id},
         {"$set": {"updated_at": now, "last_customer_at": now, "status": "open"}, "$inc": {"unread_for_admin": 1}},
     )
+
+    # Notify admin via email
+    _send_admin_notification_email(
+        subject=f"💬 New message — {sess.get('customer_name', 'Visitor')}",
+        html_body=f"""
+        <div style='font-family:Manrope,Arial,sans-serif;max-width:560px;'>
+          <h2 style='margin:0 0 8px;font-family:"Bebas Neue",sans-serif;letter-spacing:.08em;text-transform:uppercase;'>New message</h2>
+          <p style='color:#666;margin:0 0 16px;'>{sess.get('customer_name', 'Visitor')} ({sess.get('customer_email') or '—'}) sent:</p>
+          <div style='border-left:3px solid #000;padding:10px 16px;background:#fafafa;'>{body[:1200]}</div>
+          <p style='margin-top:24px;'><a href='https://tuncel-textile.preview.emergentagent.com/admin' style='display:inline-block;background:#000;color:#fff;padding:12px 24px;text-decoration:none;letter-spacing:.18em;font-size:12px;'>Reply in Atelier Admin →</a></p>
+        </div>
+        """
+    )
+
+    # AI auto-reply only if admin has NOT replied in the last 5 minutes (so human takes priority once active)
+    last_admin = sess.get("last_admin_at")
+    admin_active_recently = False
+    if last_admin:
+        try:
+            last_dt = datetime.fromisoformat(last_admin.replace("Z", "+00:00"))
+            admin_active_recently = (datetime.now(timezone.utc) - last_dt) < timedelta(minutes=5)
+        except Exception:
+            admin_active_recently = False
+
+    if not admin_active_recently:
+        ai_reply = await _generate_ai_reply(session_id, body)
+        if ai_reply:
+            ai_now = datetime.now(timezone.utc).isoformat()
+            ai_msg = {
+                "id": str(uuid.uuid4()),
+                "session_id": session_id,
+                "sender": "ai",
+                "body": ai_reply,
+                "created_at": ai_now,
+            }
+            await db.chat_messages.insert_one(ai_msg)
+            await db.chat_sessions.update_one(
+                {"id": session_id},
+                {"$set": {"updated_at": ai_now}, "$inc": {"unread_for_customer": 1}},
+            )
+
     return {k: v for k, v in msg.items() if k != "_id"}
 
 
