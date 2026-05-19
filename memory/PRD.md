@@ -31,7 +31,31 @@ Studio gmail: **tunceltextile@gmail.com**
 - **Phase 3 — Returns/Exchanges** (`/return-request`, status workflow pending→approved→in_transit→received→refunded/exchanged, conditional exchange_size vs IBAN, admin Returns tab with filter+drawer)
 - **Phase 4 — Live Chat** (7 endpoints, ChatWidget FAB on every page, polling 3s customer / 4-5s admin, localStorage `tuncel_chat_session`, unread badge, admin Live Chat tab with split layout)
 
-### Iteration 7 (2026-02-17) — Phase 5: AI hybrid chat + email alerts + premium polish
+### Iteration 8 (2026-02-19) — Phase 7: Multi-admin chat + TR locale + UX polish
+- **ScrollToTop** behavior changed from `instant` → `smooth` for premium feel on route change
+- **Top ShippingBar removed** → replaced by elegant Footer "promise strip" with same info ("14:00 CET · €30 free · Riga · 14-day returns") in white-on-dark
+- **Home: Gift Card CTA section** between Manifesto and Bespoke CTA — premium black card preview ("€25 from · email delivery") with `home-gift-cta` button
+- **Custom Request enhancements**:
+  - Budget brackets lowered (€50 → €1500+ instead of €500 → €5000+)
+  - Default quantity 1 (no MOQ)
+  - Hero copy: "Single tee from €35 · no MOQ"
+  - **Print size S/M/L selector** (S ≈15×15cm, M ≈25×30cm, L ≈35×45cm) with **±3 cm tolerance** note
+  - Sidebar summary now includes "Print size · M (±3 cm)"
+- **Multi-admin live chat**:
+  - Admin login flow: Password → "Enter your support name" prompt → Dashboard
+  - Admin name stored in localStorage `tuncel_admin_name`, displayed in header "Signed in as Eren"
+  - Reply payload now includes `admin_name`; first reply by each admin emits system message "NAME joined the chat"
+  - Multiple admins can chat in the same session
+  - Admin close emits system message "Chat closed by NAME" + sets `status=closed`, `closed_at`, `closed_by`
+  - Customer ChatWidget on closed session shows banner "Support chat has been closed." + "Start New Chat" button → fresh session
+  - System messages render as centered grey pill (distinct from regular bubbles) in both customer widget and admin
+- **Turkish (TR) added** as 4th locale: TR/EN/RU/LV
+  - tr block in `/app/frontend/src/i18n/translations.js`
+  - Console warning on missing keys in non-prod
+  - Navbar: ERKEK · KADIN · AKSESUAR · CUSTOM · ATÖLYE · GİRİŞ · SEPET
+  - Cookie banner fully translated
+- **Cookie banner bug fix**: `Save preferences` now persists correctly to localStorage (was broken by ChatWidget z-index intercepting clicks; fixed via cookie modal z-100 + functional setPrefs update)
+- **Premium WhatsApp FAB** redesign — pill button with green pulsing disc + "WhatsApp · Founders · 1h reply" label
 - **AI hybrid chat** — Claude Sonnet 4.5 via Emergent Universal LLM Key
   - System prompt teaches Tuncel Textile brand (Riga atelier, 14:00 CET same-day, EUR pricing, custom-request/track/return URLs, multilingual reply)
   - Background task (asyncio.create_task) — endpoint returns in ~370ms; AI message arrives via polling within 3-6s
@@ -48,9 +72,18 @@ Studio gmail: **tunceltextile@gmail.com**
 - Iteration 5: 37/37 backend Phase-2/3/4 + frontend 100%
 - Iteration 6: 14/14 backend Phase-5 (AI hybrid chat + Resend) + frontend 100%
 
-## Admin Tabs (9 total)
-1. Products  2. Orders (+ FulfillmentEditor)  3. Hero Manager  4. Global Text
-5. FAQs  6. Custom Requests  7. Returns  8. **Live Chat** (sound + browser alerts + AI-aware)  9. Settings
+## Admin Tabs (11 total)
+1. **Analytics** (default · revenue/orders/AOV/returns/AI vs human/gift card KPIs + daily revenue chart + top products)
+2. Products  3. Orders (+ FulfillmentEditor)  4. Hero Manager  5. Global Text
+6. FAQs  7. Custom Requests  8. Returns
+9. **Live Chat** (multi-admin · join/leave system msgs · sound + browser alerts · AI-aware)
+10. **Gift Cards** (filter pills · activate/cancel actions)
+11. Settings
+
+## Admin auth flow
+1. Password (`tuncel2026admin`) → JWT-style token in `localStorage.tuncel_admin_token`
+2. "Enter your support name" prompt → stored in `localStorage.tuncel_admin_name`
+3. Admin name appended to every chat reply + "joined" system messages
 
 ## Backlog
 - **P1**: Hediye kartları + premium görseller, granüler çerez ayarları modülü, erişilebilirlik modu, Admin analytics dashboard (gelir/sipariş/iade trendleri)

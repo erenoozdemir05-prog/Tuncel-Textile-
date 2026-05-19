@@ -45,23 +45,31 @@ export const CookieBanner = () => {
   }, []);
 
   const acceptAll = () => {
-    setCookieConsent({ essential: true, analytics: true, marketing: true, preferences: true });
+    const next = { essential: true, analytics: true, marketing: true, preferences: true };
+    setCookieConsent(next);
+    setPrefs(next);
     setShow(false); setCustomize(false);
   };
   const rejectAll = () => {
-    setCookieConsent({ essential: true, analytics: false, marketing: false, preferences: false });
+    const next = { essential: true, analytics: false, marketing: false, preferences: false };
+    setCookieConsent(next);
+    setPrefs(next);
     setShow(false); setCustomize(false);
   };
   const savePrefs = () => {
-    setCookieConsent(prefs);
-    setShow(false); setCustomize(false);
+    setPrefs((current) => {
+      setCookieConsent(current);
+      return current;
+    });
+    setShow(false);
+    setCustomize(false);
   };
 
   if (!show && !customize) return null;
 
   if (customize) {
     return (
-      <div className="fixed inset-0 z-[70] flex items-stretch justify-end bg-black/60 backdrop-blur-sm" data-testid="cookie-modal">
+      <div className="fixed inset-0 z-[100] flex items-stretch justify-end bg-black/60 backdrop-blur-sm" data-testid="cookie-modal">
         <div className="flex w-full max-w-md flex-col bg-white">
           <div className="flex items-center justify-between border-b border-black/10 px-6 py-4">
             <div className="flex items-center gap-2">
