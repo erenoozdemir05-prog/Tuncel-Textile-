@@ -79,7 +79,6 @@ function App() {
                 <FaviconBridge />
                 <div className="App flex min-h-screen flex-col bg-white text-black">
                   <Navbar />
-                  <ShippingBar />
                   <main className="flex-1">
                     <AppRouter />
                   </main>

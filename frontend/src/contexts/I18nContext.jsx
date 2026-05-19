@@ -33,6 +33,10 @@ export const I18nProvider = ({ children }) => {
       const val = getNested(TRANSLATIONS[locale], path);
       if (val !== undefined) return val;
       const en = getNested(TRANSLATIONS.en, path);
+      if (en === undefined && process.env.NODE_ENV !== "production") {
+        // eslint-disable-next-line no-console
+        console.warn(`[i18n] missing key '${path}' for locale '${locale}'`);
+      }
       return en !== undefined ? en : fallback || path;
     },
     [locale]

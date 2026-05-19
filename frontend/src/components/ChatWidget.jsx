@@ -8,6 +8,7 @@ const POLL_MS = 3000;
 export function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [sessionId, setSessionId] = useState(() => localStorage.getItem(STORAGE_KEY) || "");
+  const [sessionStatus, setSessionStatus] = useState("open");
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState("");
   const [name, setName] = useState("");
@@ -25,6 +26,7 @@ export function ChatWidget() {
       try {
         const res = await chatFetch(sessionId, lastSeenRef.current || undefined);
         if (cancelled) return;
+        if (res.session?.status) setSessionStatus(res.session.status);
         if (res.messages?.length) {
           setMessages((prev) => {
             const seen = new Set(prev.map((m) => m.id));
@@ -32,16 +34,15 @@ export function ChatWidget() {
             return merged;
           });
           lastSeenRef.current = res.messages[res.messages.length - 1].created_at;
-          // Increment unread if widget closed and admin reply arrived
-          const newAdminMsgs = res.messages.filter((m) => m.sender === "admin").length;
-          if (!open && newAdminMsgs > 0) setUnread((u) => u + newAdminMsgs);
+          const newSidedMsgs = res.messages.filter((m) => m.sender === "admin" || m.sender === "ai" || m.sender === "system").length;
+          if (!open && newSidedMsgs > 0) setUnread((u) => u + newSidedMsgs);
         }
       } catch (e) {
-        // session may have been deleted server-side
         if (e?.response?.status === 404) {
           localStorage.removeItem(STORAGE_KEY);
           setSessionId("");
           setMessages([]);
+          setSessionStatus("open");
         }
       }
     };
@@ -51,6 +52,7 @@ export function ChatWidget() {
         const res = await chatFetch(sessionId);
         if (cancelled) return;
         setMessages(res.messages || []);
+        if (res.session?.status) setSessionStatus(res.session.status);
         if (res.messages?.length) lastSeenRef.current = res.messages[res.messages.length - 1].created_at;
       } catch (e) {
         if (e?.response?.status === 404) {
@@ -91,7 +93,7 @@ export function ChatWidget() {
 
   const send = async (e) => {
     e?.preventDefault();
-    if (!draft.trim() || !sessionId) return;
+    if (!draft.trim() || !sessionId || sessionStatus === "closed") return;
     const body = draft.trim();
     setDraft("");
     // optimistic
@@ -107,6 +109,17 @@ export function ChatWidget() {
     } catch {
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
     }
+  };
+
+  const startNewChat = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setSessionId("");
+    setSessionStatus("open");
+    setMessages([]);
+    setDraft("");
+    lastSeenRef.current = null;
+    setName("");
+    setEmail("");
   };
 
   return (
@@ -171,6 +184,14 @@ export function ChatWidget() {
                   messages.map((m) => {
                     const isAi = m.sender === "ai";
                     const isAdmin = m.sender === "admin";
+                    const isSystem = m.sender === "system";
+                    if (isSystem) {
+                      return (
+                        <div key={m.id} className="my-3 text-center" data-testid={`chat-sys-${m.id}`}>
+                          <span className="inline-block border border-black/10 bg-neutral-50 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-neutral-500">{m.body}</span>
+                        </div>
+                      );
+                    }
                     const fromAtelierSide = isAi || isAdmin;
                     return (
                       <div
@@ -192,31 +213,44 @@ export function ChatWidget() {
                         <div className={`mt-1 text-[9px] uppercase tracking-[0.2em] ${
                           isAi ? "text-purple-600" : fromAtelierSide ? "text-neutral-500" : "text-white/60"
                         }`}>
-                          {isAi ? "Auto-reply" : isAdmin ? "Atelier" : "You"} · {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          {isAi ? "Auto-reply" : isAdmin ? (m.sender_name || "Atelier") : "You"} · {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </div>
                       </div>
                     );
                   })
                 )}
               </div>
-              <form onSubmit={send} className="flex items-center gap-2 border-t border-black/10 p-3">
-                <input
-                  data-testid="chat-draft"
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  placeholder="Type a message…"
-                  className="flex-1 border border-black/15 px-3 py-2 text-sm outline-none focus:border-black"
-                />
-                <button
-                  type="submit"
-                  disabled={!draft.trim()}
-                  data-testid="chat-send"
-                  className="bg-black p-2 text-white disabled:opacity-40"
-                  aria-label="Send"
-                >
-                  <Send className="h-4 w-4" />
-                </button>
-              </form>
+              {sessionStatus === "closed" ? (
+                <div className="border-t border-black/10 p-4 text-center" data-testid="chat-closed-banner">
+                  <p className="text-[12px] text-neutral-600">Support chat has been closed.</p>
+                  <button
+                    onClick={startNewChat}
+                    data-testid="chat-start-new"
+                    className="mt-3 inline-flex w-full items-center justify-center gap-2 bg-black px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.25em] text-white hover:bg-neutral-800"
+                  >
+                    Start New Chat
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={send} className="flex items-center gap-2 border-t border-black/10 p-3">
+                  <input
+                    data-testid="chat-draft"
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    placeholder="Type a message…"
+                    className="flex-1 border border-black/15 px-3 py-2 text-sm outline-none focus:border-black"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!draft.trim()}
+                    data-testid="chat-send"
+                    className="bg-black p-2 text-white disabled:opacity-40"
+                    aria-label="Send"
+                  >
+                    <Send className="h-4 w-4" />
+                  </button>
+                </form>
+              )}
             </>
           )}
         </div>

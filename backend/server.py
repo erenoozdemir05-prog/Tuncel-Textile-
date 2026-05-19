@@ -1438,6 +1438,27 @@ class ChatMessageIn(BaseModel):
     body: str
 
 
+class AdminChatReplyIn(BaseModel):
+    body: str
+    admin_name: Optional[str] = None
+
+
+async def _insert_system_message(session_id: str, body: str) -> None:
+    """Insert a sender='system' message and bump session updated_at."""
+    now = datetime.now(timezone.utc).isoformat()
+    await db.chat_messages.insert_one({
+        "id": str(uuid.uuid4()),
+        "session_id": session_id,
+        "sender": "system",
+        "body": body,
+        "created_at": now,
+    })
+    await db.chat_sessions.update_one(
+        {"id": session_id},
+        {"$set": {"updated_at": now}, "$inc": {"unread_for_customer": 1}},
+    )
+
+
 @api_router.post("/chat/start")
 async def chat_start(payload: ChatStartIn):
     session_id = str(uuid.uuid4())
@@ -1587,37 +1608,56 @@ async def admin_chat_session(session_id: str, _: bool = Depends(require_admin)):
 
 
 @api_router.post("/admin/chat/{session_id}/reply")
-async def admin_chat_reply(session_id: str, payload: ChatMessageIn, _: bool = Depends(require_admin)):
+async def admin_chat_reply(session_id: str, payload: AdminChatReplyIn, _: bool = Depends(require_admin)):
     sess = await db.chat_sessions.find_one({"id": session_id}, {"_id": 0})
     if not sess:
         raise HTTPException(404, "Chat session not found")
+    if sess.get("status") == "closed":
+        raise HTTPException(400, "Chat is closed")
     if not payload.body or not payload.body.strip():
         raise HTTPException(400, "Empty message")
     body = payload.body.strip()[:4000]
+    admin_name = (payload.admin_name or "").strip()[:80] or "Atelier"
     now = datetime.now(timezone.utc).isoformat()
+
+    # Emit ADMIN_JOINED system message if this admin hasn't replied here before
+    seen_admins = set(sess.get("known_admins") or [])
+    if admin_name not in seen_admins:
+        await _insert_system_message(session_id, f"{admin_name} joined the chat")
+        seen_admins.add(admin_name)
+        await db.chat_sessions.update_one(
+            {"id": session_id},
+            {"$set": {"known_admins": list(seen_admins)}},
+        )
+
     msg = {
         "id": str(uuid.uuid4()),
         "session_id": session_id,
         "sender": "admin",
+        "sender_name": admin_name,
         "body": body,
         "created_at": now,
     }
     await db.chat_messages.insert_one(msg)
     await db.chat_sessions.update_one(
         {"id": session_id},
-        {"$set": {"updated_at": now, "last_admin_at": now, "status": "open"}, "$inc": {"unread_for_customer": 1}},
+        {"$set": {"updated_at": now, "last_admin_at": now, "last_admin_name": admin_name, "status": "open"}, "$inc": {"unread_for_customer": 1}},
     )
     return {k: v for k, v in msg.items() if k != "_id"}
 
 
 @api_router.put("/admin/chat/{session_id}/close")
-async def admin_chat_close(session_id: str, _: bool = Depends(require_admin)):
-    res = await db.chat_sessions.update_one(
-        {"id": session_id},
-        {"$set": {"status": "closed", "updated_at": datetime.now(timezone.utc).isoformat()}},
-    )
-    if res.matched_count == 0:
+async def admin_chat_close(session_id: str, admin_name: Optional[str] = None, _: bool = Depends(require_admin)):
+    sess = await db.chat_sessions.find_one({"id": session_id}, {"_id": 0})
+    if not sess:
         raise HTTPException(404, "Chat session not found")
+    now = datetime.now(timezone.utc).isoformat()
+    label = (admin_name or sess.get("last_admin_name") or "Atelier").strip()[:80]
+    await _insert_system_message(session_id, f"Chat closed by {label}")
+    await db.chat_sessions.update_one(
+        {"id": session_id},
+        {"$set": {"status": "closed", "closed_at": now, "closed_by": label, "updated_at": now}},
+    )
     return {"ok": True}
 
 

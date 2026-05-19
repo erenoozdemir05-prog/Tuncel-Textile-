@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { ArrowDown, ArrowUp, ImageIcon, Loader2, LogOut, Pencil, Plus, Save, Trash2, Upload, X } from "lucide-react";
 
 const TOKEN_KEY = "tuncel_admin_token";
+const ADMIN_NAME_KEY = "tuncel_admin_name";
 const LANGS = ["en", "ru", "lv"];
 
 const EMPTY_PRODUCT = {
@@ -36,7 +37,9 @@ const EMPTY_SLIDE = {
 
 export default function Admin() {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) || "");
+  const [adminName, setAdminName] = useState(() => localStorage.getItem(ADMIN_NAME_KEY) || "");
   const [password, setPassword] = useState("");
+  const [nameDraft, setNameDraft] = useState("");
   const [tab, setTab] = useState("analytics");
 
   const handleLogin = async (e) => {
@@ -52,9 +55,22 @@ export default function Admin() {
     }
   };
 
+  const handleSaveName = (e) => {
+    e.preventDefault();
+    const v = nameDraft.trim();
+    if (v.length < 2) { toast.error("Name must be at least 2 characters"); return; }
+    localStorage.setItem(ADMIN_NAME_KEY, v);
+    setAdminName(v);
+  };
+
   const handleLogout = () => {
     localStorage.removeItem(TOKEN_KEY);
     setToken("");
+  };
+  const handleChangeName = () => {
+    localStorage.removeItem(ADMIN_NAME_KEY);
+    setAdminName("");
+    setNameDraft("");
   };
 
   if (!token) {
@@ -85,20 +101,57 @@ export default function Admin() {
     );
   }
 
+  if (!adminName) {
+    return (
+      <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-5 py-16 sm:px-8">
+        <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">Studio · Support identity</div>
+        <h1 className="font-display mt-2 text-5xl uppercase leading-none tracking-[0.02em]">Enter your support name</h1>
+        <p className="mt-4 text-sm leading-relaxed text-neutral-600">This name appears to customers in the live chat (e.g. "Eren joined the chat"). Use your real first name.</p>
+        <form onSubmit={handleSaveName} className="mt-8 space-y-4" data-testid="admin-name-form">
+          <input
+            data-testid="admin-name-input"
+            value={nameDraft}
+            onChange={(e) => setNameDraft(e.target.value)}
+            placeholder="e.g. Eren"
+            className="w-full border border-black/15 px-4 py-3 outline-none focus:border-black"
+            autoFocus
+            maxLength={80}
+          />
+          <button
+            type="submit"
+            data-testid="admin-name-submit"
+            className="inline-flex w-full items-center justify-center bg-black px-6 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] text-white hover:bg-neutral-800"
+          >
+            Continue →
+          </button>
+        </form>
+      </div>
+    );
+  }
+
   return (
     <div data-testid="admin-dashboard" className="mx-auto max-w-[1400px] px-5 sm:px-8">
       <section className="flex flex-wrap items-end justify-between gap-4 border-b border-black/10 py-10">
         <div>
-          <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">Studio</div>
+          <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">Studio · Signed in as <strong className="text-black">{adminName}</strong></div>
           <h1 className="font-display mt-2 text-6xl uppercase leading-none tracking-[0.02em] sm:text-7xl">Admin</h1>
         </div>
-        <button
-          data-testid="admin-logout"
-          onClick={handleLogout}
-          className="inline-flex items-center gap-2 border border-black px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.25em] hover:bg-black hover:text-white"
-        >
-          <LogOut className="h-3.5 w-3.5" /> Sign Out
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            data-testid="admin-change-name"
+            onClick={handleChangeName}
+            className="inline-flex items-center gap-2 border border-black/20 px-4 py-3 text-[10px] uppercase tracking-[0.2em] hover:bg-black hover:text-white"
+          >
+            Change name
+          </button>
+          <button
+            data-testid="admin-logout"
+            onClick={handleLogout}
+            className="inline-flex items-center gap-2 border border-black px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.25em] hover:bg-black hover:text-white"
+          >
+            <LogOut className="h-3.5 w-3.5" /> Sign Out
+          </button>
+        </div>
       </section>
 
       {/* TABS */}
@@ -137,7 +190,7 @@ export default function Admin() {
         {tab === "faqs" && <FaqTab token={token} />}
         {tab === "custom-requests" && <CustomRequestsTab token={token} />}
         {tab === "returns" && <ReturnsTab token={token} />}
-        {tab === "chat" && <ChatTab token={token} />}
+        {tab === "chat" && <ChatTab token={token} adminName={adminName} />}
         {tab === "gift-cards" && <GiftCardsTab token={token} />}
         {tab === "analytics" && <AnalyticsTab token={token} />}
         {tab === "settings" && <SettingsTab token={token} />}
@@ -1192,7 +1245,7 @@ function ReturnsTab({ token }) {
 /* ============================================================
    CHAT TAB (admin live chat console)
 ============================================================ */
-function ChatTab({ token }) {
+function ChatTab({ token, adminName }) {
   const [sessions, setSessions] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const [activeData, setActiveData] = useState(null);
@@ -1287,7 +1340,7 @@ function ChatTab({ token }) {
     const body = draft.trim();
     setDraft("");
     try {
-      await adminChatReply(token, activeId, body);
+      await adminChatReply(token, activeId, body, adminName);
       await loadSession(activeId);
       loadSessions();
     } catch { toast.error("Reply failed"); }
@@ -1295,9 +1348,9 @@ function ChatTab({ token }) {
 
   const closeChat = async () => {
     if (!activeId) return;
-    if (!window.confirm("Close this chat session?")) return;
+    if (!window.confirm("Close this chat session? The customer will see a closed banner and a 'Start new chat' button.")) return;
     try {
-      await adminChatClose(token, activeId);
+      await adminChatClose(token, activeId, adminName);
       toast.success("Chat closed");
       await loadSession(activeId);
       loadSessions();
@@ -1399,6 +1452,14 @@ function ChatTab({ token }) {
                   activeData.messages.map((m) => {
                     const isAi = m.sender === "ai";
                     const isAdmin = m.sender === "admin";
+                    const isSystem = m.sender === "system";
+                    if (isSystem) {
+                      return (
+                        <div key={m.id} className="my-3 text-center" data-testid={`chat-system-${m.id}`}>
+                          <span className="inline-block border border-black/10 bg-white px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-neutral-500">{m.body}</span>
+                        </div>
+                      );
+                    }
                     return (
                       <div
                         key={m.id}
@@ -1414,7 +1475,7 @@ function ChatTab({ token }) {
                         <div className={`mt-1 text-[9px] uppercase tracking-[0.2em] ${
                           isAdmin ? "text-white/60" : isAi ? "text-purple-700" : "text-neutral-500"
                         }`}>
-                          {isAdmin ? "You · Atelier" : isAi ? "Atelier AI · auto" : (activeData.session.customer_name || "Customer")} · {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          {isAdmin ? `${m.sender_name || "Atelier"} · You` : isAi ? "Atelier AI · auto" : (activeData.session.customer_name || "Customer")} · {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </div>
                       </div>
                     );

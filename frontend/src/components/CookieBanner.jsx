@@ -81,7 +81,7 @@ export const CookieBanner = () => {
                 const checked = c.key === "essential" ? true : !!prefs[c.key];
                 const locked = c.key === "essential";
                 return (
-                  <label key={c.key} className={`flex cursor-pointer items-start justify-between gap-4 border p-4 ${checked ? "border-black bg-neutral-50" : "border-black/15"} ${locked ? "opacity-90" : ""}`}>
+                  <div key={c.key} className={`flex items-start justify-between gap-4 border p-4 ${checked ? "border-black bg-neutral-50" : "border-black/15"} ${locked ? "opacity-90" : ""}`}>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <div className="font-display text-base uppercase tracking-[0.04em]">{c.title}</div>
@@ -95,12 +95,12 @@ export const CookieBanner = () => {
                       aria-checked={checked}
                       data-testid={`cookie-toggle-${c.key}`}
                       disabled={locked}
-                      onClick={() => !locked && setPrefs((p) => ({ ...p, [c.key]: !checked }))}
+                      onClick={(e) => { e.stopPropagation(); if (!locked) setPrefs((p) => ({ ...p, [c.key]: !checked })); }}
                       className={`relative mt-1 h-6 w-11 flex-shrink-0 transition-colors ${checked ? "bg-black" : "bg-neutral-300"} ${locked ? "cursor-not-allowed" : "cursor-pointer"}`}
                     >
                       <span className={`absolute top-0.5 h-5 w-5 bg-white transition-all ${checked ? "left-[22px]" : "left-0.5"}`} />
                     </button>
-                  </label>
+                  </div>
                 );
               })}
             </div>

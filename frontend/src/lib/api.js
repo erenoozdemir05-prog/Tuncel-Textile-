@@ -169,12 +169,13 @@ export const adminChatSession = async (token, sessionId) => {
   const { data } = await api.get(`/admin/chat/${sessionId}`, { headers: { "X-Admin-Token": token } });
   return data;
 };
-export const adminChatReply = async (token, sessionId, body) => {
-  const { data } = await api.post(`/admin/chat/${sessionId}/reply`, { body }, { headers: { "X-Admin-Token": token } });
+export const adminChatReply = async (token, sessionId, body, adminName) => {
+  const { data } = await api.post(`/admin/chat/${sessionId}/reply`, { body, admin_name: adminName }, { headers: { "X-Admin-Token": token } });
   return data;
 };
-export const adminChatClose = async (token, sessionId) => {
-  const { data } = await api.put(`/admin/chat/${sessionId}/close`, {}, { headers: { "X-Admin-Token": token } });
+export const adminChatClose = async (token, sessionId, adminName) => {
+  const params = adminName ? `?admin_name=${encodeURIComponent(adminName)}` : "";
+  const { data } = await api.put(`/admin/chat/${sessionId}/close${params}`, {}, { headers: { "X-Admin-Token": token } });
   return data;
 };
 

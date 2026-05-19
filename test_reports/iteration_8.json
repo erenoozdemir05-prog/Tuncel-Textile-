@@ -1,0 +1,43 @@
+{
+  "summary": "Phase 7 testing — backend 8/8 NEW + 20/20 phase6 regression PASS. Frontend mostly green: ShippingBar removed ✓, footer-promise-strip present with '14:00 CET · €30 · Riga · 14-day returns' ✓, home gift-cta + home-gift-cta button navigates to /gift-cards ✓, /custom-request print-size S/M/L with M default + '±3 cm tolerance · hand-pressed' note + 'Print size · M (±3 cm)' summary line ✓, ScrollToTop smooth (scrollY=0 within ~1s) ✓, Turkish locale fully functional (ERKEK/KADIN/AKSESUAR/CUSTOM/ATÖLYE in navbar, cookie banner reads 'Gizliliğine Saygı Duyuyoruz' / 'Tümünü Kabul Et', persists across reload via tuncel_locale='tr') ✓, Admin login flow: password → admin-name-input prompt → admin-name-submit → dashboard with 'Signed in as Eren' + Change Name button, name persists in localStorage tuncel_admin_name across reload ✓. ChatWidget closed-banner + chat-start-new testids + sessionStatus state present in code ✓, system messages render as centered pills (chat-sys-* / chat-system-*) ✓. ONE REGRESSION BUG: Cookie 'Save preferences' STILL does not persist to localStorage 'tuncel_cookie_consent_v2' despite the iteration 7 claim that label→div + stopPropagation fixed it. Code reads correct but behavior wrong — needs deeper debug.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "CookieBanner.jsx · savePrefs flow",
+        "issue": "REGRESSION FROM ITERATION 7 NOT FULLY FIXED. After clearing localStorage 'tuncel_cookie_consent_v2', clicking Customize → toggling cookie-toggle-analytics (aria-checked correctly flips to 'true') → clicking cookie-save: modal closes BUT localStorage 'tuncel_cookie_consent_v2' remains null. 'Accept All' works correctly. Code review shows DEFAULT_PREFS, setCookieConsent (which does localStorage.setItem), savePrefs (calls setCookieConsent(prefs)), toggle button uses e.stopPropagation() — all look correct. Yet persistence does not happen. Likely culprit: when the customize modal closes via setShow(false)+setCustomize(false), the component may unmount or the state of 'prefs' captured by savePrefs closure is stale because setPrefs uses functional updater but savePrefs reads outer 'prefs' variable directly (not via setState callback). Suggest: rewrite savePrefs as `setPrefs((p) => { setCookieConsent(p); setShow(false); setCustomize(false); return p; })` OR persist inside a useEffect on prefs change, OR call setCookieConsent({...prefs}) after a microtask. Also worth adding a console.log inside savePrefs and inside setCookieConsent to confirm whether savePrefs is even firing.",
+        "selector": "[data-testid='cookie-save']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_phase7.py",
+    "/app/test_reports/pytest/phase7_results.xml",
+    "/app/backend/tests/test_phase6.py",
+    "/app/test_reports/pytest/phase6_results.xml"
+  ],
+  "action_items": [
+    "REOPEN cookie-save bug: rewrite savePrefs to use functional setPrefs OR persist prefs in a useEffect; add console.log to confirm savePrefs fires; verify localStorage.setItem('tuncel_cookie_consent_v2', ...) writes when Save is clicked from inside the customize modal. This bug was flagged in iteration_7 and the iteration_8 fix (label→div + stopPropagation) did NOT resolve it.",
+    "Consider exposing a debug callback or a data-testid='cookie-debug' attribute that mirrors current prefs state for easier QA visibility."
+  ],
+  "critical_code_review_comments": [
+    "server.py is 1909 lines — still recommend splitting into routers/ (products, checkout, admin, chat, gift_cards, analytics, returns, custom_requests). Maintainability is the top risk.",
+    "Admin chat endpoints do not paginate /api/admin/chat/sessions — fine for now but at >500 sessions will degrade.",
+    "Gift card code generator (Phase 6 finding) still uses random.choices, recommend switching to secrets.choice for value-bearing codes.",
+    "CookieBanner.savePrefs captures `prefs` via render-time closure; rewriting as functional update would make it robust to future re-renders and likely fixes the stuck persistence bug.",
+    "I18n: console.warn for missing keys in non-prod is a nice add — recommend gating with NODE_ENV==='development' explicitly to avoid noise in preview builds."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_phase7.py (new)"
+  ],
+  "success_rate": {"backend": "100% (28/28 across phase6+phase7)", "frontend": "~93% (1 regression — cookie save)"},
+  "test_credentials": "Admin password: tuncel2026admin · Admin support name 'Eren' (anything 2+ chars works).",
+  "seed_data_creation": "Phase 7 tests create a TEST_p7 chat session (with system+admin+customer messages) and a second fresh session after close. These remain in DB but are scoped by buyer_email pattern 'TEST_p7@example.com' — main agent may add an optional teardown.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Phase 7 backend fully green via /app/backend/tests/test_phase7.py (8 tests: multi-admin joined sysmsg, no-extra-joined on repeat, 2nd admin joined sysmsg, close inserts 'Chat closed by NAME' + status=closed, customer message after close 400, fresh /chat/start allowed after close, system messages have no sender_name, admin messages have sender_name). The ONLY frontend regression is CookieBanner save persistence — Accept All works, Save (with custom toggles) does NOT write to localStorage tuncel_cookie_consent_v2. Verified: ShippingBar removed, footer-promise-strip present, gift-cta + home-gift-cta routing, /custom-request print-size buttons + tolerance note + summary line, ScrollToTop smooth, Turkish locale (4th LOCALES entry) fully working incl. cookie banner i18n + reload persistence, admin login adds admin-name-input prompt + persists name in localStorage + Change Name button visible.",
+  "rca of the issue": "Cookie Save bug RCA: setCookieConsent does localStorage.setItem and is called by savePrefs() with the closure-captured `prefs` constant. When the user clicks the toggle, setPrefs((p)=>({...p,[c.key]:!checked})) updates state and re-renders. On the NEXT render, savePrefs is re-bound with the new prefs. So in theory clicking Save after the toggle should persist. The fact that aria-checked='true' is visible BEFORE Save proves the toggle did re-render. So either (a) the Save click is being swallowed by an overlay (the modal has a z-70 backdrop click handler we didn't check), (b) savePrefs is firing but setCookieConsent silently fails due to a thrown exception (consider try/catch eating the error), or (c) the click on cookie-save is treated as a backdrop click that simultaneously closes the modal without firing the button handler. Reproduction: 1) localStorage.removeItem('tuncel_cookie_consent_v2'); 2) reload; 3) click cookie-customize; 4) click cookie-toggle-analytics (verify aria-checked='true'); 5) click cookie-save with force=true; 6) read localStorage.getItem('tuncel_cookie_consent_v2') → returns null. Mitigation candidates: convert savePrefs to functional setPrefs that also calls localStorage.setItem; wrap setCookieConsent in a try/catch with console.error; check if the outer backdrop div is intercepting clicks (it shouldn't — buttons are inside .max-w-md flex container — but verify pointerEvents)."
+}

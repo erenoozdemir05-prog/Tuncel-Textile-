@@ -24,6 +24,11 @@ const STYLES = [
 ];
 
 const PLACEMENTS = ["Front chest", "Centre front", "Centre back", "Left sleeve", "Right sleeve", "Hood / collar", "Full print"];
+const PRINT_SIZES = [
+  { key: "S", label: "Small", desc: "≈ 15 × 15 cm (chest pocket)" },
+  { key: "M", label: "Medium", desc: "≈ 25 × 30 cm (standard front)" },
+  { key: "L", label: "Large", desc: "≈ 35 × 45 cm (oversized back)" },
+];
 const BUDGETS = ["Under €50 · 1 piece", "€50 – €150 · few pieces", "€150 – €500 · small drop", "€500 – €1 500 · larger run", "€1 500+ · wholesale"];
 
 export default function CustomRequest() {
@@ -36,6 +41,7 @@ export default function CustomRequest() {
     customer_name: "", email: "", phone: "",
     product_type: "hoodie", design_style: "minimalist",
     idea_description: "", print_placement: "Centre front",
+    print_size: "M",
     primary_color: "#0B0B0B", quantity: 1, budget_range: "€50 – €150 · few pieces",
     contact_preference: "email",
   });
@@ -188,6 +194,28 @@ export default function CustomRequest() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <SelectField label="Print placement" value={form.print_placement} onChange={(v) => setForm({ ...form, print_placement: v })} options={PLACEMENTS} testid="cr-placement" />
               <div>
+                <label className="text-[11px] uppercase tracking-[0.25em] text-neutral-500">Print size</label>
+                <div className="mt-2 flex gap-2">
+                  {PRINT_SIZES.map((s) => (
+                    <button
+                      key={s.key}
+                      type="button"
+                      data-testid={`cr-printsize-${s.key.toLowerCase()}`}
+                      onClick={() => setForm({ ...form, print_size: s.key })}
+                      className={`flex-1 border p-3 text-left transition-colors ${
+                        form.print_size === s.key ? "border-black bg-black text-white" : "border-black/15 hover:border-black"
+                      }`}
+                    >
+                      <div className="font-display text-xl uppercase">{s.key} · {s.label}</div>
+                      <div className={`mt-0.5 text-[10px] uppercase tracking-[0.18em] ${form.print_size === s.key ? "text-white/70" : "text-neutral-500"}`}>{s.desc}</div>
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2 text-[10px] uppercase tracking-[0.2em] text-neutral-500">
+                  ± 3 cm tolerance · hand-pressed, every piece is unique
+                </p>
+              </div>
+              <div>
                 <label className="text-[11px] uppercase tracking-[0.25em] text-neutral-500">Primary color</label>
                 <div className="mt-2 flex items-center gap-3">
                   <input type="color" data-testid="cr-color" value={form.primary_color} onChange={(e) => setForm({ ...form, primary_color: e.target.value })} className="h-11 w-16 cursor-pointer border border-black/15" />
@@ -246,6 +274,7 @@ export default function CustomRequest() {
               <li><span className="text-neutral-400">Canvas · </span><span className="text-black">{selectedProduct?.label}</span></li>
               <li><span className="text-neutral-400">Style · </span><span className="text-black">{selectedStyle?.label}</span></li>
               <li><span className="text-neutral-400">Placement · </span><span className="text-black">{form.print_placement}</span></li>
+              <li><span className="text-neutral-400">Print size · </span><span className="text-black">{form.print_size} (±3 cm)</span></li>
               <li><span className="text-neutral-400">Quantity · </span><span className="text-black">{form.quantity}</span></li>
               <li><span className="text-neutral-400">Budget · </span><span className="text-black">{form.budget_range}</span></li>
               <li><span className="text-neutral-400">Color · </span><span className="font-mono text-black">{form.primary_color}</span></li>

@@ -158,6 +158,48 @@ export default function Home() {
         </div>
       </section>
 
+
+      {/* GIFT CARD CTA */}
+      <section className="border-b border-black/10" data-testid="gift-cta">
+        <div className="mx-auto grid max-w-[1400px] grid-cols-1 lg:grid-cols-2">
+          <div className="relative flex aspect-[4/5] flex-col justify-between overflow-hidden bg-black p-10 text-white sm:aspect-auto sm:min-h-[420px]">
+            <div className="absolute inset-0 opacity-25" style={{ backgroundImage: "radial-gradient(circle at 80% 20%, rgba(255,255,255,0.25), transparent 60%), radial-gradient(circle at 20% 80%, rgba(255,255,255,0.15), transparent 50%)" }} />
+            <div className="relative">
+              <div className="text-[10px] uppercase tracking-[0.35em] text-white/50">TUNCEL ATELIER</div>
+              <div className="font-display mt-1 text-3xl uppercase tracking-[0.04em]">Gift card</div>
+            </div>
+            <div className="relative">
+              <div className="text-[10px] uppercase tracking-[0.3em] text-white/40">From</div>
+              <div className="font-display text-7xl uppercase leading-none tracking-[0.04em]">€25</div>
+              <div className="mt-3 font-mono text-xs tracking-[0.2em] text-white/70">XXXX-XXXX-XXXX-XXXX</div>
+            </div>
+          </div>
+          <div className="flex flex-col justify-center px-5 py-16 sm:px-12">
+            <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">Gifts · For someone you love</div>
+            <h2 className="font-display mt-3 text-5xl uppercase leading-[0.95] tracking-[0.02em] sm:text-7xl">
+              The perfect
+              <br />
+              <span className="text-neutral-400">unfair advantage.</span>
+            </h2>
+            <p className="mt-6 max-w-md text-[15px] leading-[1.7] text-neutral-700">
+              Delivered instantly with a personal note. Valid 12 months, no fees, redeemable on every piece in the atelier.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-4">
+              <Link
+                to="/gift-cards"
+                data-testid="home-gift-cta"
+                className="group inline-flex items-center gap-3 bg-black px-7 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] text-white transition-colors hover:bg-neutral-800"
+              >
+                Send a gift card
+                <span className="transition-transform group-hover:translate-x-1">→</span>
+              </Link>
+              <span className="text-[11px] uppercase tracking-[0.25em] text-neutral-500">From €25 · email delivery</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
       {/* BESPOKE CTA — strong path into Custom Request */}
       <section className="border-b border-black/10 bg-white" data-testid="bespoke-cta">
         <div className="mx-auto grid max-w-[1400px] grid-cols-1 items-stretch px-0 sm:px-0 lg:grid-cols-[1.1fr_1fr]">

@@ -17,6 +17,24 @@ export const Footer = () => {
       data-testid="site-footer"
       className="relative mt-24 overflow-hidden bg-black text-white"
     >
+      {/* PROMISE STRIP — premium replacement for the old top ShippingBar */}
+      <div className="border-b border-white/10 bg-white/[0.03]" data-testid="footer-promise-strip">
+        <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-center gap-x-12 gap-y-4 px-5 py-6 text-[11px] uppercase tracking-[0.25em] text-white/85 sm:px-8">
+          <span className="inline-flex items-center gap-2.5">
+            <span aria-hidden className="inline-block h-1 w-6 bg-white/40" />
+            Order by <strong className="text-white">14:00 CET</strong> — same-day dispatch
+          </span>
+          <span className="inline-flex items-center gap-2.5">
+            <span aria-hidden className="inline-block h-1 w-6 bg-white/40" />
+            Complimentary EU shipping over <strong className="text-white">€30</strong>
+          </span>
+          <span className="inline-flex items-center gap-2.5">
+            <span aria-hidden className="inline-block h-1 w-6 bg-white/40" />
+            Hand-finished in Riga · 14-day returns
+          </span>
+        </div>
+      </div>
+
       {/* MARQUEE */}
       <div className="border-b border-white/10">
         <div className="mx-auto max-w-[1400px] overflow-hidden px-0 py-10">
