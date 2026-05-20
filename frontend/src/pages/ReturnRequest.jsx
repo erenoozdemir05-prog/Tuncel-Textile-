@@ -30,6 +30,7 @@ export default function ReturnRequest() {
     items: [],
     exchange_size: "M",
     iban_for_refund: "",
+    iban_choice: "same",
   });
 
   const onFile = (files) => {
@@ -195,9 +196,35 @@ export default function ReturnRequest() {
           ) : (
             <Section step="04" title="Where should we send your refund?">
               <p className="text-sm text-neutral-600">
-                Card payments are refunded to the original card automatically. For IBAN transfers, please provide your IBAN below.
+                Card payments are refunded to the original card automatically. For IBAN orders, choose how you'd like the refund.
               </p>
-              <TextField label="IBAN (optional, only for IBAN orders)" value={form.iban_for_refund} onChange={(v) => setForm({ ...form, iban_for_refund: v })} testid="return-iban" mono placeholder="LV00 0000 0000 0000 0000 0" />
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  data-testid="return-iban-same"
+                  onClick={() => setForm({ ...form, iban_choice: "same", iban_for_refund: "__SAME_AS_PAYMENT__" })}
+                  className={`border p-4 text-left transition-colors ${
+                    form.iban_choice === "same" ? "border-black bg-black text-white" : "border-black/15 hover:border-black"
+                  }`}
+                >
+                  <div className="font-display text-lg uppercase tracking-[0.04em]">Same IBAN I paid from</div>
+                  <div className={`mt-1 text-[10px] uppercase tracking-[0.18em] ${form.iban_choice === "same" ? "text-white/70" : "text-neutral-500"}`}>No need to type it again</div>
+                </button>
+                <button
+                  type="button"
+                  data-testid="return-iban-different"
+                  onClick={() => setForm({ ...form, iban_choice: "different", iban_for_refund: "" })}
+                  className={`border p-4 text-left transition-colors ${
+                    form.iban_choice === "different" ? "border-black bg-black text-white" : "border-black/15 hover:border-black"
+                  }`}
+                >
+                  <div className="font-display text-lg uppercase tracking-[0.04em]">A different IBAN</div>
+                  <div className={`mt-1 text-[10px] uppercase tracking-[0.18em] ${form.iban_choice === "different" ? "text-white/70" : "text-neutral-500"}`}>Enter the IBAN below</div>
+                </button>
+              </div>
+              {form.iban_choice === "different" && (
+                <TextField label="IBAN" value={form.iban_for_refund} onChange={(v) => setForm({ ...form, iban_for_refund: v })} testid="return-iban" mono placeholder="LV00 0000 0000 0000 0000 0" />
+              )}
             </Section>
           )}
 

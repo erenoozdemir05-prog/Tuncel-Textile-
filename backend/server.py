@@ -395,10 +395,18 @@ async def checkout_status(session_id: str, http_request: Request):
                 {"stripe_session_id": session_id},
                 {"$set": {"status": "active", "activated_at": now, "updated_at": now}},
             )
-            # Email the recipient (or buyer if no recipient) — fire and forget
             recipient = gc.get("recipient_email") or gc.get("buyer_email")
             if recipient:
                 _send_gift_card_email(gc, recipient)
+        else:
+            # Regular product order — send invoice
+            order = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})
+            if order and not order.get("invoice_sent"):
+                _send_invoice_email(order)
+                await db.payment_transactions.update_one(
+                    {"session_id": session_id},
+                    {"$set": {"invoice_sent": True}},
+                )
 
     return CheckoutStatusOut(
         session_id=session_id,
@@ -811,6 +819,16 @@ async def admin_mark_paid(reference: str, _: bool = Depends(require_admin)):
     )
     if res.matched_count == 0:
         raise HTTPException(404, "Order not found")
+    order = await db.payment_transactions.find_one(
+        {"$or": [{"reference": reference}, {"session_id": reference}]},
+        {"_id": 0},
+    )
+    if order and not order.get("invoice_sent"):
+        _send_invoice_email(order)
+        await db.payment_transactions.update_one(
+            {"$or": [{"reference": reference}, {"session_id": reference}]},
+            {"$set": {"invoice_sent": True}},
+        )
     return {"ok": True}
 
 
@@ -1170,11 +1188,44 @@ async def submit_custom_request(payload: CustomRequestIn):
     doc = payload.model_dump()
     doc["id"] = str(uuid.uuid4())
     doc["reference"] = f"CR-{short_id}"
-    doc["status"] = "new"  # new | reviewing | quoted | accepted | rejected | completed
+    doc["status"] = "new"
     doc["admin_notes"] = ""
     doc["created_at"] = datetime.now(timezone.utc).isoformat()
     doc["updated_at"] = doc["created_at"]
     await db.custom_requests.insert_one(doc)
+
+    # Notify admin via email — was missing earlier
+    rows = []
+    for k, v in doc.items():
+        if k in ("id", "admin_notes", "updated_at", "status"):
+            continue
+        rows.append(f"<tr><td style='padding:6px 0;color:#888;text-transform:uppercase;font-size:11px;letter-spacing:.18em;'>{k}</td><td style='word-break:break-word'>{str(v)[:600]}</td></tr>")
+    _send_admin_notification_email(
+        subject=f"🎨 New custom request — {doc.get('customer_name', 'Visitor')} · {doc['reference']}",
+        html_body=f"""
+        <div style='font-family:Manrope,Arial,sans-serif;max-width:600px;'>
+          <h2 style='margin:0 0 8px;font-family:"Bebas Neue",sans-serif;letter-spacing:.08em;text-transform:uppercase;'>New custom request</h2>
+          <p style='color:#666;margin:0 0 14px;'>Reference: <strong>{doc['reference']}</strong></p>
+          <table style='width:100%;border-collapse:collapse;margin-bottom:18px;'>{''.join(rows)}</table>
+          <p><a href='https://tuncel-textile.preview.emergentagent.com/admin' style='display:inline-block;background:#000;color:#fff;padding:12px 24px;text-decoration:none;letter-spacing:.18em;font-size:12px;'>Open Atelier Admin →</a></p>
+        </div>
+        """
+    )
+    # Confirmation to customer
+    if payload.email:
+        _send_customer_confirmation_email(
+            to_email=payload.email,
+            subject=f"Custom request received · {doc['reference']}",
+            html_body=f"""
+            <div style='font-family:Manrope,Arial,sans-serif;max-width:560px;'>
+              <h2 style='margin:0 0 8px;font-family:"Bebas Neue",sans-serif;letter-spacing:.08em;text-transform:uppercase;'>We got your idea.</h2>
+              <p>Hi {payload.customer_name or 'there'},</p>
+              <p>Thank you — your custom request <strong>{doc['reference']}</strong> has been received. One of the founders will reply within 24 hours with a sample mock-up and a transparent quote.</p>
+              <p style='margin-top:24px;color:#666;font-size:12px;'>If you need to add anything, just reply to this email.</p>
+              <p style='color:#666;font-size:11px;text-transform:uppercase;letter-spacing:.2em;margin-top:32px;'>— Tuncel Atelier · Riga</p>
+            </div>
+            """
+        )
     return {"reference": doc["reference"], "id": doc["id"], "status": doc["status"]}
 
 
@@ -1292,6 +1343,15 @@ What you know:
 - We accept custom/bespoke orders — point users to /custom-request.
 - Order tracking is at /track-order (needs reference + email).
 - Returns are at /return-request.
+- Gift cards at /gift-cards (from €25).
+- FAQ page at /faq.
+
+Smart links — IMPORTANT: when relevant, append ONE inline link token at the end of your reply on its own line. Use these exact tokens:
+[link:track]  — for any order status / shipping question
+[link:return] — for return, refund, exchange, defect questions
+[link:custom] — for custom / bespoke / special order requests
+[link:gift]   — for gift card / present questions
+[link:faq]    — for general questions
 
 Languages: reply in the language the customer used (Turkish / English / Russian / Latvian).
 
@@ -1304,8 +1364,11 @@ Sign off as "— Atelier AI" so the customer knows it's a first-line auto-reply.
 async def _run_ai_reply(session_id: str, customer_message: str) -> None:
     """Background task: generate AI reply and persist. Never raises."""
     try:
+        # Mark typing
+        await db.chat_sessions.update_one({"id": session_id}, {"$set": {"ai_typing": True}})
         reply = await _generate_ai_reply(session_id, customer_message)
         if not reply:
+            await db.chat_sessions.update_one({"id": session_id}, {"$set": {"ai_typing": False}})
             return
         now = datetime.now(timezone.utc).isoformat()
         await db.chat_messages.insert_one({
@@ -1317,10 +1380,14 @@ async def _run_ai_reply(session_id: str, customer_message: str) -> None:
         })
         await db.chat_sessions.update_one(
             {"id": session_id},
-            {"$set": {"updated_at": now}, "$inc": {"unread_for_customer": 1}},
+            {"$set": {"updated_at": now, "ai_typing": False}, "$inc": {"unread_for_customer": 1}},
         )
     except Exception as e:
         logging.warning("AI background reply failed: %s", e)
+        try:
+            await db.chat_sessions.update_one({"id": session_id}, {"$set": {"ai_typing": False}})
+        except Exception:
+            pass
 
 
 
@@ -1360,7 +1427,7 @@ async def _generate_ai_reply(session_id: str, customer_message: str) -> Optional
 
 
 def _send_admin_notification_email(subject: str, html_body: str) -> None:
-    """Fire-and-forget admin email via Resend. Safe-no-ops if key missing."""
+    """Fire-and-forget admin email via Resend."""
     if not RESEND_API_KEY or not ADMIN_NOTIFY_EMAIL:
         return
     try:
@@ -1374,10 +1441,81 @@ def _send_admin_notification_email(subject: str, html_body: str) -> None:
             try:
                 await asyncio.to_thread(resend.Emails.send, params)
             except Exception as ex:
-                logging.warning("Resend send failed: %s", ex)
+                logging.warning("Resend admin send failed: %s", ex)
         asyncio.create_task(_bg())
     except Exception as e:
-        logging.warning("Resend dispatch failed: %s", e)
+        logging.warning("Resend admin dispatch failed: %s", e)
+
+
+def _send_customer_confirmation_email(to_email: str, subject: str, html_body: str) -> None:
+    """Send a transactional email to a customer (order receipts, custom request confirmation)."""
+    if not RESEND_API_KEY or not to_email:
+        return
+    try:
+        params = {
+            "from": f"Tuncel Atelier <{SENDER_EMAIL}>",
+            "to": [to_email],
+            "subject": subject,
+            "html": html_body,
+        }
+        async def _bg():
+            try:
+                await asyncio.to_thread(resend.Emails.send, params)
+            except Exception as ex:
+                logging.warning("Customer email failed: %s", ex)
+        asyncio.create_task(_bg())
+    except Exception as e:
+        logging.warning("Customer email dispatch failed: %s", e)
+
+
+def _build_invoice_html(order: dict) -> str:
+    items_html = ""
+    for it in order.get("items", []) or []:
+        name = it.get("name") or it.get("product_id", "")
+        qty = it.get("quantity", 1)
+        size = it.get("size") or ""
+        items_html += f"<tr><td style='padding:8px 0;border-bottom:1px solid #eee;'>{name} {('· ' + size) if size else ''}</td><td style='padding:8px 0;border-bottom:1px solid #eee;text-align:right;'>×{qty}</td></tr>"
+    method = "Card · Stripe" if order.get("payment_method") != "iban" else "Bank transfer · IBAN"
+    ref = order.get('reference') or order.get('session_id') or ''
+    return f"""
+    <div style='font-family:Manrope,Arial,sans-serif;max-width:560px;margin:0 auto;'>
+      <div style='background:#000;color:#fff;padding:28px 24px;'>
+        <div style='font-family:"Bebas Neue",sans-serif;letter-spacing:.18em;font-size:13px;color:rgba(255,255,255,.55);'>TUNCEL ATELIER · RIGA</div>
+        <h1 style='font-family:"Bebas Neue",sans-serif;letter-spacing:.04em;font-size:42px;margin:8px 0 0;'>Invoice</h1>
+        <div style='font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.65);margin-top:8px;'>{ref}</div>
+      </div>
+      <div style='padding:24px;background:#fff;'>
+        <p style='margin:0 0 18px;font-size:14px;line-height:1.6;color:#333;'>Hi {order.get('customer_name') or 'there'},<br/>Thank you for supporting our atelier. Here is your receipt.</p>
+        <table style='width:100%;border-collapse:collapse;margin-bottom:18px;'>
+          <thead><tr><th style='text-align:left;font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:#999;padding-bottom:8px;'>Item</th><th style='text-align:right;font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:#999;padding-bottom:8px;'>Qty</th></tr></thead>
+          <tbody>{items_html or '<tr><td style="padding:8px 0;color:#888;font-style:italic;">Items recorded internally</td><td></td></tr>'}</tbody>
+        </table>
+        <table style='width:100%;border-collapse:collapse;margin-bottom:24px;'>
+          <tr><td style='padding:6px 0;color:#888;text-transform:uppercase;font-size:11px;letter-spacing:.18em;'>Payment</td><td style='text-align:right;font-size:13px;'>{method}</td></tr>
+          <tr><td style='padding:6px 0;color:#888;text-transform:uppercase;font-size:11px;letter-spacing:.18em;'>Total</td><td style='text-align:right;font-size:18px;font-weight:700;'>€{float(order.get('amount', 0)):.2f}</td></tr>
+        </table>
+        <p style='margin-top:24px;text-align:center;'>
+          <a href='https://tuncel-textile.preview.emergentagent.com/track-order?ref={ref}' style='display:inline-block;background:#000;color:#fff;padding:14px 28px;text-decoration:none;letter-spacing:.2em;font-size:12px;text-transform:uppercase;'>Track your order →</a>
+        </p>
+        <p style='margin-top:28px;font-size:11px;color:#999;line-height:1.6;text-align:center;letter-spacing:.05em;'>
+          Need help? Reply to this email or visit tunceltextile.com.<br/>
+          Tuncel Textile · Riga, Latvia · tunceltextile@gmail.com
+        </p>
+      </div>
+    </div>
+    """
+
+
+def _send_invoice_email(order: dict) -> None:
+    to = order.get("customer_email")
+    if not to:
+        return
+    ref = order.get("reference") or order.get("session_id") or "—"
+    _send_customer_confirmation_email(
+        to_email=to,
+        subject=f"Invoice · {ref} · Tuncel Atelier",
+        html_body=_build_invoice_html(order),
+    )
 
 
 def _send_gift_card_email(gc: dict, to_email: str) -> None:
@@ -1585,6 +1723,8 @@ async def chat_get_messages(session_id: str, since: Optional[str] = None):
             "status": sess.get("status", "open"),
             "customer_name": sess.get("customer_name"),
             "unread_for_customer": sess.get("unread_for_customer", 0),
+            "ai_typing": sess.get("ai_typing", False),
+            "active_admin": sess.get("last_admin_name"),
         },
         "messages": msgs,
     }

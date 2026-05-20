@@ -22,15 +22,15 @@ export const Footer = () => {
         <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-center gap-x-12 gap-y-4 px-5 py-6 text-[11px] uppercase tracking-[0.25em] text-white/85 sm:px-8">
           <span className="inline-flex items-center gap-2.5">
             <span aria-hidden className="inline-block h-1 w-6 bg-white/40" />
-            Order by <strong className="text-white">14:00 CET</strong> — same-day dispatch
+            {t("footer.promise_a")}
           </span>
           <span className="inline-flex items-center gap-2.5">
             <span aria-hidden className="inline-block h-1 w-6 bg-white/40" />
-            Complimentary EU shipping over <strong className="text-white">€30</strong>
+            {t("footer.promise_b")}
           </span>
           <span className="inline-flex items-center gap-2.5">
             <span aria-hidden className="inline-block h-1 w-6 bg-white/40" />
-            Hand-finished in Riga · 14-day returns
+            {t("footer.promise_c")}
           </span>
         </div>
       </div>
@@ -77,11 +77,11 @@ export const Footer = () => {
             <li><Link to="/shop/women" className="tx-link">{t("nav.women")}</Link></li>
             <li><Link to="/shop/accessories" className="tx-link">{t("nav.accessories")}</Link></li>
             <li><Link to="/about" className="tx-link">{t("nav.atelier")}</Link></li>
-            <li><Link to="/faq" className="tx-link">FAQ</Link></li>
-            <li><Link to="/custom-request" className="tx-link">Custom Request</Link></li>
-            <li><Link to="/track-order" className="tx-link" data-testid="footer-track-order">Track Order</Link></li>
-            <li><Link to="/return-request" className="tx-link" data-testid="footer-return">Returns & Exchanges</Link></li>
-            <li><Link to="/gift-cards" className="tx-link" data-testid="footer-gift">Gift Cards</Link></li>
+            <li><Link to="/faq" className="tx-link">{t("footer.faq")}</Link></li>
+            <li><Link to="/custom-request" className="tx-link">{t("footer.custom")}</Link></li>
+            <li><Link to="/track-order" className="tx-link" data-testid="footer-track-order">{t("footer.track")}</Link></li>
+            <li><Link to="/return-request" className="tx-link" data-testid="footer-return">{t("footer.returns")}</Link></li>
+            <li><Link to="/gift-cards" className="tx-link" data-testid="footer-gift">{t("footer.gift")}</Link></li>
           </ul>
         </div>
 

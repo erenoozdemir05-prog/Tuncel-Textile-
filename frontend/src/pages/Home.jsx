@@ -17,10 +17,10 @@ const LOOKBOOK = [
   "https://images.pexels.com/photos/8217430/pexels-photo-8217430.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=900&w=720",
 ];
 
-const cats = [
-  { label: "Men", to: "/shop/men", img: "https://images.pexels.com/photos/2587054/pexels-photo-2587054.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1200&w=900" },
-  { label: "Women", to: "/shop/women", img: "https://images.pexels.com/photos/1755428/pexels-photo-1755428.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1200&w=900" },
-  { label: "Accessories", to: "/shop/accessories", img: "https://images.pexels.com/photos/1152077/pexels-photo-1152077.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1200&w=900" },
+const cats = (t) => [
+  { label: t("nav.men"), to: "/shop/men", img: "https://images.pexels.com/photos/2587054/pexels-photo-2587054.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1200&w=900" },
+  { label: t("nav.women"), to: "/shop/women", img: "https://images.pexels.com/photos/1755428/pexels-photo-1755428.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1200&w=900" },
+  { label: t("nav.accessories"), to: "/shop/accessories", img: "https://images.pexels.com/photos/1152077/pexels-photo-1152077.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1200&w=900" },
 ];
 
 const PROCESS = [
@@ -53,16 +53,15 @@ export default function Home() {
       {/* CATEGORY GRID */}
       <section className="mx-auto max-w-[1400px] px-5 py-20 sm:px-8 sm:py-28">
         <div className="flex items-end justify-between gap-4">
-          <h2 className="font-display text-5xl uppercase tracking-[0.04em] sm:text-7xl">
-            Three rooms.
-            <br />One language.
+          <h2 className="font-display whitespace-pre-line text-5xl uppercase tracking-[0.04em] sm:text-7xl">
+            {t("sections.three_rooms_title")}
           </h2>
           <Link to="/shop/all" className="tx-link hidden text-[12px] uppercase tracking-[0.25em] sm:block">
-            View Everything →
+            {t("sections.view_everything")}
           </Link>
         </div>
         <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
-          {cats.map((c, i) => (
+          {cats(t).map((c, i) => (
             <Link
               to={c.to}
               key={c.label || i}
@@ -85,10 +84,10 @@ export default function Home() {
       <section className="mx-auto max-w-[1400px] px-5 pb-24 sm:px-8">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">Featured</div>
-            <h2 className="font-display mt-2 text-5xl uppercase tracking-[0.04em] sm:text-6xl">The Drops</h2>
+            <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">{t("sections.featured_kicker")}</div>
+            <h2 className="font-display mt-2 text-5xl uppercase tracking-[0.04em] sm:text-6xl">{t("sections.featured_title")}</h2>
           </div>
-          <Link to="/shop/all" className="tx-link text-[12px] uppercase tracking-[0.25em]">See All →</Link>
+          <Link to="/shop/all" className="tx-link text-[12px] uppercase tracking-[0.25em]">{t("sections.see_all")}</Link>
         </div>
 
         <div className="mt-10 grid grid-cols-2 gap-x-5 gap-y-12 md:grid-cols-4">
@@ -101,10 +100,10 @@ export default function Home() {
         <div className="mx-auto max-w-[1400px] px-5 sm:px-8">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <div className="text-[11px] uppercase tracking-[0.3em] text-white/50">Lookbook</div>
-              <h2 className="font-display mt-2 text-5xl uppercase tracking-[0.04em] sm:text-7xl">Worn With Pride</h2>
+              <div className="text-[11px] uppercase tracking-[0.3em] text-white/50">{t("sections.lookbook_kicker")}</div>
+              <h2 className="font-display mt-2 text-5xl uppercase tracking-[0.04em] sm:text-7xl">{t("sections.lookbook_title")}</h2>
             </div>
-            <Link to="/shop/all" className="tx-link hidden text-[12px] uppercase tracking-[0.25em] sm:block">View Edition →</Link>
+            <Link to="/shop/all" className="tx-link hidden text-[12px] uppercase tracking-[0.25em] sm:block">{t("sections.view_edition")}</Link>
           </div>
         </div>
         <div className="mt-10 overflow-x-auto">
@@ -127,8 +126,8 @@ export default function Home() {
 
       {/* PROCESS */}
       <section className="mx-auto max-w-[1400px] px-5 py-24 sm:px-8 sm:py-28">
-        <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">Atelier process</div>
-        <h2 className="font-display mt-2 text-5xl uppercase tracking-[0.04em] sm:text-7xl">How it’s made</h2>
+        <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">{t("sections.process_kicker")}</div>
+        <h2 className="font-display mt-2 text-5xl uppercase tracking-[0.04em] sm:text-7xl">{t("sections.process_title")}</h2>
         <div className="mt-14 grid grid-cols-1 gap-12 md:grid-cols-3">
           {PROCESS.map(({ icon: Icon, kicker, title, body }) => (
             <div key={title} data-testid={`process-step-${kicker.toLowerCase().replace(/\s+/g, "-")}`} className="border-t border-black/15 pt-6">
@@ -146,13 +145,13 @@ export default function Home() {
       {/* MANIFESTO */}
       <section className="border-y border-black/10 bg-[#F5F5F5]">
         <div className="mx-auto grid max-w-[1400px] grid-cols-1 gap-10 px-5 py-24 sm:px-8 md:grid-cols-2">
-          <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-600">Manifesto / 01</div>
+          <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-600">{t("sections.manifesto_kicker")}</div>
           <div>
             <p className="font-display text-3xl leading-[1.1] uppercase tracking-[0.02em] sm:text-5xl">
-              Two of us. One atelier. Every garment passes through our hands before it reaches yours. We craft in small editions — when an edition closes, it never returns.
+              {t("sections.manifesto_body")}
             </p>
             <Link to="/about" className="tx-link mt-10 inline-block text-[12px] uppercase tracking-[0.25em]">
-              Meet The Atelier →
+              {t("sections.meet_atelier")}
             </Link>
           </div>
         </div>
@@ -175,14 +174,14 @@ export default function Home() {
             </div>
           </div>
           <div className="flex flex-col justify-center px-5 py-16 sm:px-12">
-            <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">Gifts · For someone you love</div>
+            <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">{t("gift.home_kicker")}</div>
             <h2 className="font-display mt-3 text-5xl uppercase leading-[0.95] tracking-[0.02em] sm:text-7xl">
-              The perfect
+              {t("gift.home_title_a")}
               <br />
-              <span className="text-neutral-400">unfair advantage.</span>
+              <span className="text-neutral-400">{t("gift.home_title_b")}</span>
             </h2>
             <p className="mt-6 max-w-md text-[15px] leading-[1.7] text-neutral-700">
-              Delivered instantly with a personal note. Valid 12 months, no fees, redeemable on every piece in the atelier.
+              {t("gift.home_body")}
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <Link
@@ -190,10 +189,10 @@ export default function Home() {
                 data-testid="home-gift-cta"
                 className="group inline-flex items-center gap-3 bg-black px-7 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] text-white transition-colors hover:bg-neutral-800"
               >
-                Send a gift card
+                {t("gift.home_cta")}
                 <span className="transition-transform group-hover:translate-x-1">→</span>
               </Link>
-              <span className="text-[11px] uppercase tracking-[0.25em] text-neutral-500">From €25 · email delivery</span>
+              <span className="text-[11px] uppercase tracking-[0.25em] text-neutral-500">{t("gift.home_sub")}</span>
             </div>
           </div>
         </div>
@@ -205,14 +204,14 @@ export default function Home() {
         <div className="mx-auto grid max-w-[1400px] grid-cols-1 items-stretch px-0 sm:px-0 lg:grid-cols-[1.1fr_1fr]">
           <div className="flex flex-col justify-between gap-10 border-r border-black/10 px-5 py-20 sm:px-12 sm:py-24">
             <div>
-              <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">Bespoke · Made for you</div>
+              <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">{t("bespoke.kicker")}</div>
               <h2 className="font-display mt-3 text-5xl uppercase leading-[0.95] tracking-[0.02em] sm:text-7xl">
-                Have an idea?
+                {t("bespoke.title_a")}
                 <br />
-                <span className="text-neutral-400">We'll make it.</span>
+                <span className="text-neutral-400">{t("bespoke.title_b")}</span>
               </h2>
               <p className="mt-6 max-w-md text-[15px] leading-[1.7] text-neutral-700">
-                From a single tee for yourself to a small drop for your brand. No MOQ — start at just one piece. Free design consultation. Reply within 24 hours.
+                {t("bespoke.body")}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-4">
@@ -221,20 +220,20 @@ export default function Home() {
                 data-testid="home-custom-cta"
                 className="group inline-flex items-center gap-3 bg-black px-7 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] text-white transition-colors hover:bg-neutral-800"
               >
-                Start a Custom Request
+                {t("bespoke.cta")}
                 <span className="transition-transform group-hover:translate-x-1">→</span>
               </Link>
-              <span className="text-[11px] uppercase tracking-[0.25em] text-neutral-500">Starting from €35</span>
+              <span className="text-[11px] uppercase tracking-[0.25em] text-neutral-500">{t("bespoke.from_label")}</span>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-px bg-black/10">
             {[
-              { label: "Single piece", body: "Just one for you" },
-              { label: "Small drop", body: "5–50 units" },
-              { label: "Wholesale", body: "50+ units" },
-              { label: "Print on hoodie", body: "Heavyweight" },
-              { label: "Tee · long sleeve", body: "Heavy cotton" },
-              { label: "Tote · cap", body: "Heavy canvas" },
+              { label: t("bespoke.card_a_label"), body: t("bespoke.card_a_body") },
+              { label: t("bespoke.card_b_label"), body: t("bespoke.card_b_body") },
+              { label: t("bespoke.card_c_label"), body: t("bespoke.card_c_body") },
+              { label: t("bespoke.card_d_label"), body: t("bespoke.card_d_body") },
+              { label: t("bespoke.card_e_label"), body: t("bespoke.card_e_body") },
+              { label: t("bespoke.card_f_label"), body: t("bespoke.card_f_body") },
             ].map((c) => (
               <div key={c.label} className="bg-white p-6">
                 <div className="text-[10px] uppercase tracking-[0.25em] text-neutral-400">{c.body}</div>
@@ -249,10 +248,10 @@ export default function Home() {
       <section className="bg-black text-white">
         <div className="mx-auto grid max-w-[1400px] grid-cols-1 items-center gap-10 px-5 py-20 sm:px-8 md:grid-cols-2">
           <div>
-            <div className="text-[11px] uppercase tracking-[0.3em] text-white/50">Newsletter</div>
-            <h2 className="font-display mt-2 text-5xl uppercase tracking-[0.04em] sm:text-7xl">First In Line</h2>
+            <div className="text-[11px] uppercase tracking-[0.3em] text-white/50">{t("sections.newsletter_kicker")}</div>
+            <h2 className="font-display mt-2 text-5xl uppercase tracking-[0.04em] sm:text-7xl">{t("sections.newsletter_title")}</h2>
             <p className="mt-5 max-w-md text-sm text-white/70">
-              Editions sell out quickly. Receive a 24-hour heads-up before each release leaves the atelier.
+              {t("sections.newsletter_body")}
             </p>
           </div>
           <form
@@ -265,7 +264,7 @@ export default function Home() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@email.com"
+              placeholder={t("sections.email_ph")}
               data-testid="newsletter-input"
               className="flex-1 border border-white/30 bg-transparent px-5 py-4 text-sm text-white placeholder:text-white/40 focus:border-white focus:outline-none"
             />
@@ -274,7 +273,7 @@ export default function Home() {
               data-testid="newsletter-submit"
               className="inline-flex items-center justify-center gap-2 bg-white px-8 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] text-black hover:bg-neutral-200"
             >
-              Subscribe
+              {t("sections.subscribe")}
             </button>
           </form>
         </div>

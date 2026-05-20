@@ -1,6 +1,44 @@
 import React, { useEffect, useRef, useState } from "react";
 import { chatStart, chatSend, chatFetch } from "@/lib/api";
 import { MessageCircle, Send, X, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
+
+const LINK_MAP = {
+  track:  { to: "/track-order",   label: "Track your order →" },
+  return: { to: "/return-request", label: "Start a return →" },
+  custom: { to: "/custom-request", label: "Open custom request →" },
+  gift:   { to: "/gift-cards",     label: "Browse gift cards →" },
+  faq:    { to: "/faq",            label: "Read the FAQ →" },
+};
+
+// Auto-detect intent words in any language and surface the matching CTA below an AI bubble.
+const KEYWORD_INTENTS = [
+  { key: "track",  rx: /track|tracking|takip|siparişimi|статус|где мой|izsekot|trase/i },
+  { key: "return", rx: /return|refund|exchange|iade|değiş|возврат|обмен|atgr/i },
+  { key: "custom", rx: /custom|bespoke|özel sipariş|özel baskı|кастом|пасуй/i },
+  { key: "gift",   rx: /gift card|hediye kart|подароч|dāvanu/i },
+  { key: "faq",    rx: /\bfaq\b|sss|често задав|biežāk/i },
+];
+
+function parseSmartLinks(body) {
+  if (!body) return { text: "", links: [] };
+  const links = new Set();
+  // 1. Explicit AI-emitted tokens
+  const text = body.replace(/\[link:(track|return|custom|gift|faq)\]/gi, (_m, k) => {
+    links.add(k.toLowerCase());
+    return "";
+  }).trim();
+  // 2. Keyword fallback — if no explicit tokens, infer from text content
+  if (links.size === 0) {
+    for (const { key, rx } of KEYWORD_INTENTS) {
+      if (rx.test(text)) {
+        links.add(key);
+        break; // surface ONE primary CTA, not five
+      }
+    }
+  }
+  return { text, links: Array.from(links) };
+}
 
 const STORAGE_KEY = "tuncel_chat_session";
 const POLL_MS = 3000;
@@ -9,6 +47,7 @@ export function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [sessionId, setSessionId] = useState(() => localStorage.getItem(STORAGE_KEY) || "");
   const [sessionStatus, setSessionStatus] = useState("open");
+  const [aiTyping, setAiTyping] = useState(false);
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState("");
   const [name, setName] = useState("");
@@ -27,6 +66,7 @@ export function ChatWidget() {
         const res = await chatFetch(sessionId, lastSeenRef.current || undefined);
         if (cancelled) return;
         if (res.session?.status) setSessionStatus(res.session.status);
+        setAiTyping(!!res.session?.ai_typing);
         if (res.messages?.length) {
           setMessages((prev) => {
             const seen = new Set(prev.map((m) => m.id));
@@ -193,31 +233,59 @@ export function ChatWidget() {
                       );
                     }
                     const fromAtelierSide = isAi || isAdmin;
+                    const senderLabel = isAi ? "Atelier AI" : isAdmin ? (m.sender_name || "Atelier") : "You";
+                    const { text, links } = isAi ? parseSmartLinks(m.body) : { text: m.body, links: [] };
                     return (
-                      <div
-                        key={m.id}
-                        className={`mb-3 max-w-[80%] px-3 py-2 text-sm leading-relaxed ${
-                          isAi
-                            ? "ml-0 border border-purple-200 bg-purple-50 text-black"
-                            : isAdmin
-                            ? "ml-0 bg-neutral-100 text-black"
-                            : "ml-auto bg-black text-white"
-                        }`}
-                      >
-                        {isAi && (
-                          <div className="mb-1 flex items-center gap-1 text-[9px] uppercase tracking-[0.2em] text-purple-700">
-                            <Sparkles className="h-2.5 w-2.5" /> Atelier AI
+                      <div key={m.id} className={`mb-3 flex w-full flex-col ${fromAtelierSide ? "items-start" : "items-end"}`}>
+                        <div className={`text-[9px] uppercase tracking-[0.2em] ${isAi ? "text-purple-700" : isAdmin ? "text-neutral-500" : "text-neutral-400"}`}>
+                          {senderLabel}
+                        </div>
+                        <div
+                          className={`mt-1 max-w-[85%] px-3 py-2 text-sm leading-relaxed ${
+                            isAi ? "border border-purple-200 bg-purple-50 text-black"
+                            : isAdmin ? "bg-neutral-100 text-black"
+                            : "bg-black text-white"
+                          }`}
+                        >
+                          {isAi && (
+                            <div className="mb-1 flex items-center gap-1 text-[9px] uppercase tracking-[0.2em] text-purple-700">
+                              <Sparkles className="h-2.5 w-2.5" /> Auto-reply
+                            </div>
+                          )}
+                          {text}
+                          <div className={`mt-1 text-[9px] uppercase tracking-[0.2em] ${isAi ? "text-purple-600" : fromAtelierSide ? "text-neutral-500" : "text-white/60"}`}>
+                            {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </div>
+                        </div>
+                        {links.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {links.map((k) => (
+                              <Link
+                                key={k}
+                                to={LINK_MAP[k].to}
+                                onClick={() => setOpen(false)}
+                                data-testid={`chat-smartlink-${k}`}
+                                className="inline-flex items-center gap-1 border border-black bg-white px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-black hover:bg-black hover:text-white"
+                              >
+                                {LINK_MAP[k].label}
+                              </Link>
+                            ))}
                           </div>
                         )}
-                        {m.body}
-                        <div className={`mt-1 text-[9px] uppercase tracking-[0.2em] ${
-                          isAi ? "text-purple-600" : fromAtelierSide ? "text-neutral-500" : "text-white/60"
-                        }`}>
-                          {isAi ? "Auto-reply" : isAdmin ? (m.sender_name || "Atelier") : "You"} · {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </div>
                       </div>
                     );
                   })
+                )}
+                {aiTyping && (
+                  <div className="mb-3 flex flex-col items-start" data-testid="chat-ai-typing">
+                    <div className="text-[9px] uppercase tracking-[0.2em] text-purple-700">Atelier AI</div>
+                    <div className="mt-1 inline-flex items-center gap-1.5 border border-purple-200 bg-purple-50 px-3 py-2.5 text-sm">
+                      <span className="h-2 w-2 animate-bounce rounded-full bg-purple-400" style={{ animationDelay: "0ms" }} />
+                      <span className="h-2 w-2 animate-bounce rounded-full bg-purple-500" style={{ animationDelay: "150ms" }} />
+                      <span className="h-2 w-2 animate-bounce rounded-full bg-purple-600" style={{ animationDelay: "300ms" }} />
+                      <span className="ml-1 text-[10px] uppercase tracking-[0.2em] text-purple-700">typing…</span>
+                    </div>
+                  </div>
                 )}
               </div>
               {sessionStatus === "closed" ? (
