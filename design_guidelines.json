@@ -1,70 +1,213 @@
 {
-  "project_name": "Tuncel Textile",
-  "app_type": "ecommerce",
-  "theme": "light",
-  "archetype": "Swiss & High-Contrast",
-  "emotion": "Bold, luxury streetwear, artistic, minimalist",
-  "colors": {
-    "background": "#FFFFFF",
-    "surface": "#F5F5F5",
-    "primary": "#0A0A0A",
-    "secondary": "#E5E5E5",
-    "text_main": "#050505",
-    "text_muted": "#737373",
-    "border": "#E5E5E5",
-    "accent": "#000000"
+  "theme": "dark",
+  "archetype": "5 (Jewel & Luxury)",
+  "aesthetic_vision": {
+    "vibe": "Ultra-premium, cinematic, dark luxury, mysterious, fashion campaign aesthetic",
+    "references": "Rick Owens, Balenciaga, Saint Laurent, Fear of God",
+    "key_traits": ["Minimal but powerful", "Editorial lookbook feel", "Expensive typography", "Layered shadows", "Glass blur details", "Ultra clean spacing", "Deep contrast"]
   },
-  "typography": {
-    "heading_font": "Bebas Neue, sans-serif",
-    "body_font": "Manrope, sans-serif",
-    "heading_strategy": "Ultra-bold, uppercase, tall typography for a print-based fashion editorial look.",
-    "body_strategy": "Clean, highly readable geometric sans for contrast."
-  },
-  "layout_strategy": {
-    "spacing": "Generous (p-8 to p-24) to create a gallery/exhibition feel.",
-    "grid": "Asymmetric bento for homepage features; strict 3-col or 4-col grids for product catalogs.",
-    "borders": "Minimal to none. Rely on whitespace and scale for hierarchy."
-  },
-  "component_guidelines": {
-    "navigation": "Sticky top, white background with backdrop blur. High contrast black logo. Minimalist links.",
-    "buttons": "Sharp edges (rounded-none). Black background, white text for primary. White background, black border for secondary. Add group-hover inverted effects.",
-    "cards_product": "Borderless. Full width image. Product name and price below in minimal text. No 'Add to Cart' button visible until hover.",
-    "hero": "Massive typography overlapping edge-to-edge imagery. Minimalist overlays."
-  },
-  "media": {
-    "hero_image": {
-      "url": "https://images.pexels.com/photos/30816952/pexels-photo-30816952.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1024&w=1536",
-      "description": "Stylish fashion poses with motion blur background, highlighting modern attire."
+  "color_tokens": {
+    "background": {
+      "default": "#0a0a0b",
+      "matte_black": "#0f0f11",
+      "charcoal": "#1a1a1d",
+      "smoked": "#2a2a2e",
+      "overlay": "rgba(0, 0, 0, 0.4)"
     },
-    "category_men": {
-      "url": "https://images.pexels.com/photos/2540152/pexels-photo-2540152.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1024&w=1536",
-      "description": "Stylish young man wearing denim, showcasing modern urban fashion."
+    "text": {
+      "primary": "#F5F4F0",
+      "secondary": "#a1a1a5",
+      "accent": "#C8B38A",
+      "inverse": "#0a0a0b"
     },
-    "category_women": {
-      "url": "https://images.pexels.com/photos/8945179/pexels-photo-8945179.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1024&w=1536",
-      "description": "Fashionable young women posing confidently, showcasing modern trends."
+    "border": {
+      "subtle": "rgba(255, 255, 255, 0.05)",
+      "medium": "rgba(255, 255, 255, 0.1)",
+      "accent": "#C8B38A"
     },
-    "category_accessories": {
-      "url": "https://images.pexels.com/photos/16039231/pexels-photo-16039231.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1024&w=1536",
-      "description": "Closeup of fashion jewelry with spiked chains and necklaces, showcasing edgy style."
-    },
-    "product_tshirt": {
-      "url": "https://images.pexels.com/photos/36908588/pexels-photo-36908588.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1024&w=1536",
-      "description": "Oversized white T-shirt featuring bold printed text."
-    },
-    "product_tshirts_grid": {
-      "url": "https://images.pexels.com/photos/18265935/pexels-photo-18265935.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1024&w=1536",
-      "description": "An arrangement of colorful T-shirts."
+    "interactive": {
+      "hover_bg": "#1a1a1d",
+      "focus_ring": "#C8B38A",
+      "selection_bg": "#C8B38A",
+      "selection_text": "#0a0a0b"
     }
   },
-  "instructions_to_main_agent": [
-    "Build a full e-commerce flow: Home, Men, Women, Accessories, Product Detail, Cart, and Checkout.",
-    "Use English language only.",
-    "Use Shadcn UI but heavily customize it to remove the 'tech/SaaS' look. Use rounded-none for buttons and inputs.",
-    "Import 'Bebas Neue' and 'Manrope' from Google Fonts in the index.html or global css.",
-    "Ensure the hero section makes a bold statement with typography over the provided hero image.",
-    "Product images must use the provided Pexels placeholders since users will upload their own later.",
-    "Implement a shopping cart state and basic product management data structure.",
-    "Do NOT use placeholder URLs like via.placeholder.com. ONLY use the media URLs provided here."
-  ]
+  "typography": {
+    "font_families": {
+      "display": "Bebas Neue, sans-serif",
+      "body": "Manrope, sans-serif"
+    },
+    "scale": {
+      "h1_hero": "text-7xl md:text-8xl lg:text-9xl uppercase tracking-tighter leading-[0.85]",
+      "h2_section": "text-5xl md:text-6xl uppercase tracking-tight leading-none",
+      "h3_card": "text-2xl md:text-3xl uppercase tracking-tight",
+      "body_large": "text-lg md:text-xl font-light tracking-wide leading-relaxed",
+      "body_base": "text-sm md:text-base font-light tracking-wide leading-relaxed",
+      "overline": "text-xs md:text-sm uppercase tracking-[0.2em] text-secondary",
+      "button": "text-sm uppercase tracking-[0.15em] font-medium"
+    },
+    "rules": {
+      "alignment": "Never center paragraphs. Use aggressive asymmetry for display headers. Center only for absolute hero balance.",
+      "hierarchy": "Extreme contrast between massive display fonts and tiny uppercase overlines."
+    }
+  },
+  "spacing_rhythm": {
+    "section_gap": "py-24 md:py-40",
+    "element_gap": "gap-8 md:gap-12",
+    "container_padding": "px-6 md:px-12 lg:px-24",
+    "bento_gap": "gap-2 md:gap-4"
+  },
+  "animation_specs": {
+    "scroll_reveal": "transition-all duration-1000 ease-out translate-y-8 opacity-0 data-[in-view=true]:translate-y-0 data-[in-view=true]:opacity-100",
+    "hover_image": "transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] hover:scale-105",
+    "hover_button": "transition-all duration-300 ease-out hover:bg-white hover:text-black",
+    "page_load": "fade-in duration-1000",
+    "glass_blur": "backdrop-blur-xl backdrop-saturate-150 bg-black/40"
+  },
+  "css_patterns": {
+    "film_grain": "absolute inset-0 z-0 pointer-events-none opacity-[0.03] mix-blend-overlay bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIj48ZmlsdGVyIGlkPSJuIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iMC44IiBudW1PY3RhdmVzPSIzIiBzdGl0Y2hUaWxlcz0ic3RpdGNoIi8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsdGVyPSJ1cmwoI24pIiBvcGFjaXR5PSIwLjUiLz48L3N2Zz4=')]",
+    "gold_foil": "bg-gradient-to-br from-[#E2D1A7] via-[#C8B38A] to-[#9B8454] text-transparent bg-clip-text",
+    "luxury_border": "border border-white/5",
+    "magnetic_button": "relative overflow-hidden group"
+  },
+  "image_urls": {
+    "campaign_hero": {
+      "url": "https://static.prod-images.emergentagent.com/jobs/e1b6f233-da0d-4100-be0c-1b168cd1aef1/images/e89cd92d128a71ee819922d7860736bd1ba516504a1f85312452da0797282fd1.png",
+      "description": "Cinematic editorial photography of a premium heavyweight black hoodie on a model in shadows"
+    },
+    "atelier_texture": {
+      "url": "https://static.prod-images.emergentagent.com/jobs/e1b6f233-da0d-4100-be0c-1b168cd1aef1/images/57e5e1a9b60f5e46143661c884f813112731fd14cfa1e5d357e3c08b6a15500c.png",
+      "description": "Close up macro photography of luxury textured charcoal fabric in atelier workshop"
+    },
+    "gift_card_bg": {
+      "url": "https://static.prod-images.emergentagent.com/jobs/e1b6f233-da0d-4100-be0c-1b168cd1aef1/images/82208fcb7d1631276de55d2c700eb1249f0e6c8d7bb9da3848810792a577dfb0.png",
+      "description": "Minimalist luxury gift card with metallic gold edge on charcoal stone"
+    },
+    "product_1": {
+      "url": "https://images.unsplash.com/photo-1647540977003-9a9e6f3b5fb9?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDN8MHwxfHNlYXJjaHwzfHxtb29keSUyMGZhc2hpb24lMjBhcHBhcmVsJTIwZGFya3xlbnwwfHx8fDE3NzkyODgwODN8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Moody fashion apparel - black hoodie"
+    },
+    "product_2": {
+      "url": "https://images.unsplash.com/photo-1640793339327-837730998bb9?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDN8MHwxfHNlYXJjaHwxfHxtb29keSUyMGZhc2hpb24lMjBhcHBhcmVsJTIwZGFya3xlbnwwfHx8fDE3NzkyODgwODN8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Mannequin stand black background"
+    },
+    "product_3": {
+      "url": "https://images.unsplash.com/photo-1559748177-4199f9175c12?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDN8MHwxfHNlYXJjaHwyfHxtb29keSUyMGZhc2hpb24lMjBhcHBhcmVsJTIwZGFya3xlbnwwfHx8fDE3NzkyODgwODN8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Black and white editorial top"
+    }
+  },
+  "assembly_order": [
+    "Navbar (Sticky, glass blur, dark)",
+    "PremiumSplitHero (Existing, preserved but with improved grain)",
+    "CampaignShowcase (New, replaces 3-card drop, cinematic layout)",
+    "FeaturedProducts (New, minimal Rick Owens style grid)",
+    "EditorialManifesto (New, split screen atelier story)",
+    "BespokeCTA (Re-skinned to luxury dark aesthetic)",
+    "GiftCardCTA (Re-skinned with gold accents)",
+    "Newsletter (Re-skinned minimal)",
+    "Footer (Massive typography, dark)"
+  ],
+  "components_breakdown": {
+    "PremiumSplitHero": {
+      "status": "KEEP & REFINE",
+      "instructions": "Maintain functionality. Ensure grain texture overlay covers the entire hero. Use translation keys for button text."
+    },
+    "CampaignShowcase": {
+      "status": "NEW",
+      "instructions": "Full-bleed section. Massive typography 'EDITION 01 / STATIC NOISE'. Image takes up 80% width on right, text overlaps on left. Use 'campaign_hero' image."
+    },
+    "EditorialProductCard": {
+      "status": "NEW",
+      "instructions": "Extremely minimal. Image container with luxury border. Product name in small overline font, price next to it. No 'Add to cart' button visible until hover."
+    },
+    "EditorialManifesto": {
+      "status": "NEW",
+      "instructions": "Magazine spread layout. Left side: large serif/body text manifesto. Right side: 'atelier_texture' image. Asymmetric spacing."
+    },
+    "BespokeCTA": {
+      "status": "RE-SKIN",
+      "instructions": "Dark charcoal background. Subtle film grain. Minimal input fields with bottom-border only (no boxes)."
+    },
+    "GiftCardCTA": {
+      "status": "RE-SKIN",
+      "instructions": "Use 'gift_card_bg' as the main visual. Typography uses the gold_foil CSS pattern for the word 'GIFT'."
+    }
+  },
+  "testing": {
+    "data_testids": [
+      "navbar",
+      "premium-split-hero",
+      "campaign-showcase-section",
+      "campaign-shop-button",
+      "featured-products-grid",
+      "product-card-[id]",
+      "editorial-manifesto",
+      "bespoke-cta-form",
+      "bespoke-submit-button",
+      "gift-card-cta",
+      "newsletter-form",
+      "newsletter-input",
+      "newsletter-submit"
+    ]
+  },
+  "wireframes": {
+    "desktop": [
+      "+--------------------------------------------------+",
+      "| LOGO         [MEN] [WOMEN] [COLLECTIONS]    CART |",
+      "+--------------------------------------------------+",
+      "|                                                  |",
+      "|       M E N                  W O M E N           |",
+      "|       [Dark Split Image]     [Dark Split Image]  |",
+      "|               TUNCEL · RIGA                      |",
+      "|                                                  |",
+      "+--------------------------------------------------+",
+      "|                                                  |",
+      "|  EDITION 01         [ Massive Campaign Image ]   |",
+      "|  STATIC NOISE       [ Overlapping left text  ]   |",
+      "|  [ SHOP DROP ]      [                        ]   |",
+      "|                                                  |",
+      "+--------------------------------------------------+",
+      "|  CURATED OBJECTS                                 |",
+      "|  [Img 1]   [Img 2]   [Img 3]   [Img 4]           |",
+      "|  NAME 1    NAME 2    NAME 3    NAME 4            |",
+      "+--------------------------------------------------+",
+      "|  [ Atelier Texture ]    THE MANIFESTO            |",
+      "|  [ Image ]              Large body text here...  |",
+      "|  [       ]              explaining the craft.    |",
+      "+--------------------------------------------------+",
+      "|  BESPOKE REQUESTS         GIFT CARDS             |",
+      "|  [ Input ] [Submit]       [ Gold Card Visual ]   |",
+      "+--------------------------------------------------+",
+      "|             NEWSLETTER [________]                |",
+      "+--------------------------------------------------+"
+    ],
+    "mobile": [
+      "+----------------------+",
+      "| =   LOGO        CART |",
+      "+----------------------+",
+      "|                      |",
+      "|       MEN            |",
+      "|       WOMEN          |",
+      "|                      |",
+      "+----------------------+",
+      "| EDITION 01           |",
+      "| [ Campaign Image ]   |",
+      "| STATIC NOISE         |",
+      "| [ SHOP DROP ]        |",
+      "+----------------------+",
+      "| CURATED OBJECTS      |",
+      "| [Img 1]   [Img 2]    |",
+      "| [Img 3]   [Img 4]    |",
+      "+----------------------+",
+      "| THE MANIFESTO        |",
+      "| Text...              |",
+      "| [ Atelier Image ]    |",
+      "+----------------------+",
+      "| BESPOKE REQUESTS     |",
+      "| GIFT CARDS           |",
+      "+----------------------+",
+      "| NEWSLETTER           |",
+      "+----------------------+"
+    ]
+  }
 }
