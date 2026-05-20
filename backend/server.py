@@ -1974,13 +1974,15 @@ async def gift_card_checkout(req: GiftCardPurchaseIn, request: Request):
 
 @api_router.get("/gift-cards/validate/{code}")
 async def gift_card_validate(code: str):
-    """Public: check if a gift card code is valid and return its balance."""
+    """Public: check if a gift card code is valid and return its balance.
+    Single-use policy: only `active` cards are valid."""
     code = code.strip().upper()
     card = await db.gift_cards.find_one({"code": code}, {"_id": 0, "buyer_email": 0, "buyer_name": 0})
     if not card:
         raise HTTPException(404, "Gift card not found")
-    if card.get("status") not in ("active", "partially_used"):
-        raise HTTPException(400, f"This card is {card.get('status')}")
+    if card.get("status") != "active":
+        msg = "This card has already been used" if card.get("status") == "redeemed" else f"This card is {card.get('status')}"
+        raise HTTPException(400, msg)
     # Check expiry
     try:
         exp = datetime.fromisoformat(card["expires_at"].replace("Z", "+00:00"))
@@ -2000,6 +2002,7 @@ async def gift_card_validate(code: str):
 
 async def _apply_gift_card(code: Optional[str], cart_total: float) -> tuple[float, float, Optional[dict]]:
     """Validate a gift card code and return (discount, new_total, card_dict).
+    SINGLE-USE policy: gift cards can only be applied once — status must be `active`.
     Does NOT mutate the card here — that happens on order finalize.
     Returns (0, cart_total, None) if no code or invalid (silently).
     """
@@ -2009,8 +2012,10 @@ async def _apply_gift_card(code: Optional[str], cart_total: float) -> tuple[floa
     card = await db.gift_cards.find_one({"code": code}, {"_id": 0})
     if not card:
         raise HTTPException(400, "Gift card not found")
-    if card.get("status") not in ("active", "partially_used"):
-        raise HTTPException(400, f"Gift card is {card.get('status')}")
+    if card.get("status") != "active":
+        # Map common non-active states to clearer messages
+        msg = "Gift card already used" if card.get("status") == "redeemed" else f"Gift card is {card.get('status')}"
+        raise HTTPException(400, msg)
     try:
         exp = datetime.fromisoformat(card["expires_at"].replace("Z", "+00:00"))
         if exp < datetime.now(timezone.utc):
@@ -2026,27 +2031,22 @@ async def _apply_gift_card(code: Optional[str], cart_total: float) -> tuple[floa
 
 async def _consume_gift_card(card: dict, amount: float, order_ref: str) -> None:
     """Deduct `amount` from gift card balance and append a redemption entry.
+    SINGLE-USE policy: once a gift card is used, it is marked `redeemed` and cannot be re-used,
+    even if balance remains. Any remaining balance is forfeited.
     Uses a conditional update to prevent concurrent over-deduction."""
     amount = round(float(amount), 2)
     now = datetime.now(timezone.utc).isoformat()
-    # Atomic conditional update: only deduct if current balance is sufficient
+    # Atomic conditional update: only deduct if currently active and balance is sufficient
     res = await db.gift_cards.update_one(
-        {"code": card["code"], "balance": {"$gte": amount}, "status": {"$in": ["active", "partially_used"]}},
+        {"code": card["code"], "balance": {"$gte": amount}, "status": "active"},
         {
             "$inc": {"balance": -amount},
             "$push": {"redemptions": {"order_ref": order_ref, "amount": amount, "at": now}},
-            "$set": {"updated_at": now},
+            "$set": {"status": "redeemed", "redeemed_at": now, "updated_at": now},
         },
     )
     if res.matched_count == 0:
-        # Race condition or insufficient balance — log and bail (caller already committed order)
-        logging.warning("Gift card %s could not be consumed (concurrent use?) amount=%.2f order=%s", card.get("code"), amount, order_ref)
-        return
-    # Re-check post-deduction balance to flip status if depleted
-    updated = await db.gift_cards.find_one({"code": card["code"]}, {"_id": 0, "balance": 1})
-    new_balance = float((updated or {}).get("balance", 0))
-    new_status = "redeemed" if new_balance <= 0.005 else "partially_used"
-    await db.gift_cards.update_one({"code": card["code"]}, {"$set": {"status": new_status}})
+        logging.warning("Gift card %s could not be consumed (already used / concurrent?) amount=%.2f order=%s", card.get("code"), amount, order_ref)
 
 
 class GiftRedeemPreviewIn(BaseModel):

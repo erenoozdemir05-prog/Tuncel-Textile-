@@ -137,6 +137,278 @@
     z-index: 1;
 }
 
+/* =====================================================
+   IVORY LUXURY — Tuncel Atelier (light premium palette)
+   ===================================================== */
+
+/* Color tokens (kept as CSS vars so all light luxury sections share them) */
+:root {
+    --ix-ivory: #F8F5EE;
+    --ix-warm-white: #FBF8F2;
+    --ix-paper: #F2EDE2;
+    --ix-champagne: #E8DCC4;
+    --ix-sand: #D6C8A8;
+    --ix-stone: #B5AC9E;
+    --ix-stone-deep: #8B8378;
+    --ix-olive: #7B7757;
+    --ix-olive-deep: #5C5840;
+    --ix-ink: #1F1B14;
+    --ix-ink-soft: #3A352B;
+    --ix-mute: #6E6A5E;
+    --ix-gold: #B89968;
+    --ix-gold-deep: #8A6F47;
+}
+
+/* Subtle paper grain — for ivory backgrounds (very faint, warm) */
+.ix-grain::after {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.35'/></svg>");
+    opacity: 0.045;
+    mix-blend-mode: multiply;
+    z-index: 2;
+}
+
+/* Warm gold foil gradient text — for ivory backgrounds */
+.ix-gold-text {
+    background: linear-gradient(135deg, #C8A975 0%, #B89968 45%, #8A6F47 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+}
+
+/* Hairline divider — warm gold */
+.ix-gold-line {
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, var(--ix-gold) 50%, transparent 100%);
+}
+
+/* Editorial primary button — ink-on-ivory with gold-fill hover */
+.ix-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    border: 1px solid var(--ix-ink);
+    background: transparent;
+    color: var(--ix-ink);
+    padding: 1rem 2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.28em;
+    font-size: 11px;
+    font-weight: 500;
+    transition: all 400ms cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+    overflow: hidden;
+}
+.ix-btn::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--ix-ink);
+    transform: translateY(101%);
+    transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: -1;
+}
+.ix-btn:hover {
+    color: var(--ix-ivory);
+    border-color: var(--ix-ink);
+}
+.ix-btn:hover::before {
+    transform: translateY(0);
+}
+
+/* Reverse variant — ivory-on-dark (used inside dark images) */
+.ix-btn-ivory {
+    border-color: rgba(248, 245, 238, 0.4);
+    color: var(--ix-ivory);
+}
+.ix-btn-ivory:hover {
+    background: var(--ix-ivory);
+    color: var(--ix-ink);
+    border-color: var(--ix-ivory);
+}
+.ix-btn-ivory::before { background: var(--ix-ivory); }
+.ix-btn-ivory:hover::before { transform: translateY(0); }
+
+/* Editorial product card (light) */
+.ix-edcard {
+    position: relative;
+    overflow: hidden;
+    background: var(--ix-paper);
+}
+.ix-edcard img {
+    transition: transform 1400ms cubic-bezier(0.22, 1, 0.36, 1), opacity 600ms ease;
+}
+.ix-edcard:hover img {
+    transform: scale(1.04);
+}
+.ix-edcard-meta {
+    transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.ix-edcard:hover .ix-edcard-meta {
+    transform: translateY(-3px);
+}
+
+/* Glass on ivory (frosted champagne) */
+.ix-glass {
+    background: rgba(248, 245, 238, 0.7);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid rgba(31, 27, 20, 0.08);
+}
+
+/* Vertical writing for editorial labels */
+.ix-vertical {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+}
+
+/* =====================================================
+   LUXURY DARK — Tuncel Atelier campaign aesthetic (legacy)
+   ===================================================== */
+
+/* Color tokens (kept as CSS vars so all luxury sections share them) */
+:root {
+    --lx-bg: #0a0a0b;
+    --lx-matte: #0f0f11;
+    --lx-charcoal: #1a1a1d;
+    --lx-smoked: #2a2a2e;
+    --lx-fog: #3a3a3e;
+    --lx-fg: #F5F4F0;
+    --lx-mute: #a1a1a5;
+    --lx-gold: #C8B38A;
+    --lx-gold-bright: #E2D1A7;
+    --lx-gold-deep: #9B8454;
+}
+
+/* Cinematic film grain — for dark backgrounds (white noise overlay) */
+.lx-grain::after {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.5'/></svg>");
+    opacity: 0.06;
+    mix-blend-mode: overlay;
+    z-index: 2;
+}
+
+/* Soft gold foil gradient text */
+.lx-gold-text {
+    background: linear-gradient(135deg, #E2D1A7 0%, #C8B38A 45%, #9B8454 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+}
+
+/* Hairline gold divider */
+.lx-gold-line {
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, #C8B38A 50%, transparent 100%);
+}
+
+/* Scroll reveal — sections fade up as they enter the viewport */
+.lx-reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 1200ms cubic-bezier(0.22, 1, 0.36, 1),
+                transform 1200ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity, transform;
+}
+.lx-reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Image kenburns slow zoom on visible */
+@keyframes lxKenburns {
+    0% { transform: scale(1.0); }
+    100% { transform: scale(1.08); }
+}
+.lx-kenburns {
+    animation: lxKenburns 14s ease-out forwards;
+}
+
+/* Luxury campaign-text overlap — letter-spacing for editorial headers */
+.lx-display {
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 0.005em;
+    font-weight: 400;
+    line-height: 0.85;
+}
+
+/* Magnetic button — subtle scale on press, gold border on hover */
+.lx-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    background: transparent;
+    color: #F5F4F0;
+    padding: 1rem 2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.28em;
+    font-size: 11px;
+    font-weight: 500;
+    transition: all 400ms cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+    overflow: hidden;
+}
+.lx-btn::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: #C8B38A;
+    transform: translateY(101%);
+    transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: -1;
+}
+.lx-btn:hover {
+    color: #0a0a0b;
+    border-color: #C8B38A;
+}
+.lx-btn:hover::before {
+    transform: translateY(0);
+}
+
+/* Hover image reveal mask — for editorial product cards */
+.lx-edcard {
+    position: relative;
+    overflow: hidden;
+    background: #0f0f11;
+}
+.lx-edcard img {
+    transition: transform 1400ms cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 600ms ease;
+}
+.lx-edcard:hover img {
+    transform: scale(1.06);
+}
+.lx-edcard-meta {
+    transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.lx-edcard:hover .lx-edcard-meta {
+    transform: translateY(-4px);
+}
+
+/* Glass card */
+.lx-glass {
+    background: rgba(15, 15, 17, 0.55);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Vertical writing for editorial labels */
+.lx-vertical {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+}
+
 @layer base {
     [data-debug-wrapper="true"] {
         display: contents !important;
