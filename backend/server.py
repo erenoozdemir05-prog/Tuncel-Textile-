@@ -147,6 +147,7 @@ class CheckoutRequest(BaseModel):
     items: List[CartItemIn]
     origin_url: str
     customer_email: Optional[str] = None
+    gift_card_code: Optional[str] = None
 
 
 class CheckoutResponse(BaseModel):
@@ -288,6 +289,9 @@ async def create_checkout(req: CheckoutRequest, http_request: Request, user: Opt
     if total <= 0:
         raise HTTPException(400, "Invalid order total")
 
+    # Apply gift card redemption if provided
+    gift_discount, total_after, gift_card = await _apply_gift_card(req.gift_card_code, total)
+
     host_url = str(http_request.base_url)
     webhook_url = f"{host_url}api/webhook/stripe"
     stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
@@ -301,9 +305,39 @@ async def create_checkout(req: CheckoutRequest, http_request: Request, user: Opt
     }
     if req.customer_email:
         metadata["customer_email"] = req.customer_email
+    if gift_card:
+        metadata["gift_card_code"] = gift_card["code"]
+        metadata["gift_card_discount"] = f"{gift_discount:.2f}"
+
+    # If gift card fully covers the order — no Stripe needed, mark paid and return synthetic session
+    if total_after <= 0.005 and gift_card:
+        synthetic_ref = f"GP-{uuid.uuid4().hex[:6].upper()}"
+        await db.payment_transactions.insert_one({
+            "id": str(uuid.uuid4()),
+            "session_id": synthetic_ref,
+            "reference": synthetic_ref,
+            "amount": 0.0,
+            "amount_original": total,
+            "gift_card_discount": gift_discount,
+            "gift_card_code": gift_card["code"],
+            "currency": "eur",
+            "metadata": metadata,
+            "items": [it.model_dump() for it in req.items],
+            "customer_email": req.customer_email or (user.get("email") if user else None),
+            "user_id": user.get("user_id") if user else None,
+            "payment_status": "paid",
+            "status": "complete",
+            "payment_method": "gift_card",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        })
+        await _consume_gift_card(gift_card, gift_discount, synthetic_ref)
+        # Return a synthetic redirect to success page using the reference
+        success = f"{req.origin_url.rstrip('/')}/checkout/success?session_id={synthetic_ref}&gift_paid=1"
+        return CheckoutResponse(url=success, session_id=synthetic_ref)
 
     checkout_request = CheckoutSessionRequest(
-        amount=total,
+        amount=total_after,
         currency="usd",
         success_url=success_url,
         cancel_url=cancel_url,
@@ -315,7 +349,10 @@ async def create_checkout(req: CheckoutRequest, http_request: Request, user: Opt
     transaction = {
         "id": str(uuid.uuid4()),
         "session_id": session.session_id,
-        "amount": total,
+        "amount": total_after,
+        "amount_original": total,
+        "gift_card_discount": gift_discount,
+        "gift_card_code": gift_card["code"] if gift_card else None,
         "currency": "eur",
         "metadata": metadata,
         "items": [it.model_dump() for it in req.items],
@@ -399,14 +436,26 @@ async def checkout_status(session_id: str, http_request: Request):
             if recipient:
                 _send_gift_card_email(gc, recipient)
         else:
-            # Regular product order — send invoice
+            # Regular product order — send invoice + consume gift card if used
             order = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})
-            if order and not order.get("invoice_sent"):
-                _send_invoice_email(order)
-                await db.payment_transactions.update_one(
-                    {"session_id": session_id},
-                    {"$set": {"invoice_sent": True}},
-                )
+            if order:
+                # Consume gift card on first paid transition (idempotent via flag)
+                gc_code = order.get("gift_card_code")
+                gc_discount = float(order.get("gift_card_discount") or 0)
+                if gc_code and gc_discount > 0 and not order.get("gift_card_consumed"):
+                    gc = await db.gift_cards.find_one({"code": gc_code}, {"_id": 0})
+                    if gc:
+                        await _consume_gift_card(gc, gc_discount, order.get("reference") or session_id)
+                        await db.payment_transactions.update_one(
+                            {"session_id": session_id},
+                            {"$set": {"gift_card_consumed": True}},
+                        )
+                if not order.get("invoice_sent"):
+                    _send_invoice_email(order)
+                    await db.payment_transactions.update_one(
+                        {"session_id": session_id},
+                        {"$set": {"invoice_sent": True}},
+                    )
 
     return CheckoutStatusOut(
         session_id=session_id,
@@ -727,6 +776,7 @@ class IbanCheckoutRequest(BaseModel):
     customer_name: str
     shipping_address: Optional[str] = None
     note: Optional[str] = None
+    gift_card_code: Optional[str] = None
 
 
 @api_router.post("/checkout/iban")
@@ -748,17 +798,29 @@ async def create_iban_order(req: IbanCheckoutRequest, user: Optional[dict] = Dep
     if total <= 0:
         raise HTTPException(400, "Invalid order total")
 
+    # Apply gift card discount if provided
+    gift_discount, total_after, gift_card = await _apply_gift_card(req.gift_card_code, total)
+
     settings = await get_settings_doc()
     iban_cfg = settings.get("iban", {}) or {}
     prefix = iban_cfg.get("reference_prefix", "TT")
     short_id = uuid.uuid4().hex[:6].upper()
     reference = f"{prefix}-{short_id}"
 
+    # If gift card fully covers — mark paid immediately (no IBAN transfer needed)
+    fully_paid_by_gift = gift_card is not None and total_after <= 0.005
+    if fully_paid_by_gift:
+        await _consume_gift_card(gift_card, gift_discount, reference)
+
     transaction = {
         "id": str(uuid.uuid4()),
         "session_id": reference,  # reuse session_id field for unique lookup
         "reference": reference,
-        "amount": total,
+        "amount": total_after,
+        "amount_original": total,
+        "gift_card_discount": gift_discount,
+        "gift_card_code": gift_card["code"] if gift_card else None,
+        "gift_card_consumed": fully_paid_by_gift,
         "currency": "eur",
         "metadata": {"items": " | ".join(line_meta)[:480], "customer_name": req.customer_name},
         "items": [it.model_dump() for it in req.items],
@@ -767,17 +829,26 @@ async def create_iban_order(req: IbanCheckoutRequest, user: Optional[dict] = Dep
         "shipping_address": req.shipping_address,
         "note": req.note,
         "user_id": user.get("user_id") if user else None,
-        "payment_status": "awaiting_bank_transfer",
-        "status": "open",
-        "payment_method": "iban",
+        "payment_status": "paid" if fully_paid_by_gift else "awaiting_bank_transfer",
+        "status": "complete" if fully_paid_by_gift else "open",
+        "payment_method": "gift_card" if fully_paid_by_gift else "iban",
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.payment_transactions.insert_one(transaction)
 
+    if fully_paid_by_gift:
+        _send_invoice_email(transaction)
+        await db.payment_transactions.update_one(
+            {"reference": reference}, {"$set": {"invoice_sent": True}}
+        )
+
     return {
         "reference": reference,
-        "amount": total,
+        "amount": total_after,
+        "amount_original": total,
+        "gift_card_discount": gift_discount,
+        "fully_paid_by_gift": fully_paid_by_gift,
         "currency": "eur",
         "iban": iban_cfg,
         "items_summary": " | ".join(line_meta),
@@ -823,12 +894,24 @@ async def admin_mark_paid(reference: str, _: bool = Depends(require_admin)):
         {"$or": [{"reference": reference}, {"session_id": reference}]},
         {"_id": 0},
     )
-    if order and not order.get("invoice_sent"):
-        _send_invoice_email(order)
-        await db.payment_transactions.update_one(
-            {"$or": [{"reference": reference}, {"session_id": reference}]},
-            {"$set": {"invoice_sent": True}},
-        )
+    if order:
+        # Consume gift card if used and not yet consumed
+        gc_code = order.get("gift_card_code")
+        gc_discount = float(order.get("gift_card_discount") or 0)
+        if gc_code and gc_discount > 0 and not order.get("gift_card_consumed"):
+            gc = await db.gift_cards.find_one({"code": gc_code}, {"_id": 0})
+            if gc:
+                await _consume_gift_card(gc, gc_discount, order.get("reference") or reference)
+                await db.payment_transactions.update_one(
+                    {"$or": [{"reference": reference}, {"session_id": reference}]},
+                    {"$set": {"gift_card_consumed": True}},
+                )
+        if not order.get("invoice_sent"):
+            _send_invoice_email(order)
+            await db.payment_transactions.update_one(
+                {"$or": [{"reference": reference}, {"session_id": reference}]},
+                {"$set": {"invoice_sent": True}},
+            )
     return {"ok": True}
 
 
@@ -1908,6 +1991,64 @@ async def gift_card_validate(code: str):
         "currency": card.get("currency", "eur"),
         "status": card["status"],
         "expires_at": card.get("expires_at"),
+    }
+
+
+async def _apply_gift_card(code: Optional[str], cart_total: float) -> tuple[float, float, Optional[dict]]:
+    """Validate a gift card code and return (discount, new_total, card_dict).
+    Does NOT mutate the card here — that happens on order finalize.
+    Returns (0, cart_total, None) if no code or invalid (silently).
+    """
+    if not code:
+        return 0.0, cart_total, None
+    code = code.strip().upper()
+    card = await db.gift_cards.find_one({"code": code}, {"_id": 0})
+    if not card:
+        raise HTTPException(400, "Gift card not found")
+    if card.get("status") not in ("active", "partially_used"):
+        raise HTTPException(400, f"Gift card is {card.get('status')}")
+    try:
+        exp = datetime.fromisoformat(card["expires_at"].replace("Z", "+00:00"))
+        if exp < datetime.now(timezone.utc):
+            raise HTTPException(400, "Gift card has expired")
+    except (KeyError, ValueError):
+        pass
+    balance = float(card.get("balance", 0))
+    if balance <= 0:
+        raise HTTPException(400, "Gift card has no balance")
+    discount = min(balance, cart_total)
+    return round(discount, 2), round(cart_total - discount, 2), card
+
+
+async def _consume_gift_card(card: dict, amount: float, order_ref: str) -> None:
+    """Deduct `amount` from gift card balance and append a redemption entry."""
+    new_balance = round(float(card.get("balance", 0)) - amount, 2)
+    new_status = "redeemed" if new_balance <= 0.005 else "partially_used"
+    now = datetime.now(timezone.utc).isoformat()
+    await db.gift_cards.update_one(
+        {"code": card["code"]},
+        {
+            "$set": {"balance": max(0.0, new_balance), "status": new_status, "updated_at": now},
+            "$push": {"redemptions": {"order_ref": order_ref, "amount": amount, "at": now}},
+        },
+    )
+
+
+class GiftRedeemPreviewIn(BaseModel):
+    code: str
+    cart_total: float
+
+
+@api_router.post("/gift-cards/preview")
+async def gift_card_preview(payload: GiftRedeemPreviewIn):
+    """Preview how much a gift card will cover for a given cart total — used by checkout UI."""
+    discount, new_total, card = await _apply_gift_card(payload.code, max(0.0, float(payload.cart_total)))
+    return {
+        "code": card["code"] if card else None,
+        "discount": discount,
+        "new_total": new_total,
+        "remaining_balance": round(float(card.get("balance", 0)) - discount, 2) if card else 0,
+        "currency": (card or {}).get("currency", "eur"),
     }
 
 

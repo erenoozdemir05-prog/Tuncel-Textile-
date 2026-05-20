@@ -188,6 +188,10 @@ export const validateGiftCard = async (code) => {
   const { data } = await api.get(`/gift-cards/validate/${encodeURIComponent(code)}`);
   return data;
 };
+export const previewGiftCard = async (code, cartTotal) => {
+  const { data } = await api.post("/gift-cards/preview", { code, cart_total: cartTotal });
+  return data;
+};
 export const adminListGiftCards = async (token) => {
   const { data } = await api.get("/admin/gift-cards", { headers: { "X-Admin-Token": token } });
   return data;

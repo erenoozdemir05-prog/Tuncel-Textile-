@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { fetchProducts } from "@/lib/api";
 import { ProductCard } from "@/components/ProductCard";
 import { HeroSlider } from "@/components/HeroSlider";
+import { PremiumSplitHero } from "@/components/PremiumSplitHero";
 import { useCms } from "@/contexts/CmsContext";
 import { useI18n } from "@/contexts/I18nContext";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -10,17 +11,18 @@ import { ArrowRight, Hand, Layers, Package } from "lucide-react";
 import { toast } from "sonner";
 
 const LOOKBOOK = [
-  "https://images.pexels.com/photos/8217340/pexels-photo-8217340.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=900&w=720",
-  "https://images.pexels.com/photos/2613260/pexels-photo-2613260.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=900&w=720",
-  "https://images.pexels.com/photos/5868729/pexels-photo-5868729.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=900&w=720",
-  "https://images.pexels.com/photos/1124468/pexels-photo-1124468.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=900&w=720",
-  "https://images.pexels.com/photos/8217430/pexels-photo-8217430.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=900&w=720",
+  "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=720&h=900&q=80",
+  "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?auto=format&fit=crop&w=720&h=900&q=80",
+  "https://images.unsplash.com/photo-1485518882345-15568b007407?auto=format&fit=crop&w=720&h=900&q=80",
+  "https://images.unsplash.com/photo-1487222477894-8943e31ef7b2?auto=format&fit=crop&w=720&h=900&q=80",
+  "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=720&h=900&q=80",
 ];
 
+// Premium apparel-focused category imagery (replaces palm tree / random photos)
 const cats = (t) => [
-  { label: t("nav.men"), to: "/shop/men", img: "https://images.pexels.com/photos/2587054/pexels-photo-2587054.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1200&w=900" },
-  { label: t("nav.women"), to: "/shop/women", img: "https://images.pexels.com/photos/1755428/pexels-photo-1755428.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1200&w=900" },
-  { label: t("nav.accessories"), to: "/shop/accessories", img: "https://images.pexels.com/photos/1152077/pexels-photo-1152077.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1200&w=900" },
+  { label: t("nav.men"), to: "/shop/men", img: "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=900&h=1200&q=80" },
+  { label: t("nav.women"), to: "/shop/women", img: "https://images.unsplash.com/photo-1487222477894-8943e31ef7b2?auto=format&fit=crop&w=900&h=1200&q=80" },
+  { label: t("nav.accessories"), to: "/shop/accessories", img: "https://images.unsplash.com/photo-1591561954557-26941169b49e?auto=format&fit=crop&w=900&h=1200&q=80" },
 ];
 
 const PROCESS = [
@@ -48,32 +50,83 @@ export default function Home() {
 
   return (
     <div data-testid="home-page">
-      <HeroSlider slides={heroSlides} />
+      <PremiumSplitHero />
+      {heroSlides && heroSlides.length > 0 && (
+        <section className="border-b border-black/10 bg-white" data-testid="editions-strip">
+          <div className="mx-auto max-w-[1400px] px-5 py-16 sm:px-8 sm:py-20">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">EDITIONS · DROPS</div>
+                <h2 className="font-display mt-2 text-4xl uppercase tracking-[0.04em] sm:text-5xl">
+                  {t("sections.featured_title")}
+                </h2>
+              </div>
+              <Link to="/shop/all" className="tx-link hidden text-[12px] uppercase tracking-[0.25em] sm:block">{t("sections.see_all")}</Link>
+            </div>
+            <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {heroSlides.slice(0, 3).map((s, i) => {
+                const title = (s.title && (s.title.en || Object.values(s.title)[0])) || `Edition 0${i + 1}`;
+                return (
+                  <Link
+                    key={i}
+                    to={s.cta_url || "/shop/all"}
+                    className="group relative aspect-[4/5] overflow-hidden bg-neutral-900"
+                  >
+                    <img src={s.image_url} alt={title} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+                    <div className="absolute bottom-5 left-5 right-5">
+                      <div className="text-[10px] uppercase tracking-[0.35em] text-white/70">EDITION · 0{i + 1}</div>
+                      <div className="font-display mt-2 text-3xl uppercase leading-none tracking-[0.04em] text-white sm:text-4xl">{title}</div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
 
-      {/* CATEGORY GRID */}
-      <section className="mx-auto max-w-[1400px] px-5 py-20 sm:px-8 sm:py-28">
+      {/* CATEGORY GRID — premium dark hover */}
+      <section className="mx-auto max-w-[1400px] px-5 py-20 sm:px-8 sm:py-28" data-testid="three-rooms">
         <div className="flex items-end justify-between gap-4">
-          <h2 className="font-display whitespace-pre-line text-5xl uppercase tracking-[0.04em] sm:text-7xl">
-            {t("sections.three_rooms_title")}
-          </h2>
+          <div>
+            <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">{t("split.atelier_kicker")} · 03</div>
+            <h2 className="font-display mt-2 whitespace-pre-line text-5xl uppercase tracking-[0.04em] sm:text-7xl">
+              {t("sections.three_rooms_title")}
+            </h2>
+          </div>
           <Link to="/shop/all" className="tx-link hidden text-[12px] uppercase tracking-[0.25em] sm:block">
             {t("sections.view_everything")}
           </Link>
         </div>
-        <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-3">
           {cats(t).map((c, i) => (
             <Link
               to={c.to}
               key={c.label || i}
               data-testid={`cat-card-${(c.label || "").toLowerCase()}`}
-              className="group relative aspect-[3/4] overflow-hidden bg-neutral-100"
+              className="group relative aspect-[3/4] overflow-hidden bg-neutral-950"
             >
-              <img src={c.img} alt={c.label} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
-              <div className="absolute left-5 top-5 font-display text-[10vw] leading-none text-white sm:text-6xl">0{i + 1}</div>
-              <div className="absolute bottom-5 left-5 right-5 flex items-end justify-between">
-                <div className="font-display text-4xl uppercase tracking-[0.04em] text-white sm:text-5xl">{c.label}</div>
-                <ArrowRight className="h-6 w-6 text-white transition-transform duration-500 group-hover:translate-x-2" />
+              <img src={c.img} alt={c.label} className="absolute inset-0 h-full w-full object-cover opacity-90 transition-all duration-700 group-hover:scale-105 group-hover:opacity-100" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/30" />
+              <div className="absolute inset-0 bg-gradient-to-br from-black/40 via-transparent to-transparent" />
+              {/* Grain */}
+              <div
+                className="pointer-events-none absolute inset-0 opacity-[0.08] mix-blend-overlay"
+                style={{
+                  backgroundImage:
+                    "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+                }}
+              />
+              <div className="absolute left-6 top-6 font-display text-6xl leading-none text-white/95 sm:text-7xl">0{i + 1}</div>
+              <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between">
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.35em] text-white/70">{t("split.shop")}</div>
+                  <div className="font-display mt-2 text-4xl uppercase leading-none tracking-[0.04em] text-white sm:text-5xl">{c.label}</div>
+                </div>
+                <span className="grid h-12 w-12 place-items-center rounded-full border border-white/40 backdrop-blur-md transition-all duration-500 group-hover:bg-white group-hover:text-black">
+                  <ArrowRight className="h-5 w-5" />
+                </span>
               </div>
             </Link>
           ))}

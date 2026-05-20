@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart, cartKey } from "@/contexts/CartContext";
-import { createCheckout, createIbanOrder } from "@/lib/api";
+import { createCheckout, createIbanOrder, previewGiftCard } from "@/lib/api";
 import { useI18n } from "@/contexts/I18nContext";
-import { ArrowLeft, CreditCard, Landmark, Minus, Plus, X } from "lucide-react";
+import { ArrowLeft, CreditCard, Gift, Landmark, Minus, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Cart() {
@@ -13,6 +13,36 @@ export default function Cart() {
   const [step, setStep] = useState("cart"); // cart | choose | iban
   const [loading, setLoading] = useState(false);
   const [iban, setIban] = useState({ name: "", email: "", address: "", note: "" });
+  // Gift card state
+  const [giftInput, setGiftInput] = useState("");
+  const [gift, setGift] = useState(null); // { code, discount, new_total, remaining_balance }
+  const [giftLoading, setGiftLoading] = useState(false);
+
+  const subtotal = totals.subtotal;
+  const giftDiscount = gift?.discount || 0;
+  const finalTotal = Math.max(0, +(subtotal - giftDiscount).toFixed(2));
+
+  const applyGiftCard = async () => {
+    const code = giftInput.trim().toUpperCase();
+    if (!code) return;
+    setGiftLoading(true);
+    try {
+      const res = await previewGiftCard(code, subtotal);
+      setGift(res);
+      toast.success(`Gift card applied · −€${res.discount.toFixed(2)}`);
+    } catch (e) {
+      const msg = e?.response?.data?.detail || "Invalid gift card code";
+      toast.error(msg);
+      setGift(null);
+    } finally {
+      setGiftLoading(false);
+    }
+  };
+
+  const removeGiftCard = () => {
+    setGift(null);
+    setGiftInput("");
+  };
 
   const startCheckout = () => {
     if (items.length === 0) return;
@@ -27,6 +57,7 @@ export default function Cart() {
           product_id: it.product_id, quantity: it.quantity, size: it.size, color: it.color,
         })),
         origin_url: window.location.origin,
+        gift_card_code: gift?.code || null,
       };
       const res = await createCheckout(payload);
       if (res?.url) window.location.href = res.url;
@@ -54,6 +85,7 @@ export default function Cart() {
         customer_email: iban.email,
         shipping_address: iban.address || null,
         note: iban.note || null,
+        gift_card_code: gift?.code || null,
       });
       navigate(`/checkout/iban-success?ref=${encodeURIComponent(res.reference)}`);
     } catch (e) {
@@ -114,7 +146,18 @@ export default function Cart() {
               {loading ? "Placing order…" : "Place Order · Receive IBAN"}
             </button>
           </form>
-          <Summary t={t} subtotal={totals.subtotal} />
+          <Summary
+            t={t}
+            subtotal={subtotal}
+            giftDiscount={giftDiscount}
+            finalTotal={finalTotal}
+            gift={gift}
+            giftInput={giftInput}
+            setGiftInput={setGiftInput}
+            applyGiftCard={applyGiftCard}
+            removeGiftCard={removeGiftCard}
+            giftLoading={giftLoading}
+          />
         </div>
       ) : step === "choose" ? (
         // ---------- Payment choice ----------
@@ -152,7 +195,18 @@ export default function Cart() {
               </button>
             </div>
           </div>
-          <Summary t={t} subtotal={totals.subtotal} />
+          <Summary
+            t={t}
+            subtotal={subtotal}
+            giftDiscount={giftDiscount}
+            finalTotal={finalTotal}
+            gift={gift}
+            giftInput={giftInput}
+            setGiftInput={setGiftInput}
+            applyGiftCard={applyGiftCard}
+            removeGiftCard={removeGiftCard}
+            giftLoading={giftLoading}
+          />
         </div>
       ) : (
         // ---------- Cart list ----------
@@ -194,15 +248,28 @@ export default function Cart() {
               );
             })}
           </div>
-          <Summary t={t} subtotal={totals.subtotal} onCheckout={startCheckout} loading={loading} />
+          <Summary
+            t={t}
+            subtotal={subtotal}
+            giftDiscount={giftDiscount}
+            finalTotal={finalTotal}
+            gift={gift}
+            giftInput={giftInput}
+            setGiftInput={setGiftInput}
+            applyGiftCard={applyGiftCard}
+            removeGiftCard={removeGiftCard}
+            giftLoading={giftLoading}
+            onCheckout={startCheckout}
+            loading={loading}
+          />
         </div>
       )}
     </div>
   );
 }
 
-const Summary = ({ t, subtotal, onCheckout, loading }) => (
-  <aside className="h-fit border border-black/10 p-6">
+const Summary = ({ t, subtotal, giftDiscount = 0, finalTotal, gift, giftInput, setGiftInput, applyGiftCard, removeGiftCard, giftLoading, onCheckout, loading }) => (
+  <aside className="h-fit border border-black/10 p-6" data-testid="cart-summary">
     <div className="font-display text-3xl uppercase tracking-[0.04em]">{t("cart.summary")}</div>
     <div className="mt-6 space-y-3 text-sm">
       <div className="flex justify-between">
@@ -213,11 +280,53 @@ const Summary = ({ t, subtotal, onCheckout, loading }) => (
         <span className="text-neutral-600">{t("cart.shipping")}</span>
         <span className="text-neutral-500">{t("cart.shipping_calc")}</span>
       </div>
+
+      {/* Gift card row */}
+      {gift ? (
+        <div className="flex justify-between text-green-700" data-testid="gift-applied-row">
+          <span className="inline-flex items-center gap-1.5">
+            <Gift className="h-3.5 w-3.5" /> {gift.code}
+            <button onClick={removeGiftCard} aria-label="Remove gift card" data-testid="gift-remove-btn" className="ml-1 text-neutral-500 hover:text-black">
+              <X className="h-3 w-3" />
+            </button>
+          </span>
+          <span className="font-semibold">−€{giftDiscount.toFixed(2)}</span>
+        </div>
+      ) : null}
+
       <div className="mt-4 flex justify-between border-t border-black/10 pt-4 text-base font-semibold">
         <span>{t("cart.total")}</span>
-        <span>€{subtotal.toFixed(2)}</span>
+        <span data-testid="cart-total">€{(finalTotal ?? subtotal).toFixed(2)}</span>
       </div>
     </div>
+
+    {/* Gift card input */}
+    {!gift && (
+      <div className="mt-5 border-t border-black/10 pt-5" data-testid="gift-card-block">
+        <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">{t("cart.gift_have")}</div>
+        <div className="mt-2 flex gap-2">
+          <input
+            type="text"
+            value={giftInput}
+            onChange={(e) => setGiftInput(e.target.value.toUpperCase())}
+            placeholder={t("cart.gift_ph")}
+            data-testid="gift-card-input"
+            className="flex-1 border border-black/15 px-3 py-2 text-sm uppercase tracking-wider outline-none focus:border-black"
+            maxLength={32}
+          />
+          <button
+            type="button"
+            onClick={applyGiftCard}
+            disabled={giftLoading || !giftInput.trim()}
+            data-testid="gift-card-apply-btn"
+            className="border border-black bg-black px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white hover:bg-neutral-800 disabled:opacity-50"
+          >
+            {giftLoading ? "…" : t("cart.gift_apply")}
+          </button>
+        </div>
+      </div>
+    )}
+
     {onCheckout && (
       <button
         data-testid="checkout-button"

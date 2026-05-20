@@ -1,0 +1,46 @@
+{
+  "summary": "Phase 9 testing — Gift card redemption + PremiumSplitHero. BACKEND 17/17 PASS via /app/backend/tests/test_phase9.py: gift-card preview (partial coverage 89/100 → discount 89, new_total 0, remaining 11), full coverage above balance (250 cart → 100 discount, 150 remaining), invalid/empty code → 400, validate endpoint (active card returns balance/currency/status, unknown → 404), IBAN checkout fully-paid-by-gift (cart €95 ≤ €100 balance → fully_paid_by_gift:true, amount:0, payment_status='paid', payment_method='gift_card', gift card balance correctly deducted to €5 with status 'partially_used' and redemptions array updated), IBAN partial coverage (cart > 100 → fully_paid_by_gift:false, discount=100, amount=cart-100, payment_status='awaiting_bank_transfer', gift card NOT consumed yet — consumed on payment confirm), IBAN no gift card (regression — original flow works), and all existing endpoints regression (products, hero, cms, settings, order-lookup, returns, custom-requests, chat/start). FRONTEND fully green: PremiumSplitHero renders with split MEN | WOMEN, brand mark 'TUNCEL · RIGA' center, promo bar shows '€30' (no '€120'), editions-strip (4 cards from admin slides), three-rooms section with cat-card-men/women/accessories, WhatsApp FAB + AI Chat FAB present, Turkish locale switch (ERKEK/KADIN visible in nav). Cart flow: seeded 1 product (€95) → 'gift-card-input' + 'gift-card-apply-btn' present → applied TEST-GC-100 → gift-applied-row shows 'TEST-GC-100 −€95.00' → cart-total updates to €0.00 → checkout-button → pay-iban-button → iban-form filled (iban-name input, iban-email input) → iban-submit redirects to /checkout/iban-success?ref=TT-CF01A8 with amount €0.00. Backend regression of /api/products, /api/hero, /api/cms, /api/settings, /api/order-lookup, /api/returns, /api/custom-requests, /api/chat/start all green.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Gift-card fully-paid IBAN order success page",
+        "issue": "When a gift card fully covers the order, the iban-success page still shows 'AWAITING TRANSFER' header and bank-transfer details (IBAN, BIC, 'Please complete the bank transfer using the details below'). Order is correctly created with payment_status='paid' & payment_method='gift_card' on the backend (verified via DB), but the user-facing success page implies the buyer still needs to send money. Should branch on fully_paid_by_gift / payment_method=='gift_card' and render 'PAID WITH GIFT CARD · ORDER CONFIRMED' instead of the bank-transfer block.",
+        "affected_selectors": ["iban-success page (/checkout/iban-success?ref=...)"]
+      }
+    ],
+    "design_issues": [
+      {
+        "screen": "PremiumSplitHero center mark",
+        "issues": ["The Atelier 'SHOP' arrows (↦ and ↤) overlap visually behind/around the 'TUNCEL · RIGA' center wordmark on a 1920×1080 viewport — visible in screenshot as a faint cluttered area immediately below the center mark. Consider hiding the side 'SHOP →' / '← SHOP' hint labels at md+ or moving them further out from center."]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_phase9.py",
+    "/app/test_reports/pytest/phase9_results.xml"
+  ],
+  "action_items": [
+    "Update IbanSuccess page to detect gift-card-fully-paid orders (amount==0 or payment_method=='gift_card') and render a 'PAID · ORDER CONFIRMED' variant without IBAN/BIC details, so user is not confused into thinking they still owe money.",
+    "Optional polish: PremiumSplitHero — at lg+ viewports the corner 'SHOP →' / '← SHOP' labels on each side overlap the center 'TUNCEL · RIGA' wordmark; nudge them to corners or hide on lg+."
+  ],
+  "critical_code_review_comments": [
+    "server.py is now 2190 lines — strongly recommend splitting into modular routers (products, checkout, gift_cards, returns, custom_requests, chat, admin, analytics). Maintainability risk grows with each phase.",
+    "_apply_gift_card returns the full card dict from DB (excluding _id), which is good — but _consume_gift_card reads card['balance'] from that captured snapshot. If two concurrent orders apply the same card, the second can over-deduct. Use a conditional update: db.gift_cards.update_one({'code': code, 'balance': {'$gte': amount}}, ...) and check matched_count == 1; otherwise raise 409.",
+    "Stripe success_webhook (line ~426-451) re-consumes the gift card guarded by 'gift_card_consumed' flag — good idempotency. IBAN path is symmetric. Verified by manual integration test.",
+    "GiftRedeemPreviewIn.cart_total has no upper-bound or non-negative validation in Pydantic — currently the route does max(0.0, float(...)). Add Field(ge=0) to surface 422 earlier.",
+    "Gift-card code remains case-normalized via .strip().upper() — good. Continue to recommend secrets.choice (vs random.choices) for newly issued codes (carryover from phase 6).",
+    "IbanSuccess page is the only UX gap — backend behaviour is correct, but the page does not differentiate fully-paid-by-gift orders."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_phase9.py (new)"
+  ],
+  "success_rate": {"backend": "100% (17/17 phase9)", "frontend": "~95% (1 UX gap on iban-success page for gift-paid orders)"},
+  "test_credentials": "Admin password: tuncel2026admin · Gift card: TEST-GC-100 (€100 balance). Test fixture auto-resets balance to 100/active/redemptions=[] before each test.",
+  "seed_data_creation": "Phase 9 tests create transient TEST_p9_* payment_transactions which are cleaned up at the end of each test. Final cleanup: db.payment_transactions.deleteMany({customer_email:/TEST_p9/}) and gift card reset performed at end of run.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Phase 9 backend (gift card preview + IBAN checkout w/ gift card + regression) fully green via /app/backend/tests/test_phase9.py (17/17). The autouse reset_gift_card fixture restores TEST-GC-100 to balance=100/active before every test, so all gift card tests are deterministic. Frontend cart→gift→IBAN flow works end-to-end and redirects to /checkout/iban-success?ref=TT-xxx, but the iban-success page does NOT yet render a gift-paid variant (still shows 'Awaiting Transfer' with IBAN details even when amount=€0.00). Backend correctly marks payment_status='paid' & payment_method='gift_card' on the DB record. PremiumSplitHero renders correctly on Home; €30 promo bar (not €120); editions strip + three-rooms + gift-cta + bespoke-cta + FABs all present. The previously-flagged CookieBanner Save Preferences persistence bug from iteration_8 was NOT re-tested this iteration (out of scope) — if main agent fixed it, please verify separately.",
+  "rca of the issue": "iban-success page UX gap: src/pages/IbanSuccess.jsx (or equivalent) renders the same 'Awaiting Transfer' template regardless of payment_method. Backend GET /api/checkout/iban/{reference} returns payment_status and payment_method correctly. Fix: in IbanSuccess.jsx, after fetching the order, branch `if (order.payment_method === 'gift_card' || order.payment_status === 'paid') { render PaidByGiftView } else { render existing AwaitingTransferView }`. PaidByGiftView should show order ref, amount paid by gift, gift card code (last 4), and 'Your order is confirmed — we'll ship within 24h' — no IBAN/BIC details."
+}
