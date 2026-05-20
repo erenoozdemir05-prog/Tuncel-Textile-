@@ -31,6 +31,22 @@ Studio gmail: **tunceltextile@gmail.com**
 - **Phase 3 — Returns/Exchanges** (`/return-request`, status workflow pending→approved→in_transit→received→refunded/exchanged, conditional exchange_size vs IBAN, admin Returns tab with filter+drawer)
 - **Phase 4 — Live Chat** (7 endpoints, ChatWidget FAB on every page, polling 3s customer / 4-5s admin, localStorage `tuncel_chat_session`, unread badge, admin Live Chat tab with split layout)
 
+### Iteration 9 (2026-05-20) — Premium hero redesign + Gift card redemption
+- **PremiumSplitHero** (`/app/frontend/src/components/PremiumSplitHero.jsx`) — full-bleed dark split-screen Men | Women, AS-Colour aesthetic
+  - Promo bar top: "Hand-finished in Riga · Same-day dispatch · Free EU shipping over €30"
+  - Brand mark center: "TUNCEL · RIGA" with MMXXVI rule + grain overlay + smooth scale on hover
+  - Used as primary hero on Home; admin HeroSlider slides reduced to a 3-card EDITIONS strip below
+- **Gift card redemption at checkout** (P0 done):
+  - `POST /api/gift-cards/preview` — live discount preview
+  - `POST /api/checkout/iban` & `POST /api/checkout/session` now accept `gift_card_code`
+  - Fully-paid-by-gift: order marked `paid` + `payment_method=gift_card` + amount 0, no Stripe/IBAN needed
+  - Atomic conditional update prevents concurrent over-deduction
+  - Cart Summary "Have a gift card?" input + Apply button + discount row
+  - IbanSuccess branches to "Order confirmed" view for gift-paid orders
+- **i18n new keys**: `cart.gift_*`, `hero.promo_*`, `split.*` in EN/TR/RU/LV
+- Backend regression tests `/app/backend/tests/test_phase9.py` (17/17 pass)
+- Seeded test gift card: `TEST-GC-100` (€100, active)
+
 ### Iteration 8 (2026-02-19) — Phase 7: Multi-admin chat + TR locale + UX polish
 - **ScrollToTop** behavior changed from `instant` → `smooth` for premium feel on route change
 - **Top ShippingBar removed** → replaced by elegant Footer "promise strip" with same info ("14:00 CET · €30 free · Riga · 14-day returns") in white-on-dark

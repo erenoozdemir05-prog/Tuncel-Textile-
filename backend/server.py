@@ -866,8 +866,12 @@ async def get_iban_order(reference: str):
     return {
         "reference": doc.get("reference"),
         "amount": doc.get("amount"),
+        "amount_original": doc.get("amount_original", doc.get("amount")),
+        "gift_card_discount": doc.get("gift_card_discount", 0),
+        "gift_card_code": doc.get("gift_card_code"),
         "currency": doc.get("currency", "eur"),
         "payment_status": doc.get("payment_status"),
+        "payment_method": doc.get("payment_method"),
         "items_summary": (doc.get("metadata") or {}).get("items", ""),
         "iban": settings.get("iban", {}),
     }
@@ -2021,22 +2025,33 @@ async def _apply_gift_card(code: Optional[str], cart_total: float) -> tuple[floa
 
 
 async def _consume_gift_card(card: dict, amount: float, order_ref: str) -> None:
-    """Deduct `amount` from gift card balance and append a redemption entry."""
-    new_balance = round(float(card.get("balance", 0)) - amount, 2)
-    new_status = "redeemed" if new_balance <= 0.005 else "partially_used"
+    """Deduct `amount` from gift card balance and append a redemption entry.
+    Uses a conditional update to prevent concurrent over-deduction."""
+    amount = round(float(amount), 2)
     now = datetime.now(timezone.utc).isoformat()
-    await db.gift_cards.update_one(
-        {"code": card["code"]},
+    # Atomic conditional update: only deduct if current balance is sufficient
+    res = await db.gift_cards.update_one(
+        {"code": card["code"], "balance": {"$gte": amount}, "status": {"$in": ["active", "partially_used"]}},
         {
-            "$set": {"balance": max(0.0, new_balance), "status": new_status, "updated_at": now},
+            "$inc": {"balance": -amount},
             "$push": {"redemptions": {"order_ref": order_ref, "amount": amount, "at": now}},
+            "$set": {"updated_at": now},
         },
     )
+    if res.matched_count == 0:
+        # Race condition or insufficient balance — log and bail (caller already committed order)
+        logging.warning("Gift card %s could not be consumed (concurrent use?) amount=%.2f order=%s", card.get("code"), amount, order_ref)
+        return
+    # Re-check post-deduction balance to flip status if depleted
+    updated = await db.gift_cards.find_one({"code": card["code"]}, {"_id": 0, "balance": 1})
+    new_balance = float((updated or {}).get("balance", 0))
+    new_status = "redeemed" if new_balance <= 0.005 else "partially_used"
+    await db.gift_cards.update_one({"code": card["code"]}, {"$set": {"status": new_status}})
 
 
 class GiftRedeemPreviewIn(BaseModel):
     code: str
-    cart_total: float
+    cart_total: float = Field(ge=0)
 
 
 @api_router.post("/gift-cards/preview")

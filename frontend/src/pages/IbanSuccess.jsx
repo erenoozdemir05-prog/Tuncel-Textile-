@@ -52,6 +52,57 @@ export default function IbanSuccess() {
     toast.success(`${label} copied`);
   };
 
+  // Branch: gift card fully paid -> show confirmed view (no IBAN/BIC details)
+  const fullyPaidByGift =
+    order.payment_method === "gift_card" ||
+    (order.payment_status === "paid" && Number(order.amount) === 0);
+
+  if (fullyPaidByGift) {
+    return (
+      <div data-testid="iban-success-page" className="mx-auto max-w-3xl px-5 py-16 sm:px-8 sm:py-24">
+        <div className="flex items-center gap-3">
+          <CheckCircle2 className="h-6 w-6 text-green-700" />
+          <span className="text-[11px] uppercase tracking-[0.3em] text-neutral-500" data-testid="paid-by-gift-badge">
+            Paid with gift card · Order confirmed
+          </span>
+        </div>
+        <h1 className="font-display mt-4 text-5xl uppercase leading-none tracking-[0.02em] sm:text-7xl">
+          Order confirmed.
+        </h1>
+        <p className="mt-5 max-w-xl text-[15px] leading-[1.7] text-neutral-700">
+          Thank you. Your gift card covered the full amount — no bank transfer needed.
+          We'll dispatch your order within 24 hours from our Riga atelier.
+        </p>
+
+        <div className="mt-10 border border-black/15">
+          <Row label="Order reference" value={order.reference} highlight onCopy={() => copy(order.reference, "Reference")} />
+          <Row label="Order total" value={`€${Number(order.amount_original || 0).toFixed(2)}`} />
+          <Row label="Gift card discount" value={`−€${Number(order.gift_card_discount || 0).toFixed(2)}`} />
+          {order.gift_card_code && (
+            <Row label="Gift card" value={`···· ${String(order.gift_card_code).slice(-4)}`} mono />
+          )}
+          <Row label="Amount due" value="€0.00" highlight />
+        </div>
+
+        <div className="mt-10 flex flex-wrap gap-3">
+          <Link
+            to={`/track-order?ref=${encodeURIComponent(order.reference)}`}
+            data-testid="iban-track-link"
+            className="inline-flex items-center gap-2 bg-black px-7 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] text-white"
+          >
+            Track Order →
+          </Link>
+          <Link
+            to="/shop/all"
+            className="inline-flex items-center gap-2 border border-black px-7 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] text-black hover:bg-black hover:text-white"
+          >
+            Continue Shopping
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div data-testid="iban-success-page" className="mx-auto max-w-3xl px-5 py-16 sm:px-8 sm:py-24">
       <div className="flex items-center gap-3">

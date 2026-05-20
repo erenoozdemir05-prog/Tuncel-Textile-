@@ -81,8 +81,8 @@ export const PremiumSplitHero = ({ menImage, womenImage }) => {
             </div>
           </div>
 
-          {/* CTA pill — center */}
-          <div className="pointer-events-none absolute right-6 top-1/2 -translate-y-1/2 sm:right-10">
+          {/* CTA pill — center (hidden on lg+ to avoid overlap with brand mark) */}
+          <div className="pointer-events-none absolute right-6 top-1/2 -translate-y-1/2 sm:right-10 lg:hidden">
             <div className="inline-flex items-center gap-2 border border-white/40 bg-black/20 px-5 py-3 text-[11px] uppercase tracking-[0.3em] text-white backdrop-blur-md transition-all duration-500 group-hover:border-white group-hover:bg-white group-hover:text-black">
               {t("split.shop")} <ArrowRight className="h-3.5 w-3.5" />
             </div>
@@ -127,7 +127,7 @@ export const PremiumSplitHero = ({ menImage, womenImage }) => {
             </div>
           </div>
 
-          <div className="pointer-events-none absolute left-6 top-1/2 -translate-y-1/2 sm:left-10">
+          <div className="pointer-events-none absolute left-6 top-1/2 -translate-y-1/2 sm:left-10 lg:hidden">
             <div className="inline-flex items-center gap-2 border border-white/40 bg-black/20 px-5 py-3 text-[11px] uppercase tracking-[0.3em] text-white backdrop-blur-md transition-all duration-500 group-hover:border-white group-hover:bg-white group-hover:text-black">
               <ArrowRight className="h-3.5 w-3.5 rotate-180" /> {t("split.shop")}
             </div>
