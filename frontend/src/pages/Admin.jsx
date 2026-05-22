@@ -13,6 +13,7 @@ import {
 } from "@/lib/api";
 import { toast } from "sonner";
 import { ArrowDown, ArrowUp, ImageIcon, Loader2, LogOut, Pencil, Plus, Save, Trash2, Upload, X } from "lucide-react";
+import { DashboardTab } from "@/components/admin/DashboardTab";
 
 const TOKEN_KEY = "tuncel_admin_token";
 const ADMIN_NAME_KEY = "tuncel_admin_name";
@@ -40,7 +41,7 @@ export default function Admin() {
   const [adminName, setAdminName] = useState(() => localStorage.getItem(ADMIN_NAME_KEY) || "");
   const [password, setPassword] = useState("");
   const [nameDraft, setNameDraft] = useState("");
-  const [tab, setTab] = useState("analytics");
+  const [tab, setTab] = useState("dashboard");
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -157,6 +158,7 @@ export default function Admin() {
       {/* TABS */}
       <nav className="flex flex-wrap gap-1 border-b border-black/10 py-4">
         {[
+          ["dashboard", "Dashboard"],
           ["analytics", "Analytics"],
           ["products", "Products"],
           ["orders", "Orders"],
@@ -183,6 +185,7 @@ export default function Admin() {
       </nav>
 
       <div className="py-10">
+        {tab === "dashboard" && <DashboardTab token={token} onNavigate={setTab} />}
         {tab === "products" && <ProductsTab token={token} />}
         {tab === "orders" && <OrdersTab token={token} />}
         {tab === "hero" && <HeroTab token={token} />}

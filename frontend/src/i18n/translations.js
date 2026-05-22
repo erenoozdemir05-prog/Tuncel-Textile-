@@ -161,6 +161,13 @@ const en = {
     success_body: "Thanks for your idea. One of the founders will reply within 24 hours with a mock-up and a transparent quote.",
     success_ref: "Reference",
   },
+  shop_page: {
+    kicker_suffix: "MMXXVI",
+    piece: "piece",
+    pieces: "pieces",
+    all_pieces: "All Pieces",
+    empty: "No pieces in this collection. Yet.",
+  },
   track: {
     hero_kicker: "Atelier · Order tracking",
     hero_title_a: "Where is",
@@ -507,6 +514,13 @@ const tr = {
     success_title: "Alındı.",
     success_body: "Fikrin için teşekkürler. 24 saat içinde kurucularımızdan biri mock-up ve şeffaf bir fiyatla dönecek.",
     success_ref: "Referans",
+  },
+  shop_page: {
+    kicker_suffix: "MMXXVI",
+    piece: "parça",
+    pieces: "parça",
+    all_pieces: "Tüm Parçalar",
+    empty: "Bu koleksiyonda henüz parça yok.",
   },
   track: {
     hero_kicker: "Atölye · Sipariş takibi",

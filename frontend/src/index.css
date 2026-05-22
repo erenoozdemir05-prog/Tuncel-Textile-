@@ -138,7 +138,153 @@
 }
 
 /* =====================================================
-   IVORY LUXURY — Tuncel Atelier (light premium palette)
+   ATELIER EDITORIAL — Acne x L'Officiel magazine palette
+   Deep ink + warm parchment + muted burgundy + brushed brass
+   ===================================================== */
+
+:root {
+    --ax-ink: #0A0A0A;
+    --ax-ink-soft: #1A1A1A;
+    --ax-ink-mute: #4A4A4A;
+    --ax-bone: #F5F1E8;
+    --ax-parchment: #EAE3D4;
+    --ax-parchment-deep: #DDD3BD;
+    --ax-stone: #9A9590;
+    --ax-emerald: #1F4D3D;
+    --ax-emerald-deep: #143329;
+    --ax-burgundy: #C4A56B;
+    --ax-burgundy-deep: #8A6F47;
+    --ax-burgundy-soft: #D4B98E;
+    --ax-brass: #C4A56B;
+    --ax-brass-bright: #D8C394;
+    --ax-brass-deep: #8A6F47;
+}
+
+/* Subtle archival paper grain on parchment */
+.ax-grain::after {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.45'/></svg>");
+    opacity: 0.055;
+    mix-blend-mode: multiply;
+    z-index: 2;
+}
+
+/* Burgundy gold text — for kickers and accents */
+.ax-burgundy-text { color: var(--ax-burgundy); }
+.ax-brass-text { color: var(--ax-brass); }
+
+/* Foil-effect monochrome → brass gradient (subtle) */
+.ax-foil-text {
+    background: linear-gradient(135deg, #4A4A4A 0%, #0A0A0A 40%, #B8956A 95%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+}
+
+/* Hairline divider — brass */
+.ax-brass-line {
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, var(--ax-brass) 50%, transparent 100%);
+}
+
+/* Wax-seal style button — now monochrome with brass hover */
+.ax-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    border: 1px solid var(--ax-ink);
+    background: transparent;
+    color: var(--ax-ink);
+    padding: 1rem 2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.28em;
+    font-size: 11px;
+    font-weight: 500;
+    transition: all 400ms cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+    overflow: hidden;
+}
+.ax-btn::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--ax-ink);
+    transform: translateY(101%);
+    transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: -1;
+}
+.ax-btn:hover {
+    color: var(--ax-bone);
+    border-color: var(--ax-ink);
+}
+.ax-btn:hover::before { transform: translateY(0); }
+
+/* Bone variant — on dark images */
+.ax-btn-bone {
+    border-color: rgba(248, 244, 236, 0.4);
+    color: var(--ax-bone);
+}
+.ax-btn-bone:hover { background: var(--ax-burgundy); color: var(--ax-bone); border-color: var(--ax-burgundy); }
+.ax-btn-bone::before { background: var(--ax-burgundy); }
+
+/* Editorial product card (parchment) */
+.ax-edcard {
+    position: relative;
+    overflow: hidden;
+    background: var(--ax-parchment-deep);
+}
+.ax-edcard img {
+    transition: transform 1400ms cubic-bezier(0.22, 1, 0.36, 1), opacity 600ms ease;
+}
+.ax-edcard:hover img { transform: scale(1.04); }
+.ax-edcard-meta { transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1); }
+.ax-edcard:hover .ax-edcard-meta { transform: translateY(-3px); }
+
+/* Glass on parchment */
+.ax-glass {
+    background: rgba(248, 244, 236, 0.78);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid rgba(19, 18, 17, 0.1);
+}
+
+/* Glass on dark */
+.ax-glass-dark {
+    background: rgba(19, 18, 17, 0.6);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    border: 1px solid rgba(248, 244, 236, 0.1);
+    color: var(--ax-bone);
+}
+
+/* Vertical writing for editorial labels */
+.ax-vertical {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+}
+
+/* Wax seal — for collection number circles */
+.ax-seal {
+    width: 56px;
+    height: 56px;
+    border-radius: 999px;
+    background: radial-gradient(circle at 30% 30%, var(--ax-ink-soft), var(--ax-ink) 60%, #000 100%);
+    color: var(--ax-bone);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 0.08em;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.25) inset, 0 0 0 1px rgba(184, 149, 106, 0.45);
+}
+
+/* =====================================================
+   IVORY LUXURY — Tuncel Atelier (light premium palette) [LEGACY]
    ===================================================== */
 
 /* Color tokens (kept as CSS vars so all light luxury sections share them) */

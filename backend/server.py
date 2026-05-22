@@ -2163,13 +2163,29 @@ async def admin_analytics(days: int = 30, _: bool = Depends(require_admin)):
     ).to_list(500)
     gift_revenue = sum(float(g.get("amount", 0)) for g in gc_paid)
 
+    # Dashboard pending counters
+    chat_open_count = await db.chat_sessions.count_documents({"status": {"$in": ["open", "active"]}})
+    returns_pending = await db.returns.count_documents({"status": {"$in": ["requested", "open", "pending"]}})
+    custom_pending = await db.custom_requests.count_documents({"status": {"$in": ["new", "pending"]}})
+    low_stock_count = await db.products.count_documents({
+        "$or": [
+            {"status_label": "low_stock"},
+            {"status_label": "out_of_stock"},
+            {"in_stock": False},
+        ]
+    })
+    gift_cards_issued = await db.gift_cards.count_documents({})
+
     return {
         "range_days": days,
         "since": since,
         "revenue": round(revenue, 2),
+        "revenue_total": round(revenue, 2),
         "orders_count": len(paid_orders),
+        "orders_total": len(paid_orders),
         "all_orders_count": len(all_orders),
         "aov": round(aov, 2),
+        "avg_order_value": round(aov, 2),
         "daily": daily,
         "top_products": top_ids,
         "returns_count": len(returns),
@@ -2181,7 +2197,12 @@ async def admin_analytics(days: int = 30, _: bool = Depends(require_admin)):
         "chat_ai_share_pct": round(ai_share, 1),
         "custom_requests_count": custom_reqs,
         "gift_cards_active": gift_active,
+        "gift_cards_issued": gift_cards_issued,
         "gift_cards_revenue": round(gift_revenue, 2),
+        "chat_open_count": chat_open_count,
+        "returns_pending": returns_pending,
+        "custom_pending": custom_pending,
+        "low_stock_count": low_stock_count,
     }
 
 
