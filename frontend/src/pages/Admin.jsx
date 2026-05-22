@@ -49,10 +49,15 @@ export default function Admin() {
       const res = await adminLogin(password);
       localStorage.setItem(TOKEN_KEY, res.token);
       setToken(res.token);
+      // Auto-set admin name from server (multi-admin mapping)
+      if (res.admin_name) {
+        localStorage.setItem(ADMIN_NAME_KEY, res.admin_name);
+        setAdminName(res.admin_name);
+      }
       setPassword("");
-      toast.success("Welcome back");
+      toast.success(`Welcome back, ${res.admin_name || "Atelier"}`);
     } catch {
-      toast.error("Invalid password");
+      toast.error("Invalid credentials");
     }
   };
 
@@ -75,29 +80,80 @@ export default function Admin() {
   };
 
   if (!token) {
+    // cPanel-inspired admin login — clean centered card with username + password
     return (
-      <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-5 py-16 sm:px-8">
-        <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">Studio access</div>
-        <h1 className="font-display mt-2 text-6xl uppercase leading-none tracking-[0.02em]">Admin</h1>
-        <form onSubmit={handleLogin} className="mt-10 space-y-5" data-testid="admin-login-form">
-          <div>
-            <label className="text-[11px] uppercase tracking-[0.25em] text-neutral-500">Password</label>
-            <input
-              type="password"
-              data-testid="admin-password-input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-2 w-full border border-black/15 px-4 py-3 outline-none focus:border-black"
-              autoFocus
-            />
+      <div className="min-h-[calc(100vh-70px)] bg-[#E9EEF3] py-16">
+        <div className="mx-auto flex max-w-md flex-col items-center px-5">
+          {/* cPanel-style logo header */}
+          <div className="mb-10 flex flex-col items-center">
+            <div className="font-display text-5xl tracking-[0.18em] text-[#0A0A0A]">
+              TUNCEL
+            </div>
+            <div className="mt-2 text-[10px] uppercase tracking-[0.55em] text-[#0A0A0A]/55">
+              Atelier Studio · cPanel
+            </div>
           </div>
-          <button
-            data-testid="admin-login-submit"
-            className="inline-flex w-full items-center justify-center bg-black px-6 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] text-white hover:bg-neutral-800"
-          >
-            Enter Studio
-          </button>
-        </form>
+
+          <div className="w-full bg-white p-8 shadow-[0_8px_30px_-8px_rgba(0,0,0,0.08)]">
+            <form onSubmit={handleLogin} className="space-y-5" data-testid="admin-login-form">
+              <div>
+                <label className="text-[11px] uppercase tracking-[0.25em] text-black/60">
+                  Username
+                </label>
+                <div className="mt-2 flex items-center border border-black/15 bg-[#F7F9FB] focus-within:border-black">
+                  <span className="px-3 text-black/40">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-7 8-7s8 3 8 7" /></svg>
+                  </span>
+                  <input
+                    type="text"
+                    data-testid="admin-username-input"
+                    placeholder="Eren or Berfin"
+                    className="flex-1 bg-transparent px-1 py-3 text-sm outline-none"
+                    autoComplete="username"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-[11px] uppercase tracking-[0.25em] text-black/60">
+                  Password
+                </label>
+                <div className="mt-2 flex items-center border border-black/15 bg-[#F7F9FB] focus-within:border-black">
+                  <span className="px-3 text-black/40">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="4" y="11" width="16" height="10" rx="1" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
+                  </span>
+                  <input
+                    type="password"
+                    data-testid="admin-password-input"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="flex-1 bg-transparent px-1 py-3 text-sm outline-none"
+                    autoFocus
+                    autoComplete="current-password"
+                  />
+                </div>
+              </div>
+              <button
+                data-testid="admin-login-submit"
+                type="submit"
+                className="inline-flex w-full items-center justify-center bg-[#0A0A0A] px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.25em] text-white transition hover:bg-[#1A1A1A]"
+              >
+                Log In
+              </button>
+            </form>
+          </div>
+
+          <div className="mt-8 flex items-center gap-6 text-[10px] uppercase tracking-[0.35em] text-black/45">
+            <a href="/" className="hover:text-black">← Home</a>
+            <span>·</span>
+            <a href="/about" className="hover:text-black">Atelier</a>
+            <span>·</span>
+            <span>Two-person studio</span>
+          </div>
+
+          <div className="mt-10 text-[10px] uppercase tracking-[0.4em] text-black/35">
+            © MMXXVI · Tuncel Textile
+          </div>
+        </div>
       </div>
     );
   }

@@ -1,197 +1,15 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { fetchProducts } from "@/lib/api";
-import { useCms } from "@/contexts/CmsContext";
 import { useI18n } from "@/contexts/I18nContext";
 import { useReveal } from "@/hooks/useReveal";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { EditorialHero } from "@/components/EditorialHero";
 import { toast } from "sonner";
 
 /* =================================================================
    PRADA / GUCCI EDITORIAL REDESIGN
-   - Pure white canvas
-   - Full-bleed cinematic single-hero
-   - Horizontal product carousel
-   - 3 stacked full-width category banners (Men / Women / Accessories)
-   - Subtle deep emerald accent
    ================================================================= */
 
-const ACCENT = "#1F4D3D"; // Gucci deep emerald
-
-const pickText = (obj, fallback = "") =>
-  (obj && (obj.en || Object.values(obj)[0])) || fallback;
-
-/* ---------- Single full-bleed editorial hero ---------- */
-const EditorialHero = () => {
-  const { t } = useI18n();
-  const { heroSlides } = useCms();
-  const slide = heroSlides && heroSlides[0];
-  const image =
-    slide?.image_url ||
-    "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=2000&q=85";
-  const title = pickText(slide?.title, "HELLENISTIC ASCENSION");
-  const kicker = pickText(slide?.kicker, "SPRING – SUMMER MMXXVI");
-
-  return (
-    <section
-      data-testid="editorial-hero"
-      className="relative w-full overflow-hidden bg-black"
-      style={{ height: "calc(100vh - 70px)", minHeight: "720px" }}
-    >
-      <img
-        src={image}
-        alt={title}
-        className="absolute inset-0 h-full w-full object-cover"
-        loading="eager"
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30" />
-
-      {/* Top kicker */}
-      <div className="absolute left-0 right-0 top-10 z-10 text-center">
-        <div className="text-[10px] uppercase tracking-[0.55em] text-white/85">
-          TUNCEL · RIGA
-        </div>
-        <div className="mt-2 text-[10px] uppercase tracking-[0.5em] text-white/65">
-          {kicker}
-        </div>
-      </div>
-
-      {/* Bottom title + CTA */}
-      <div className="absolute bottom-14 left-0 right-0 z-10 px-6 text-center sm:bottom-20">
-        <h1
-          className="font-display mx-auto max-w-5xl text-white"
-          style={{
-            fontSize: "clamp(40px, 6vw, 100px)",
-            letterSpacing: "0.04em",
-            lineHeight: 1,
-          }}
-        >
-          {title.toUpperCase()}
-        </h1>
-        <Link
-          to="/shop/all"
-          data-testid="hero-shop-cta"
-          className="mt-8 inline-flex items-center gap-2 border-b border-white/70 pb-1 text-[11px] uppercase tracking-[0.4em] text-white transition hover:border-white"
-        >
-          {t("hero.cta_men")}
-        </Link>
-      </div>
-    </section>
-  );
-};
-
-/* ---------- Horizontal product carousel ---------- */
-const ProductCarousel = ({ products = [], title, kicker, seeAllHref = "/shop/all" }) => {
-  const scrollerRef = useRef(null);
-  const { ref, visible } = useReveal();
-  const { t } = useI18n();
-  const list = products.slice(0, 12);
-
-  const scrollBy = (dir) => {
-    const node = scrollerRef.current;
-    if (!node) return;
-    const card = node.querySelector("[data-card]");
-    const dist = card ? card.getBoundingClientRect().width + 20 : 320;
-    node.scrollBy({ left: dir * dist * 2, behavior: "smooth" });
-  };
-
-  if (!list.length) return null;
-
-  return (
-    <section
-      ref={ref}
-      data-testid="product-carousel"
-      className={`relative bg-white text-black lx-reveal ${visible ? "is-visible" : ""}`}
-    >
-      <div className="mx-auto max-w-[1800px] px-6 pb-20 pt-24 sm:px-12">
-        <div className="flex items-end justify-between border-b border-black/15 pb-6">
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.55em] text-black/55">
-              {kicker}
-            </div>
-            <h2
-              className="font-display mt-3 uppercase tracking-[0.03em]"
-              style={{ fontSize: "clamp(28px, 3.5vw, 56px)", lineHeight: 1 }}
-            >
-              {title}
-            </h2>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link
-              to={seeAllHref}
-              className="hidden text-[10px] uppercase tracking-[0.45em] text-black/70 hover:text-black sm:inline-block"
-              data-testid="carousel-see-all"
-            >
-              {t("featured.see_all")} →
-            </Link>
-            <div className="ml-2 flex gap-1">
-              <button
-                aria-label="Prev"
-                onClick={() => scrollBy(-1)}
-                data-testid="carousel-prev"
-                className="grid h-10 w-10 place-items-center border border-black/20 transition hover:border-black hover:bg-black hover:text-white"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <button
-                aria-label="Next"
-                onClick={() => scrollBy(1)}
-                data-testid="carousel-next"
-                className="grid h-10 w-10 place-items-center border border-black/20 transition hover:border-black hover:bg-black hover:text-white"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div
-          ref={scrollerRef}
-          className="mt-8 flex snap-x snap-mandatory gap-5 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-        >
-          {list.map((p) => (
-            <Link
-              key={p.id}
-              to={`/product/${p.id}`}
-              data-card
-              data-testid={`carousel-card-${p.id}`}
-              className="group relative w-[78vw] flex-shrink-0 snap-start sm:w-[42vw] lg:w-[24vw]"
-            >
-              <div className="relative aspect-[3/4] overflow-hidden bg-[#F5F1E8]">
-                <img
-                  src={p.image_url}
-                  alt={p.name}
-                  loading="lazy"
-                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1400ms] ease-out group-hover:scale-105"
-                />
-                <button
-                  type="button"
-                  aria-label="Quick add"
-                  className="absolute right-3 top-3 grid h-9 w-9 place-items-center border border-black/15 bg-white/85 opacity-0 backdrop-blur-md transition-opacity group-hover:opacity-100"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-              </div>
-              <div className="mt-3 flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-[9px] uppercase tracking-[0.4em] text-black/45">
-                    {p.product_type || "ATELIER"}
-                  </div>
-                  <div className="mt-1 text-[13px] uppercase tracking-[0.06em]">
-                    {p.name}
-                  </div>
-                </div>
-                <div className="whitespace-nowrap text-[13px]">
-                  €{Number(p.price).toFixed(0)}
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-};
+const ACCENT = "#1F4D3D";
 
 /* ---------- Full-width editorial category banner ---------- */
 const CategoryBanner = ({
@@ -292,13 +110,8 @@ const EditorialSplit = ({ image, kicker, title, body, ctaTo, ctaLabel, reverse, 
                               HOME
    ================================================================= */
 export default function Home() {
-  const [products, setProducts] = useState([]);
   const [email, setEmail] = useState("");
   const { t } = useI18n();
-
-  useEffect(() => {
-    fetchProducts({}).then(setProducts).catch(() => {});
-  }, []);
 
   const handleSubscribe = (e) => {
     e.preventDefault();
@@ -309,17 +122,10 @@ export default function Home() {
 
   return (
     <div data-testid="home-page" className="bg-white text-black">
-      {/* 1 · Editorial hero */}
+      {/* 1 · Editorial hero — split Men / Women using Hero Manager photos */}
       <EditorialHero />
 
-      {/* 2 · Horizontal carousel — Collection 01 */}
-      <ProductCarousel
-        products={products}
-        kicker="COLLECTION I · MMXXVI"
-        title="THE LATEST"
-      />
-
-      {/* 3 · Three full-bleed editorial category banners */}
+      {/* 2 · Three full-bleed editorial category banners */}
       <div className="bg-white">
         <CategoryBanner
           to="/shop/women"

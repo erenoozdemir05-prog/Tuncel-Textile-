@@ -32,6 +32,9 @@ db = client[os.environ["DB_NAME"]]
 STRIPE_API_KEY = os.environ.get("STRIPE_API_KEY", "")
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "tuncel-admin-2026")
+ADMIN_PASSWORD_2 = os.environ.get("ADMIN_PASSWORD_2", "")
+ADMIN_NAME = os.environ.get("ADMIN_NAME", "Eren")
+ADMIN_NAME_2 = os.environ.get("ADMIN_NAME_2", "Berfin")
 APP_NAME = os.environ.get("APP_NAME", "tuncel-textile")
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
@@ -496,19 +499,39 @@ async def stripe_webhook(request: Request):
 # ============================================================
 class AdminLogin(BaseModel):
     password: str
+    username: Optional[str] = None
+
+
+def _valid_admin_tokens() -> dict[str, str]:
+    """Return {password->name} for all configured admin accounts."""
+    out = {ADMIN_PASSWORD: ADMIN_NAME}
+    if ADMIN_PASSWORD_2:
+        out[ADMIN_PASSWORD_2] = ADMIN_NAME_2
+    return out
 
 
 def require_admin(x_admin_token: Optional[str] = Header(None)):
-    if not x_admin_token or x_admin_token != ADMIN_PASSWORD:
+    valid = _valid_admin_tokens()
+    if not x_admin_token or x_admin_token not in valid:
         raise HTTPException(401, "Admin auth required")
     return True
 
 
 @api_router.post("/admin/login")
 async def admin_login(payload: AdminLogin):
-    if payload.password != ADMIN_PASSWORD:
+    valid = _valid_admin_tokens()
+    if payload.password not in valid:
         raise HTTPException(401, "Invalid password")
-    return {"token": ADMIN_PASSWORD}
+    admin_name = valid[payload.password]
+    return {"token": payload.password, "admin_name": admin_name}
+
+
+@api_router.get("/admin/me")
+async def admin_me(x_admin_token: Optional[str] = Header(None)):
+    valid = _valid_admin_tokens()
+    if not x_admin_token or x_admin_token not in valid:
+        raise HTTPException(401, "Admin auth required")
+    return {"admin_name": valid[x_admin_token]}
 
 
 # ============================================================

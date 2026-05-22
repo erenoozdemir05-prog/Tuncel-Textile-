@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link, NavLink } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import { Menu, ShoppingBag, User, X } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,11 +12,23 @@ export const Navbar = () => {
   const { user } = useAuth();
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const location = useLocation();
+  const isHome = location.pathname === "/";
 
-  const NAV = [
-    { to: "/shop/men", label: t("nav.men") },
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 60);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const NAV_LEFT = [
     { to: "/shop/women", label: t("nav.women") },
+    { to: "/shop/men", label: t("nav.men") },
     { to: "/shop/accessories", label: t("nav.accessories") },
+  ];
+  const NAV_RIGHT = [
     { to: "/custom-request", label: t("nav.custom") },
     { to: "/about", label: t("nav.atelier") },
   ];
@@ -27,98 +39,46 @@ export const Navbar = () => {
     window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
   };
 
+  // On home (above hero): transparent header with white text, env-aware.
+  // On scroll OR non-home pages: solid white header with black text.
+  const isTransparent = isHome && !scrolled;
+  const textCls = isTransparent ? "text-white" : "text-black";
+  const headerCls = isTransparent
+    ? "bg-transparent border-transparent"
+    : "bg-white/95 backdrop-blur-md border-black/10";
+
+  const navItemCls = ({ isActive }) =>
+    `text-[11px] uppercase tracking-[0.32em] transition-opacity hover:opacity-100 ${
+      isActive ? "opacity-100" : "opacity-75"
+    }`;
+
   return (
     <header
       data-testid="site-navbar"
-      className="sticky top-0 z-40 border-b border-black/10 bg-white/90 backdrop-blur-md"
+      className={`sticky top-0 z-40 border-b transition-colors duration-500 ${headerCls} ${textCls}`}
     >
-      <div className="mx-auto flex h-16 max-w-[1400px] items-center justify-between px-5 sm:px-8">
-        <div className="flex items-center gap-8">
-          <Link
-            to="/"
-            data-testid="nav-logo"
-            aria-label="Tuncel Textile"
-            className="font-display text-xl tracking-[0.22em] text-black transition-opacity hover:opacity-70 sm:text-2xl"
-          >
-            TUNCEL&nbsp;TEXTILE
-          </Link>
-          <nav className="hidden items-center gap-7 md:flex">
-            {NAV.map((n) => (
-              <NavLink
-                key={n.to}
-                to={n.to}
-                data-testid={`nav-link-${n.to.replace("/shop/", "").replace("/", "")}`}
-                className={({ isActive }) =>
-                  `tx-link text-[13px] uppercase tracking-[0.22em] ${
-                    isActive ? "text-black" : "text-neutral-700"
-                  }`
-                }
-              >
-                {n.label}
-              </NavLink>
-            ))}
-          </nav>
-        </div>
-
-        <div className="flex items-center gap-1 sm:gap-2">
-          <div className="hidden sm:block"><LanguageSwitcher /></div>
-
-          {user ? (
-            <Link
-              to="/account"
-              data-testid="nav-account-button"
-              className="hidden h-10 items-center gap-2 px-3 text-[12px] uppercase tracking-[0.22em] text-black hover:bg-black hover:text-white sm:inline-flex"
-            >
-              <User className="h-4 w-4" />
-              {user.name?.split(" ")[0] || t("nav.account")}
-            </Link>
-          ) : (
-            <button
-              onClick={handleSignIn}
-              data-testid="nav-signin-button"
-              className="hidden h-10 items-center gap-2 px-3 text-[12px] uppercase tracking-[0.22em] text-black hover:bg-black hover:text-white sm:inline-flex"
-            >
-              <User className="h-4 w-4" />
-              {t("nav.signin")}
-            </button>
-          )}
-
-          <Link
-            to="/cart"
-            data-testid="nav-cart-button"
-            className="relative inline-flex h-10 items-center gap-2 px-3 text-[12px] uppercase tracking-[0.22em] text-black hover:bg-black hover:text-white"
-          >
-            <ShoppingBag className="h-4 w-4" />
-            <span className="hidden sm:inline">{t("nav.cart")}</span>
-            {totals.count > 0 && (
-              <span
-                data-testid="nav-cart-count"
-                className="ml-1 inline-flex h-5 min-w-5 items-center justify-center bg-black px-1.5 text-[10px] font-semibold text-white"
-              >
-                {totals.count}
-              </span>
-            )}
-          </Link>
-
+      <div className="mx-auto grid h-[78px] max-w-[1800px] grid-cols-3 items-center px-5 sm:px-10">
+        {/* LEFT NAV (desktop) + mobile menu trigger */}
+        <div className="flex items-center gap-7">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
               <button
                 data-testid="nav-mobile-menu-trigger"
-                className="inline-flex h-10 w-10 items-center justify-center md:hidden"
                 aria-label="Open menu"
+                className="inline-flex h-10 w-10 items-center justify-center md:hidden"
               >
                 <Menu className="h-5 w-5" />
               </button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[85vw] max-w-sm p-0">
+            <SheetContent side="left" className="w-[85vw] max-w-sm bg-white p-0 text-black">
               <div className="flex items-center justify-between border-b border-black/10 px-6 py-5">
-                <span className="font-display text-lg tracking-[0.22em]">TUNCEL TEXTILE</span>
+                <span className="font-display text-xl tracking-[0.22em]">TUNCEL</span>
                 <button onClick={() => setOpen(false)} aria-label="Close">
                   <X className="h-5 w-5" />
                 </button>
               </div>
               <nav className="flex flex-col px-6 py-6">
-                {NAV.map((n) => (
+                {[...NAV_LEFT, ...NAV_RIGHT].map((n) => (
                   <NavLink
                     key={n.to}
                     to={n.to}
@@ -151,6 +111,91 @@ export const Navbar = () => {
               </nav>
             </SheetContent>
           </Sheet>
+
+          <nav className="hidden items-center gap-7 md:flex">
+            {NAV_LEFT.map((n) => (
+              <NavLink
+                key={n.to}
+                to={n.to}
+                data-testid={`nav-link-${n.to.replace("/shop/", "").replace("/", "")}`}
+                className={navItemCls}
+              >
+                {n.label}
+              </NavLink>
+            ))}
+          </nav>
+        </div>
+
+        {/* CENTER LOGO — env-aware on home, solid elsewhere */}
+        <Link
+          to="/"
+          data-testid="nav-logo"
+          aria-label="Tuncel Textile"
+          className="justify-self-center font-display tracking-[0.42em] transition-opacity hover:opacity-70"
+          style={{
+            fontSize: "clamp(20px, 2vw, 26px)",
+            mixBlendMode: isTransparent ? "difference" : "normal",
+            color: isTransparent ? "#fff" : undefined,
+          }}
+        >
+          TUNCEL
+        </Link>
+
+        {/* RIGHT NAV + ACTIONS */}
+        <div className="flex items-center justify-end gap-5">
+          <nav className="hidden items-center gap-7 md:flex">
+            {NAV_RIGHT.map((n) => (
+              <NavLink
+                key={n.to}
+                to={n.to}
+                data-testid={`nav-link-${n.to.replace("/", "")}`}
+                className={navItemCls}
+              >
+                {n.label}
+              </NavLink>
+            ))}
+          </nav>
+
+          <div className="hidden sm:block">
+            <LanguageSwitcher />
+          </div>
+
+          {user ? (
+            <Link
+              to="/account"
+              data-testid="nav-account-button"
+              aria-label="Account"
+              className="inline-flex h-10 w-10 items-center justify-center transition-opacity hover:opacity-70"
+            >
+              <User className="h-4 w-4" />
+            </Link>
+          ) : (
+            <button
+              onClick={handleSignIn}
+              data-testid="nav-signin-button"
+              aria-label="Sign in"
+              className="inline-flex h-10 w-10 items-center justify-center transition-opacity hover:opacity-70"
+            >
+              <User className="h-4 w-4" />
+            </button>
+          )}
+
+          <Link
+            to="/cart"
+            data-testid="nav-cart-button"
+            aria-label="Cart"
+            className="relative inline-flex h-10 w-10 items-center justify-center transition-opacity hover:opacity-70"
+          >
+            <ShoppingBag className="h-4 w-4" />
+            {totals.count > 0 && (
+              <span
+                data-testid="nav-cart-count"
+                className="absolute -right-1 -top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#1F4D3D] px-1 text-[9px] font-semibold text-white"
+              >
+                {totals.count}
+              </span>
+            )}
+          </Link>
         </div>
       </div>
     </header>
