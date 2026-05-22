@@ -32,7 +32,7 @@ const EMPTY_SLIDE = {
   title: { en: "", ru: "", lv: "" },
   subtitle: { en: "", ru: "", lv: "" },
   cta_label: { en: "", ru: "", lv: "" },
-  cta_url: "/shop/all",
+  cta_url: "/shop/all", gender: "",
   blur_enabled: true, overlay_opacity: 0.45, active: true, sort_order: 0,
 };
 
@@ -107,7 +107,7 @@ export default function Admin() {
                   <input
                     type="text"
                     data-testid="admin-username-input"
-                    placeholder="Eren or Berfin"
+                    placeholder="username"
                     className="flex-1 bg-transparent px-1 py-3 text-sm outline-none"
                     autoComplete="username"
                   />
@@ -505,9 +505,22 @@ function HeroTab({ token }) {
           <Field label={`Kicker (${activeLang})`} value={form.kicker[activeLang]} onChange={(v) => setForm({ ...form, kicker: { ...form.kicker, [activeLang]: v } })} />
           <Field label={`Title (${activeLang}) — first word goes solid, rest outlined`} value={form.title[activeLang]} onChange={(v) => setForm({ ...form, title: { ...form.title, [activeLang]: v } })} />
           <Field label={`Subtitle (${activeLang})`} multiline value={form.subtitle[activeLang]} onChange={(v) => setForm({ ...form, subtitle: { ...form.subtitle, [activeLang]: v } })} />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <Field label={`CTA label (${activeLang})`} value={form.cta_label[activeLang]} onChange={(v) => setForm({ ...form, cta_label: { ...form.cta_label, [activeLang]: v } })} />
             <Field label="CTA link" value={form.cta_url} onChange={(v) => setForm({ ...form, cta_url: v })} />
+            <div>
+              <label className="text-[11px] uppercase tracking-[0.25em] text-neutral-500">Slide gender</label>
+              <select
+                value={form.gender || ""}
+                onChange={(e) => setForm({ ...form, gender: e.target.value })}
+                data-testid="hero-gender-select"
+                className="mt-2 w-full border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-black"
+              >
+                <option value="">— (any)</option>
+                <option value="men">Men</option>
+                <option value="women">Women</option>
+              </select>
+            </div>
           </div>
 
           <ImagePicker label="Desktop image (1600×900 recommended)" value={form.image_url} onChange={(v) => setForm({ ...form, image_url: v })} onUpload={(f) => upload(f, "image_url")} uploading={uploadingKey === "image_url"} />

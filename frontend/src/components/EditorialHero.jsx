@@ -3,134 +3,128 @@ import { Link } from "react-router-dom";
 import { useI18n } from "@/contexts/I18nContext";
 import { useCms } from "@/contexts/CmsContext";
 
-const FALLBACK_MEN =
-  "https://customer-assets.emergentagent.com/job_tuncel-textile/artifacts/i2x1jl91_image.png";
-const FALLBACK_WOMEN =
-  "https://customer-assets.emergentagent.com/job_tuncel-textile/artifacts/k3l9o3xm_image.png";
+const FALLBACK = [
+  {
+    image_url:
+      "https://customer-assets.emergentagent.com/job_tuncel-textile/artifacts/i2x1jl91_image.png",
+    title: { en: "HELLENISTIC ASCENSION" },
+    kicker: { en: "COLLECTION I" },
+    gender: "men",
+  },
+  {
+    image_url:
+      "https://customer-assets.emergentagent.com/job_tuncel-textile/artifacts/k3l9o3xm_image.png",
+    title: { en: "DIVINE DECAY" },
+    kicker: { en: "COLLECTION II" },
+    gender: "women",
+  },
+];
 
-const pickText = (obj, fallback = "") =>
-  (obj && (obj.en || Object.values(obj)[0])) || fallback;
+const pickText = (obj, fb = "") => (obj && (obj.en || Object.values(obj)[0])) || fb;
+const inferGender = (slide, i) => slide?.gender || (i === 0 ? "men" : "women");
+const genderPath = (g) => (g === "women" ? "/shop/women" : g === "men" ? "/shop/men" : "/shop/all");
+const genderLabel = (g, t) =>
+  g === "women" ? t("nav.women") : g === "men" ? t("nav.men") : t("split.shop");
 
 /**
- * EditorialHero — Prada / Gucci cover split.
- * Two stacked cinematic images (Men + Women) using Hero Manager slides 1 and 2.
- * Headlines use mix-blend-mode:difference so the text auto-adapts to the underlying image color
- * (the "environment-aware color sampling" the user referenced).
+ * EditorialHero — Prada-style single-image carousel.
+ * One image at a time, navigated with left/right arrows + dot indicator.
+ * Each slide knows its gender (men / women) and routes to the right collection.
+ * Minimal overlay: small kicker top, big title centered.
  */
 export const EditorialHero = () => {
   const { t } = useI18n();
   const { heroSlides } = useCms();
-  const slides = heroSlides || [];
+  const list = (heroSlides && heroSlides.length > 0 ? heroSlides : FALLBACK).slice(0, 6);
+  const [i, setI] = useState(0);
 
-  const men = slides[0];
-  const women = slides[1] || slides[0];
+  const slide = list[i];
+  const gender = inferGender(slide, i);
+  const title = pickText(slide?.title, "TUNCEL").toUpperCase();
+  const kicker = pickText(slide?.kicker, "COLLECTION").toUpperCase();
+  const image =
+    slide?.image_url ||
+    "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=2000&q=85";
 
-  const menImg = men?.image_url || FALLBACK_MEN;
-  const womenImg = women?.image_url || FALLBACK_WOMEN;
-  const menTitle = pickText(men?.title, "HELLENISTIC ASCENSION").toUpperCase();
-  const womenTitle = pickText(women?.title, "DIVINE DECAY").toUpperCase();
-  const menKicker = pickText(men?.kicker, "COLLECTION I · MEN").toUpperCase();
-  const womenKicker = pickText(women?.kicker, "COLLECTION II · WOMEN").toUpperCase();
+  // Auto-advance every 7s
+  useEffect(() => {
+    if (list.length <= 1) return;
+    const id = setInterval(() => setI((p) => (p + 1) % list.length), 7000);
+    return () => clearInterval(id);
+  }, [list.length]);
 
   return (
     <section
       data-testid="editorial-hero"
-      className="relative grid w-full grid-cols-1 lg:grid-cols-2"
-      style={{ minHeight: "calc(100vh - 70px)" }}
+      className="relative w-full overflow-hidden bg-black"
+      style={{ height: "calc(100vh - 78px)", minHeight: "700px" }}
     >
-      {/* LEFT — MEN */}
-      <Link
-        to="/shop/men"
-        data-testid="split-hero-men"
-        className="group relative block overflow-hidden bg-[#0A0A0A]"
-        style={{ minHeight: "60vh" }}
-      >
+      {/* Stacked images for crossfade */}
+      {list.map((s, idx) => (
         <img
-          src={menImg}
-          alt={menTitle}
-          className="absolute inset-0 h-full w-full object-cover transition-transform duration-[2000ms] ease-out group-hover:scale-[1.04]"
+          key={s.image_url + idx}
+          src={s.image_url}
+          alt={pickText(s.title)}
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-[900ms] ease-out ${
+            idx === i ? "opacity-100" : "opacity-0"
+          }`}
+          loading={idx === 0 ? "eager" : "lazy"}
         />
-        {/* Subtle bottom darkening for readability of small CTA */}
-        <div className="absolute inset-x-0 bottom-0 h-[40%] bg-gradient-to-t from-black/55 via-black/15 to-transparent" />
+      ))}
 
-        {/* Top kicker — env-aware */}
-        <div className="absolute left-0 right-0 top-10 z-10 text-center">
-          <div
-            className="text-[10px] uppercase tracking-[0.55em] text-white"
-            style={{ mixBlendMode: "difference" }}
-          >
-            {menKicker}
-          </div>
-        </div>
+      {/* Soft bottom gradient — keeps CTAs legible without dominating */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[35%] bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
 
-        {/* Center title — env-aware (mix-blend-difference: invert vs bg) */}
-        <h1
-          className="font-display absolute left-1/2 top-1/2 z-10 w-[90%] -translate-x-1/2 -translate-y-1/2 text-center text-white"
-          style={{
-            fontSize: "clamp(40px, 7vw, 120px)",
-            letterSpacing: "0.04em",
-            lineHeight: 0.95,
-            mixBlendMode: "difference",
-          }}
+      {/* Top kicker — env-aware */}
+      <div className="absolute left-0 right-0 top-10 z-10 text-center">
+        <div
+          className="text-[10px] uppercase tracking-[0.55em] text-white"
+          style={{ mixBlendMode: "difference" }}
+          data-testid="hero-kicker"
         >
-          {menTitle}
-        </h1>
-
-        {/* Bottom CTA */}
-        <div className="absolute bottom-12 left-0 right-0 z-10 flex flex-col items-center">
-          <span className="text-[10px] uppercase tracking-[0.5em] text-white/85">
-            {t("nav.men")}
-          </span>
-          <span className="mt-3 inline-flex items-center gap-2 border-b border-white/70 pb-1 text-[11px] uppercase tracking-[0.45em] text-white transition-all group-hover:gap-4">
-            {t("split.shop")} →
-          </span>
+          {kicker} · {genderLabel(gender, t)}
         </div>
-      </Link>
+      </div>
 
-      {/* RIGHT — WOMEN */}
-      <Link
-        to="/shop/women"
-        data-testid="split-hero-women"
-        className="group relative block overflow-hidden bg-[#0A0A0A] lg:border-l lg:border-white/10"
-        style={{ minHeight: "60vh" }}
+      {/* Centered title — env-aware */}
+      <h1
+        className="font-display absolute left-1/2 top-1/2 z-10 w-[92%] -translate-x-1/2 -translate-y-1/2 text-center text-white"
+        style={{
+          fontSize: "clamp(48px, 8vw, 140px)",
+          letterSpacing: "0.04em",
+          lineHeight: 0.95,
+          mixBlendMode: "difference",
+        }}
+        data-testid="hero-title"
       >
-        <img
-          src={womenImg}
-          alt={womenTitle}
-          className="absolute inset-0 h-full w-full object-cover transition-transform duration-[2000ms] ease-out group-hover:scale-[1.04]"
-        />
-        <div className="absolute inset-x-0 bottom-0 h-[40%] bg-gradient-to-t from-black/55 via-black/15 to-transparent" />
+        {title}
+      </h1>
 
-        <div className="absolute left-0 right-0 top-10 z-10 text-center">
-          <div
-            className="text-[10px] uppercase tracking-[0.55em] text-white"
-            style={{ mixBlendMode: "difference" }}
-          >
-            {womenKicker}
-          </div>
-        </div>
-
-        <h1
-          className="font-display absolute left-1/2 top-1/2 z-10 w-[90%] -translate-x-1/2 -translate-y-1/2 text-center text-white"
-          style={{
-            fontSize: "clamp(40px, 7vw, 120px)",
-            letterSpacing: "0.04em",
-            lineHeight: 0.95,
-            mixBlendMode: "difference",
-          }}
+      {/* Bottom CTA — links to the active gender's collection */}
+      <div className="absolute bottom-16 left-0 right-0 z-10 flex justify-center">
+        <Link
+          to={genderPath(gender)}
+          data-testid="hero-shop-cta"
+          className="inline-flex items-center gap-3 border-b border-white/70 pb-1.5 text-[11px] uppercase tracking-[0.45em] text-white transition-all hover:gap-5"
         >
-          {womenTitle}
-        </h1>
+          {t("split.shop")} {genderLabel(gender, t)} →
+        </Link>
+      </div>
 
-        <div className="absolute bottom-12 left-0 right-0 z-10 flex flex-col items-center">
-          <span className="text-[10px] uppercase tracking-[0.5em] text-white/85">
-            {t("nav.women")}
-          </span>
-          <span className="mt-3 inline-flex items-center gap-2 border-b border-white/70 pb-1 text-[11px] uppercase tracking-[0.45em] text-white transition-all group-hover:gap-4">
-            {t("split.shop")} →
-          </span>
-        </div>
-      </Link>
+      {/* Auto-advance + dots */}
+      <div className="absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 gap-2">
+        {list.map((_, idx) => (
+          <button
+            key={idx}
+            aria-label={`Slide ${idx + 1}`}
+            onClick={() => setI(idx)}
+            data-testid={`hero-dot-${idx}`}
+            className={`h-1 transition-all ${
+              idx === i ? "w-10 bg-white" : "w-5 bg-white/40 hover:bg-white/70"
+            }`}
+          />
+        ))}
+      </div>
     </section>
   );
 };

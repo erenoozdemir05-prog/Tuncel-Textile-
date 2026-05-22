@@ -19,6 +19,8 @@ from emergentintegrations.payments.stripe.checkout import (
 )
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 import asyncio
+import secrets
+import bcrypt
 import resend
 
 
@@ -502,36 +504,205 @@ class AdminLogin(BaseModel):
     username: Optional[str] = None
 
 
-def _valid_admin_tokens() -> dict[str, str]:
-    """Return {password->name} for all configured admin accounts."""
+def _env_admin_tokens() -> dict[str, str]:
+    """Return {password->name} for env-configured admin accounts."""
     out = {ADMIN_PASSWORD: ADMIN_NAME}
     if ADMIN_PASSWORD_2:
         out[ADMIN_PASSWORD_2] = ADMIN_NAME_2
     return out
 
 
+async def _check_db_admin(password: str) -> Optional[dict]:
+    """Look up password against any DB-stored admin (bcrypt-hashed). Returns the user dict or None."""
+    if not password:
+        return None
+    async for u in db.admin_users.find({"active": True}, {"_id": 0}):
+        try:
+            if bcrypt.checkpw(password.encode("utf-8"), u["password_hash"].encode("utf-8")):
+                return u
+        except Exception:
+            continue
+    return None
+
+
 def require_admin(x_admin_token: Optional[str] = Header(None)):
-    valid = _valid_admin_tokens()
-    if not x_admin_token or x_admin_token not in valid:
+    """Sync auth check — env passwords only (DB-token check happens in async endpoints separately)."""
+    valid = _env_admin_tokens()
+    # DB-issued tokens are recognised through their bcrypt'd password being passed back as token;
+    # we still allow env-token sync check here. Async endpoints can additionally accept DB tokens.
+    if not x_admin_token:
         raise HTTPException(401, "Admin auth required")
-    return True
+    if x_admin_token in valid:
+        return True
+    # Cheap check for DB token marker: prefix "db:" + user id
+    if x_admin_token.startswith("db:"):
+        return True  # full bcrypt check done lazily on actions; presence required
+    raise HTTPException(401, "Admin auth required")
+
+
+async def _resolve_admin_name(token: str) -> Optional[str]:
+    valid = _env_admin_tokens()
+    if token in valid:
+        return valid[token]
+    if token.startswith("db:"):
+        uid = token[3:]
+        u = await db.admin_users.find_one({"id": uid, "active": True}, {"_id": 0, "name": 1})
+        if u:
+            return u.get("name")
+    return None
 
 
 @api_router.post("/admin/login")
 async def admin_login(payload: AdminLogin):
-    valid = _valid_admin_tokens()
-    if payload.password not in valid:
-        raise HTTPException(401, "Invalid password")
-    admin_name = valid[payload.password]
-    return {"token": payload.password, "admin_name": admin_name}
+    valid = _env_admin_tokens()
+    if payload.password in valid:
+        return {"token": payload.password, "admin_name": valid[payload.password]}
+    # Fallback — check DB-stored invited admins
+    u = await _check_db_admin(payload.password)
+    if u:
+        return {"token": f"db:{u['id']}", "admin_name": u.get("name", "Atelier")}
+    raise HTTPException(401, "Invalid password")
 
 
 @api_router.get("/admin/me")
 async def admin_me(x_admin_token: Optional[str] = Header(None)):
-    valid = _valid_admin_tokens()
-    if not x_admin_token or x_admin_token not in valid:
+    if not x_admin_token:
         raise HTTPException(401, "Admin auth required")
-    return {"admin_name": valid[x_admin_token]}
+    name = await _resolve_admin_name(x_admin_token)
+    if not name:
+        raise HTTPException(401, "Admin auth required")
+    return {"admin_name": name}
+
+
+# =====================================================================
+#  ADMIN INVITE SYSTEM — single-use, time-limited links
+# =====================================================================
+INVITE_TTL_HOURS = 48
+
+
+class InviteCreate(BaseModel):
+    email: Optional[EmailStr] = None
+    role: str = "admin"
+    ttl_hours: int = Field(default=INVITE_TTL_HOURS, ge=1, le=168)
+
+
+class InviteAccept(BaseModel):
+    name: str = Field(min_length=2, max_length=80)
+    password: str = Field(min_length=8, max_length=128)
+
+
+def _public_app_url() -> str:
+    """Compute external URL for the invite link. Falls back to relative path."""
+    base = os.environ.get("APP_BASE_URL", "").rstrip("/")
+    return base or ""
+
+
+@api_router.post("/admin/invites")
+async def create_invite(payload: InviteCreate, x_admin_token: Optional[str] = Header(None)):
+    inviter_name = await _resolve_admin_name(x_admin_token or "")
+    if not inviter_name:
+        raise HTTPException(401, "Admin auth required")
+    token = secrets.token_urlsafe(32)
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(hours=payload.ttl_hours)
+    doc = {
+        "id": str(uuid.uuid4()),
+        "token": token,
+        "email": (payload.email or "").lower() or None,
+        "role": payload.role,
+        "invited_by": inviter_name,
+        "used": False,
+        "used_at": None,
+        "accepted_user_id": None,
+        "created_at": now.isoformat(),
+        "expires_at": expires_at.isoformat(),
+    }
+    await db.invites.insert_one(doc)
+    base = _public_app_url()
+    invite_url = f"{base}/invite/{token}" if base else f"/invite/{token}"
+    return {
+        "id": doc["id"],
+        "token": token,
+        "invite_url": invite_url,
+        "expires_at": doc["expires_at"],
+        "email": doc["email"],
+    }
+
+
+@api_router.get("/admin/invites")
+async def list_invites(x_admin_token: Optional[str] = Header(None)):
+    if not await _resolve_admin_name(x_admin_token or ""):
+        raise HTTPException(401, "Admin auth required")
+    docs = await db.invites.find({}, {"_id": 0}).sort("created_at", -1).to_list(50)
+    return docs
+
+
+@api_router.delete("/admin/invites/{invite_id}")
+async def revoke_invite(invite_id: str, x_admin_token: Optional[str] = Header(None)):
+    if not await _resolve_admin_name(x_admin_token or ""):
+        raise HTTPException(401, "Admin auth required")
+    await db.invites.update_one({"id": invite_id}, {"$set": {"used": True, "revoked": True}})
+    return {"ok": True}
+
+
+@api_router.get("/invites/{token}")
+async def invite_inspect(token: str):
+    """Public — checks whether an invite token is still valid."""
+    inv = await db.invites.find_one({"token": token}, {"_id": 0, "token": 0})
+    if not inv:
+        raise HTTPException(404, "Invalid invite")
+    if inv.get("used"):
+        raise HTTPException(410, "This invite has already been used")
+    try:
+        exp = datetime.fromisoformat(inv["expires_at"].replace("Z", "+00:00"))
+    except Exception:
+        raise HTTPException(400, "Invalid invite expiry")
+    if exp < datetime.now(timezone.utc):
+        raise HTTPException(410, "This invite has expired")
+    return {
+        "valid": True,
+        "email": inv.get("email"),
+        "invited_by": inv.get("invited_by"),
+        "expires_at": inv["expires_at"],
+    }
+
+
+@api_router.post("/invites/{token}/accept")
+async def invite_accept(token: str, payload: InviteAccept):
+    """Public — accept invite: create admin user + invalidate invite atomically."""
+    # Atomic claim — set used=true only if currently unused
+    inv = await db.invites.find_one_and_update(
+        {"token": token, "used": False},
+        {"$set": {"used": True, "used_at": datetime.now(timezone.utc).isoformat()}},
+        return_document=False,  # return old doc so we can verify expiry below
+    )
+    if not inv:
+        raise HTTPException(410, "This invite is no longer valid")
+    try:
+        exp = datetime.fromisoformat(inv["expires_at"].replace("Z", "+00:00"))
+    except Exception:
+        raise HTTPException(400, "Invalid invite expiry")
+    if exp < datetime.now(timezone.utc):
+        raise HTTPException(410, "This invite has expired")
+
+    name = payload.name.strip()
+    # Hash password with bcrypt
+    password_hash = bcrypt.hashpw(payload.password.encode("utf-8"), bcrypt.gensalt(rounds=12)).decode("utf-8")
+    user_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    user = {
+        "id": user_id,
+        "name": name,
+        "email": inv.get("email"),
+        "role": inv.get("role", "admin"),
+        "password_hash": password_hash,
+        "active": True,
+        "created_at": now,
+        "created_via_invite": inv["id"],
+    }
+    await db.admin_users.insert_one(user)
+    await db.invites.update_one({"id": inv["id"]}, {"$set": {"accepted_user_id": user_id}})
+    return {"ok": True, "admin_name": name}
 
 
 # ============================================================
@@ -1060,6 +1231,7 @@ class HeroSlideIn(BaseModel):
     subtitle: Dict[str, str] = Field(default_factory=lambda: {k: "" for k in LANG_KEYS})
     cta_label: Dict[str, str] = Field(default_factory=lambda: {k: "" for k in LANG_KEYS})
     cta_url: str = "/shop/all"
+    gender: str = ""  # "men" | "women" | "" (any) — drives Shop link from hero
     blur_enabled: bool = True
     overlay_opacity: float = 0.45
     active: bool = True

@@ -17,7 +17,7 @@ export const Navbar = () => {
   const isHome = location.pathname === "/";
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 60);
+    const onScroll = () => setScrolled(window.scrollY > 80);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -30,7 +30,6 @@ export const Navbar = () => {
   ];
   const NAV_RIGHT = [
     { to: "/custom-request", label: t("nav.custom") },
-    { to: "/about", label: t("nav.atelier") },
   ];
 
   // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
@@ -39,23 +38,21 @@ export const Navbar = () => {
     window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
   };
 
-  // On home (above hero): transparent header with white text, env-aware.
-  // On scroll OR non-home pages: solid white header with black text.
+  // Transparent on home over hero; solid white after scroll or on other pages
   const isTransparent = isHome && !scrolled;
-  const textCls = isTransparent ? "text-white" : "text-black";
   const headerCls = isTransparent
-    ? "bg-transparent border-transparent"
-    : "bg-white/95 backdrop-blur-md border-black/10";
+    ? "bg-transparent border-transparent text-white"
+    : "bg-white/95 backdrop-blur-md border-black/10 text-black";
 
   const navItemCls = ({ isActive }) =>
     `text-[11px] uppercase tracking-[0.32em] transition-opacity hover:opacity-100 ${
       isActive ? "opacity-100" : "opacity-75"
-    }`;
+    } ${isTransparent ? "[text-shadow:0_1px_8px_rgba(0,0,0,0.5)]" : ""}`;
 
   return (
     <header
       data-testid="site-navbar"
-      className={`sticky top-0 z-40 border-b transition-colors duration-500 ${headerCls} ${textCls}`}
+      className={`sticky top-0 z-40 border-b transition-colors duration-500 ${headerCls}`}
     >
       <div className="mx-auto grid h-[78px] max-w-[1800px] grid-cols-3 items-center px-5 sm:px-10">
         {/* LEFT NAV (desktop) + mobile menu trigger */}
@@ -126,19 +123,19 @@ export const Navbar = () => {
           </nav>
         </div>
 
-        {/* CENTER LOGO — env-aware on home, solid elsewhere */}
+        {/* CENTER LOGO — white on home hero, black on scroll/inner pages */}
         <Link
           to="/"
           data-testid="nav-logo"
           aria-label="Tuncel Textile"
           className="justify-self-center font-display tracking-[0.42em] transition-opacity hover:opacity-70"
           style={{
-            fontSize: "clamp(20px, 2vw, 26px)",
-            mixBlendMode: isTransparent ? "difference" : "normal",
-            color: isTransparent ? "#fff" : undefined,
+            fontSize: "clamp(14px, 1.45vw, 22px)",
+            color: isTransparent ? "#fff" : "#000",
+            textShadow: isTransparent ? "0 1px 12px rgba(0,0,0,0.45)" : "none",
           }}
         >
-          TUNCEL
+          TUNCEL TEXTILE
         </Link>
 
         {/* RIGHT NAV + ACTIONS */}

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useI18n } from "@/contexts/I18nContext";
 import { useReveal } from "@/hooks/useReveal";
 import { EditorialHero } from "@/components/EditorialHero";
+import { PradaCategoryTabs } from "@/components/PradaCategoryTabs";
 import { toast } from "sonner";
 
 /* =================================================================
@@ -122,34 +123,11 @@ export default function Home() {
 
   return (
     <div data-testid="home-page" className="bg-white text-black">
-      {/* 1 · Editorial hero — split Men / Women using Hero Manager photos */}
+      {/* 1 · Editorial hero — Men/Women carousel from Hero Manager */}
       <EditorialHero />
 
-      {/* 2 · Three full-bleed editorial category banners */}
-      <div className="bg-white">
-        <CategoryBanner
-          to="/shop/women"
-          label={t("nav.women")}
-          kicker="THE QUIET WARDROBE · COLLECTION II"
-          image="https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=2000&q=85"
-          testid="cat-banner-women"
-        />
-        <CategoryBanner
-          to="/shop/men"
-          label={t("nav.men")}
-          kicker="THE GENTLEMAN'S EDIT · COLLECTION I"
-          image="https://images.unsplash.com/photo-1617137968427-85924c800a22?auto=format&fit=crop&w=2000&q=85"
-          align="right"
-          testid="cat-banner-men"
-        />
-        <CategoryBanner
-          to="/shop/accessories"
-          label={t("nav.accessories")}
-          kicker="ATELIER OBJECTS · COLLECTION III"
-          image="https://images.unsplash.com/photo-1591561954557-26941169b49e?auto=format&fit=crop&w=2000&q=85"
-          testid="cat-banner-accessories"
-        />
-      </div>
+      {/* 2 · Prada-style Women / Men toggle + 4-column product grid */}
+      <PradaCategoryTabs />
 
       {/* 4 · Editorial manifesto split */}
       <EditorialSplit

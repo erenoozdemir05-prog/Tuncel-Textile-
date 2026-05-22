@@ -31,6 +31,7 @@ import CustomRequest from "@/pages/CustomRequest";
 import TrackOrder from "@/pages/TrackOrder";
 import ReturnRequest from "@/pages/ReturnRequest";
 import GiftCards from "@/pages/GiftCards";
+import InviteAccept from "@/pages/InviteAccept";
 
 function FaviconBridge() {
   const { settings } = useSettings();
@@ -54,6 +55,7 @@ function AppRouter() {
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/account" element={<Account />} />
       <Route path="/admin" element={<Admin />} />
+      <Route path="/invite/:token" element={<InviteAccept />} />
       <Route path="/about" element={<About />} />
       <Route path="/faq" element={<FAQ />} />
       <Route path="/custom-request" element={<CustomRequest />} />
