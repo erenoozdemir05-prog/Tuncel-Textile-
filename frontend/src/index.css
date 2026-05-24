@@ -56,6 +56,11 @@
 .font-body {
     font-family: 'Manrope', sans-serif;
 }
+/* Prada-style refined serif used in Navbar & brand wordmark */
+.font-prada {
+    font-family: 'Bodoni Moda', 'Cormorant Garamond', 'Times New Roman', serif;
+    font-feature-settings: "ss01" on, "ss02" on;
+}
 
 /* Marquee for ticker */
 @keyframes tx-marquee {

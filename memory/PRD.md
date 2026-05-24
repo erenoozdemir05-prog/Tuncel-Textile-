@@ -102,9 +102,11 @@ Studio gmail: **tunceltextile@gmail.com**
 3. Admin name appended to every chat reply + "joined" system messages
 
 ## Recent UI tweaks (Feb 2026)
-- **EditorialHero redesigned** — full-bleed single-image carousel (not split-screen). Large side chevron arrows + bottom-center caption stack (`THE DIGITAL EDIT → Title → FOR HIM / FOR HER underlined → dots + chevron ›`). Matches Prada/Gucci editorial layout from user reference screenshots.
-- **Navbar logo legibility** — added top scrim gradient (45% black fade) on transparent home navbar + stronger text-shadow on logo so "TUNCEL TEXTILE" stays visible on light/white hero images.
-- **Admin login copy clean-up** — removed "Eren/Berfin" placeholder names from support-identity screen + cPanel username placeholder. Now neutral ("Your first name", "atelier").
+- **Navbar — Prada redesign**: Fully transparent by default (text-only over hero). Solid white background slides in on `:hover` over the header OR after scroll. Uses **Bodoni Moda** serif (`.font-prada` class) for the wordmark and nav links. Logo enlarged to ~22-28px, letter-spacing 0.14em, semibold. White text gets a soft drop-shadow when floating over images.
+- **Edge-to-edge product grid**: PradaCategoryTabs (home) and `/shop/*` grid removed all horizontal gaps (`gap-0`) — products butt against each other Prada-style. Category labels in PradaCategoryTabs moved to bottom-overlay gradient revealed on hover (keeps grid pure imagery).
+- **Font system**: Added Bodoni Moda + Cormorant Garamond Google Fonts; new `.font-prada` utility class in `index.css`.
+- **EditorialHero redesigned** — full-bleed single-image carousel (not split-screen). Large side chevron arrows + bottom-center caption stack (`THE DIGITAL EDIT → Title → FOR HIM / FOR HER underlined → dots + chevron ›`).
+- **Admin login copy clean-up** — removed "Eren/Berfin" placeholder names from support-identity screen + cPanel username placeholder.
 
 ## Backlog
 - **P1**: Hediye kartları + premium görseller, granüler çerez ayarları modülü, erişilebilirlik modu, Admin analytics dashboard (gelir/sipariş/iade trendleri)

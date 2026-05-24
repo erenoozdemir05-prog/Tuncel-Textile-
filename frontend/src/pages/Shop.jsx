@@ -45,18 +45,18 @@ const ProductCard = ({ product, index }) => (
         loading="lazy"
         className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1400ms] ease-out group-hover:scale-[1.04]"
       />
-      <div className="absolute left-3 top-3 text-[9px] uppercase tracking-[0.4em] text-black/65">
+      <div className="absolute left-3 top-3 text-[9px] uppercase tracking-[0.4em] text-white mix-blend-difference">
         {String(index + 1).padStart(2, "0")}
       </div>
     </div>
-    <div className="mt-4 flex items-start justify-between gap-3">
+    <div className="flex items-start justify-between gap-3 px-4 pb-10 pt-4">
       <div>
         <div className="text-[9px] uppercase tracking-[0.4em] text-black/45">
           {product.product_type || "ATELIER"}
         </div>
-        <div className="mt-1 text-[13px] uppercase tracking-[0.06em]">{product.name}</div>
+        <div className="font-prada mt-1 text-[14px] tracking-[0.04em]">{product.name}</div>
       </div>
-      <div className="whitespace-nowrap text-[13px]">€{Number(product.price).toFixed(0)}</div>
+      <div className="font-prada whitespace-nowrap text-[14px]">€{Number(product.price).toFixed(0)}</div>
     </div>
   </Link>
 );
@@ -166,22 +166,22 @@ export default function Shop() {
             </select>
           </div>
         </div>
+      </div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-2 gap-x-5 gap-y-14 py-16 md:grid-cols-3 lg:grid-cols-4 lg:gap-y-20">
-          {loading
-            ? Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="aspect-[3/4] w-full animate-pulse bg-[#F5F1E8]" />
-              ))
-            : filtered.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
-          {!loading && filtered.length === 0 && (
-            <div className="col-span-full py-32 text-center">
-              <div className="font-display text-3xl uppercase tracking-[0.05em] text-black/30 sm:text-5xl">
-                {t("shop_page.empty")}
-              </div>
+      {/* Grid — Prada-style edge-to-edge, no gaps */}
+      <div className="grid grid-cols-2 gap-0 md:grid-cols-3 lg:grid-cols-4">
+        {loading
+          ? Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="aspect-[3/4] w-full animate-pulse bg-[#F5F1E8]" />
+            ))
+          : filtered.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
+        {!loading && filtered.length === 0 && (
+          <div className="col-span-full py-32 text-center">
+            <div className="font-display text-3xl uppercase tracking-[0.05em] text-black/30 sm:text-5xl">
+              {t("shop_page.empty")}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,18 +1,26 @@
 import React, { useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { Menu, ShoppingBag, User, X } from "lucide-react";
+import { Menu, ShoppingBag, User, X, Search } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useI18n } from "@/contexts/I18nContext";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
+/**
+ * Navbar — Prada-style.
+ * Default: fully transparent, only text floats over the page.
+ *   • On home (over dark hero): white text + soft shadow.
+ *   • On inner pages (light bg): dark text, still no background.
+ * Hover (mouse over header) OR scrolled: solid white bar slides in with dark text.
+ */
 export const Navbar = () => {
   const { totals } = useCart();
   const { user } = useAuth();
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [hovering, setHovering] = useState(false);
   const location = useLocation();
   const isHome = location.pathname === "/";
 
@@ -38,32 +46,35 @@ export const Navbar = () => {
     window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
   };
 
-  // Transparent on home over hero; solid white after scroll or on other pages
-  const isTransparent = isHome && !scrolled;
-  const headerCls = isTransparent
-    ? "bg-transparent border-transparent text-white"
-    : "bg-white/95 backdrop-blur-md border-black/10 text-black";
+  // Solid white when hovering navbar OR when scrolled past hero
+  const isSolid = hovering || scrolled || !isHome;
+  // "Floating over dark hero" = home + top of page + not hovered
+  const isOverHero = isHome && !scrolled && !hovering;
 
   const navItemCls = ({ isActive }) =>
-    `text-[11px] uppercase tracking-[0.32em] transition-opacity hover:opacity-100 ${
-      isActive ? "opacity-100" : "opacity-75"
-    } ${isTransparent ? "[text-shadow:0_1px_8px_rgba(0,0,0,0.5)]" : ""}`;
+    `font-prada text-[15px] tracking-[0.02em] transition-opacity hover:opacity-100 ${
+      isActive ? "opacity-100" : "opacity-80"
+    }`;
+
+  const textColor = isSolid ? "#0A0A0A" : "#FFFFFF";
+  const textShadow = isOverHero ? "0 1px 14px rgba(0,0,0,0.55)" : "none";
 
   return (
     <header
       data-testid="site-navbar"
-      className={`sticky top-0 z-40 border-b transition-colors duration-500 ${headerCls}`}
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
+      className="sticky top-0 z-40 transition-colors duration-500"
+      style={{
+        backgroundColor: isSolid ? "rgba(255,255,255,0.98)" : "transparent",
+        borderBottom: isSolid ? "1px solid rgba(0,0,0,0.08)" : "1px solid transparent",
+        backdropFilter: isSolid ? "saturate(140%) blur(8px)" : "none",
+        color: textColor,
+      }}
     >
-      {/* Soft top scrim — guarantees logo + nav legibility on any hero image */}
-      {isTransparent && (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-[120px] bg-gradient-to-b from-black/45 via-black/15 to-transparent"
-        />
-      )}
       <div className="relative mx-auto grid h-[78px] max-w-[1800px] grid-cols-3 items-center px-5 sm:px-10">
         {/* LEFT NAV (desktop) + mobile menu trigger */}
-        <div className="flex items-center gap-7">
+        <div className="flex items-center gap-8">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
               <button
@@ -76,7 +87,7 @@ export const Navbar = () => {
             </SheetTrigger>
             <SheetContent side="left" className="w-[85vw] max-w-sm bg-white p-0 text-black">
               <div className="flex items-center justify-between border-b border-black/10 px-6 py-5">
-                <span className="font-display text-xl tracking-[0.22em]">TUNCEL</span>
+                <span className="font-prada text-2xl font-semibold tracking-[0.04em]">TUNCEL</span>
                 <button onClick={() => setOpen(false)} aria-label="Close">
                   <X className="h-5 w-5" />
                 </button>
@@ -88,7 +99,7 @@ export const Navbar = () => {
                     to={n.to}
                     onClick={() => setOpen(false)}
                     data-testid={`mobile-nav-link-${n.to.replace("/shop/", "").replace("/", "")}`}
-                    className="border-b border-black/10 py-5 font-display text-3xl uppercase tracking-[0.05em]"
+                    className="font-prada border-b border-black/10 py-5 text-2xl tracking-[0.02em]"
                   >
                     {n.label}
                   </NavLink>
@@ -97,14 +108,14 @@ export const Navbar = () => {
                   <Link
                     to="/account"
                     onClick={() => setOpen(false)}
-                    className="border-b border-black/10 py-5 font-display text-3xl uppercase tracking-[0.05em]"
+                    className="font-prada border-b border-black/10 py-5 text-2xl tracking-[0.02em]"
                   >
                     {t("nav.account")}
                   </Link>
                 ) : (
                   <button
                     onClick={() => { setOpen(false); handleSignIn(); }}
-                    className="border-b border-black/10 py-5 text-left font-display text-3xl uppercase tracking-[0.05em]"
+                    className="font-prada border-b border-black/10 py-5 text-left text-2xl tracking-[0.02em]"
                   >
                     {t("nav.signin")}
                   </button>
@@ -116,13 +127,14 @@ export const Navbar = () => {
             </SheetContent>
           </Sheet>
 
-          <nav className="hidden items-center gap-7 md:flex">
+          <nav className="hidden items-center gap-9 md:flex">
             {NAV_LEFT.map((n) => (
               <NavLink
                 key={n.to}
                 to={n.to}
                 data-testid={`nav-link-${n.to.replace("/shop/", "").replace("/", "")}`}
                 className={navItemCls}
+                style={{ color: textColor, textShadow }}
               >
                 {n.label}
               </NavLink>
@@ -130,32 +142,32 @@ export const Navbar = () => {
           </nav>
         </div>
 
-        {/* CENTER LOGO — white on home hero, black on scroll/inner pages */}
+        {/* CENTER LOGO — Prada-style Bodoni serif */}
         <Link
           to="/"
           data-testid="nav-logo"
           aria-label="Tuncel Textile"
-          className="justify-self-center font-display font-semibold tracking-[0.42em] transition-opacity hover:opacity-70"
+          className="font-prada justify-self-center font-semibold tracking-[0.08em] transition-opacity hover:opacity-70"
           style={{
-            fontSize: "clamp(14px, 1.45vw, 22px)",
-            color: isTransparent ? "#fff" : "#000",
-            textShadow: isTransparent
-              ? "0 2px 18px rgba(0,0,0,0.65), 0 0 1px rgba(0,0,0,0.5)"
-              : "none",
+            fontSize: "clamp(20px, 1.9vw, 28px)",
+            color: textColor,
+            textShadow,
+            letterSpacing: "0.14em",
           }}
         >
           TUNCEL TEXTILE
         </Link>
 
         {/* RIGHT NAV + ACTIONS */}
-        <div className="flex items-center justify-end gap-5">
-          <nav className="hidden items-center gap-7 md:flex">
+        <div className="flex items-center justify-end gap-6" style={{ color: textColor }}>
+          <nav className="hidden items-center gap-8 md:flex">
             {NAV_RIGHT.map((n) => (
               <NavLink
                 key={n.to}
                 to={n.to}
                 data-testid={`nav-link-${n.to.replace("/", "")}`}
                 className={navItemCls}
+                style={{ color: textColor, textShadow }}
               >
                 {n.label}
               </NavLink>
@@ -172,8 +184,9 @@ export const Navbar = () => {
               data-testid="nav-account-button"
               aria-label="Account"
               className="inline-flex h-10 w-10 items-center justify-center transition-opacity hover:opacity-70"
+              style={{ filter: isOverHero ? "drop-shadow(0 1px 6px rgba(0,0,0,0.55))" : "none" }}
             >
-              <User className="h-4 w-4" />
+              <User className="h-[18px] w-[18px]" strokeWidth={1.3} />
             </Link>
           ) : (
             <button
@@ -181,8 +194,9 @@ export const Navbar = () => {
               data-testid="nav-signin-button"
               aria-label="Sign in"
               className="inline-flex h-10 w-10 items-center justify-center transition-opacity hover:opacity-70"
+              style={{ filter: isOverHero ? "drop-shadow(0 1px 6px rgba(0,0,0,0.55))" : "none" }}
             >
-              <User className="h-4 w-4" />
+              <User className="h-[18px] w-[18px]" strokeWidth={1.3} />
             </button>
           )}
 
@@ -191,8 +205,9 @@ export const Navbar = () => {
             data-testid="nav-cart-button"
             aria-label="Cart"
             className="relative inline-flex h-10 w-10 items-center justify-center transition-opacity hover:opacity-70"
+            style={{ filter: isOverHero ? "drop-shadow(0 1px 6px rgba(0,0,0,0.55))" : "none" }}
           >
-            <ShoppingBag className="h-4 w-4" />
+            <ShoppingBag className="h-[18px] w-[18px]" strokeWidth={1.3} />
             {totals.count > 0 && (
               <span
                 data-testid="nav-cart-count"

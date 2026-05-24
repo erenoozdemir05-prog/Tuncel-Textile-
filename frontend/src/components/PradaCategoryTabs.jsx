@@ -115,12 +115,12 @@ export const PradaCategoryTabs = () => {
         </div>
       </div>
 
-      {/* Product columns — crossfade on toggle change */}
-      <div className="mx-auto max-w-[1800px] px-6 py-12 sm:px-12 sm:py-16">
+      {/* Product columns — crossfade on toggle change. Edge-to-edge like Prada (no gaps). */}
+      <div className="mx-auto max-w-none px-0 py-0">
         <div
           key={active}
           data-testid={`prada-grid-${active}`}
-          className="grid grid-cols-2 gap-x-4 gap-y-10 lg:grid-cols-4 lg:gap-x-6"
+          className="grid grid-cols-2 gap-0 lg:grid-cols-4"
           style={{ animation: "pradaFade 700ms ease-out both" }}
         >
           {tiles.map((tile, i) => (
@@ -137,9 +137,12 @@ export const PradaCategoryTabs = () => {
                   loading="lazy"
                   className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1400ms] ease-out group-hover:scale-[1.04]"
                 />
-              </div>
-              <div className="mt-4 text-center text-[11px] uppercase tracking-[0.35em] text-black/85 transition-colors group-hover:text-black">
-                {tile.label}
+                {/* Label overlaid at bottom on hover — keeps the grid pure imagery */}
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 via-black/0 to-transparent p-4 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
+                  <div className="font-prada text-center text-[12px] uppercase tracking-[0.3em] text-white">
+                    {tile.label}
+                  </div>
+                </div>
               </div>
             </Link>
           ))}
