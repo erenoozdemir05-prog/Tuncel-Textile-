@@ -120,7 +120,7 @@ export const PradaCategoryTabs = () => {
         <div
           key={active}
           data-testid={`prada-grid-${active}`}
-          className="grid grid-cols-2 gap-0 lg:grid-cols-4"
+          className="grid grid-cols-2 gap-[2px] lg:grid-cols-4"
           style={{ animation: "pradaFade 700ms ease-out both" }}
         >
           {tiles.map((tile, i) => (

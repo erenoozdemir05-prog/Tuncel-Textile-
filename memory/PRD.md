@@ -102,11 +102,12 @@ Studio gmail: **tunceltextile@gmail.com**
 3. Admin name appended to every chat reply + "joined" system messages
 
 ## Recent UI tweaks (Feb 2026)
-- **Navbar — Prada redesign**: Fully transparent by default (text-only over hero). Solid white background slides in on `:hover` over the header OR after scroll. Uses **Bodoni Moda** serif (`.font-prada` class) for the wordmark and nav links. Logo enlarged to ~22-28px, letter-spacing 0.14em, semibold. White text gets a soft drop-shadow when floating over images.
-- **Edge-to-edge product grid**: PradaCategoryTabs (home) and `/shop/*` grid removed all horizontal gaps (`gap-0`) — products butt against each other Prada-style. Category labels in PradaCategoryTabs moved to bottom-overlay gradient revealed on hover (keeps grid pure imagery).
-- **Font system**: Added Bodoni Moda + Cormorant Garamond Google Fonts; new `.font-prada` utility class in `index.css`.
-- **EditorialHero redesigned** — full-bleed single-image carousel (not split-screen). Large side chevron arrows + bottom-center caption stack (`THE DIGITAL EDIT → Title → FOR HIM / FOR HER underlined → dots + chevron ›`).
-- **Admin login copy clean-up** — removed "Eren/Berfin" placeholder names from support-identity screen + cPanel username placeholder.
+- **Navbar — pure transparent**: Now has NO background at all by default (even on scroll / inner pages). Only on `:hover` over the header does a white blurred bar slide in. Text color smart-adapts: white over dark hero, black everywhere else. Bodoni Moda serif (`.font-prada`) throughout.
+- **EditorialSplit redesigned (Atelier / Bespoke / Gift)**: Bold Bodoni serif title with a lighter grey 2nd line (`TWO HANDS. / ONE ROOM.`), two body paragraphs, optional stats row (e.g. `II / 48H / 100` — FOUNDERS / LEAD-TIME / PER EDITION) in #1F4D3D accent, CTA button with diagonal arrow icon. Matches user reference photo 2.
+- **Edge-to-edge product grid + 2px hairline gap**: PradaCategoryTabs (home) and `/shop/*` grid use `gap-[2px]` — products butt against each other Prada-style with a barely-visible separator line.
+- **Font system**: Added Bodoni Moda + Cormorant Garamond Google Fonts; new `.font-prada` utility class.
+- **EditorialHero** — full-bleed single-image carousel with large side chevron arrows + bottom-center caption stack (`THE DIGITAL EDIT → Title → FOR HIM / FOR HER → dots + chevron ›`).
+- **Admin login copy clean-up** — removed "Eren/Berfin" placeholders.
 
 ## Backlog
 - **P1**: Hediye kartları + premium görseller, granüler çerez ayarları modülü, erişilebilirlik modu, Admin analytics dashboard (gelir/sipariş/iade trendleri)

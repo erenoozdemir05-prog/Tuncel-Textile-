@@ -168,8 +168,8 @@ export default function Shop() {
         </div>
       </div>
 
-      {/* Grid — Prada-style edge-to-edge, no gaps */}
-      <div className="grid grid-cols-2 gap-0 md:grid-cols-3 lg:grid-cols-4">
+      {/* Grid — Prada-style edge-to-edge, hairline 2px gaps */}
+      <div className="grid grid-cols-2 gap-[2px] md:grid-cols-3 lg:grid-cols-4">
         {loading
           ? Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="aspect-[3/4] w-full animate-pulse bg-[#F5F1E8]" />

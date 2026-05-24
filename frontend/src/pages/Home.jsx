@@ -60,8 +60,20 @@ const CategoryBanner = ({
   );
 };
 
-/* ---------- Editorial split (image + copy) ---------- */
-const EditorialSplit = ({ image, kicker, title, body, ctaTo, ctaLabel, reverse, testid }) => {
+/* ---------- Editorial split (image + copy) — Prada/Atelier manifesto layout ---------- */
+const EditorialSplit = ({
+  image,
+  kicker,
+  title,
+  titleSecondary,
+  body,
+  bodySecondary,
+  stats,
+  ctaTo,
+  ctaLabel,
+  reverse,
+  testid,
+}) => {
   const { ref, visible } = useReveal();
   return (
     <section
@@ -70,35 +82,69 @@ const EditorialSplit = ({ image, kicker, title, body, ctaTo, ctaLabel, reverse, 
       className={`relative bg-white text-black lx-reveal ${visible ? "is-visible" : ""}`}
     >
       <div
-        className={`mx-auto grid max-w-[1800px] grid-cols-1 px-6 py-24 sm:px-12 sm:py-32 lg:grid-cols-2 lg:gap-20 ${
+        className={`mx-auto grid max-w-[1800px] grid-cols-1 px-6 py-24 sm:px-12 sm:py-32 lg:grid-cols-2 lg:gap-24 ${
           reverse ? "lg:[&>*:first-child]:order-2" : ""
         }`}
       >
         <div className="relative aspect-[4/5] overflow-hidden bg-[#F5F1E8] lg:aspect-auto">
           <img
             src={image}
-            alt={title}
+            alt={typeof title === "string" ? title : "atelier"}
             loading="lazy"
             className="absolute inset-0 h-full w-full object-cover"
           />
         </div>
-        <div className="mt-12 flex flex-col justify-center lg:mt-0">
+        <div className="mt-14 flex flex-col justify-center lg:mt-0">
           <div className="text-[10px] uppercase tracking-[0.55em]" style={{ color: ACCENT }}>
             {kicker}
           </div>
           <h2
-            className="font-display mt-5 uppercase"
-            style={{ fontSize: "clamp(34px, 4.5vw, 76px)", letterSpacing: "0.025em", lineHeight: 1.05 }}
+            className="font-prada mt-7 font-bold leading-[0.95] tracking-[-0.005em]"
+            style={{ fontSize: "clamp(48px, 5.8vw, 96px)", color: "#0A0A0A" }}
           >
             {title}
+            {titleSecondary && (
+              <>
+                <br />
+                <span style={{ color: "rgba(10,10,10,0.30)", fontWeight: 700 }}>
+                  {titleSecondary}
+                </span>
+              </>
+            )}
           </h2>
-          <p className="mt-8 max-w-md text-[15px] leading-[1.9] text-black/70">{body}</p>
+          <div className="mt-9 max-w-[460px] space-y-5 text-[15px] leading-[1.85] text-black/72">
+            <p>{body}</p>
+            {bodySecondary && <p>{bodySecondary}</p>}
+          </div>
+
+          {stats && stats.length > 0 && (
+            <div className="mt-12 grid max-w-[460px] grid-cols-3 gap-6 border-t border-black/12 pt-10">
+              {stats.map((s, i) => (
+                <div key={i}>
+                  <div
+                    className="font-prada font-bold leading-none"
+                    style={{ fontSize: "clamp(28px, 2.6vw, 42px)", color: ACCENT }}
+                  >
+                    {s.value}
+                  </div>
+                  <div className="mt-3 text-[10px] uppercase tracking-[0.42em] text-black/55">
+                    {s.label}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {ctaTo && (
             <Link
               to={ctaTo}
-              className="mt-10 inline-flex w-fit items-center gap-2 border border-black px-8 py-4 text-[11px] uppercase tracking-[0.35em] text-black transition hover:bg-black hover:text-white"
+              className="font-prada mt-12 inline-flex w-fit items-center gap-3 border border-black/85 px-9 py-4 text-[11px] uppercase tracking-[0.35em] text-black transition-all hover:bg-black hover:text-white"
             >
-              {ctaLabel}
+              <span>{ctaLabel}</span>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square">
+                <path d="M7 17L17 7" />
+                <path d="M8 7H17V16" />
+              </svg>
             </Link>
           )}
         </div>
@@ -133,11 +179,18 @@ export default function Home() {
       <EditorialSplit
         testid="editorial-manifesto"
         image="https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&w=1400&q=85"
-        kicker="THE ATELIER"
-        title="TWO HANDS. ONE ROOM."
-        body="Tuncel Textile is a two-person atelier in Riga. Every piece is conceived, cut, finished and signed under one roof — never sub-contracted, never mass-produced. We make fewer pieces, on purpose."
+        kicker="THE ATELIER · MANIFESTO"
+        title="TWO HANDS."
+        titleSecondary="ONE ROOM."
+        body="Tuncel Textile is a two-person atelier in Riga. Every piece is conceived, cut, finished and signed under one roof — never sub-contracted, never mass-produced."
+        bodySecondary="What we put out is what we'd wear ourselves. Heavy-gauge cotton. Hand-pulled prints. Editions of one hundred. When an edition closes — it does not return."
+        stats={[
+          { value: "II", label: "Founders" },
+          { value: "48H", label: "Lead-time" },
+          { value: "100", label: "Per edition" },
+        ]}
         ctaTo="/about"
-        ctaLabel="DISCOVER THE ATELIER"
+        ctaLabel="Discover the atelier"
       />
 
       {/* 5 · Bespoke / Custom split */}
@@ -146,10 +199,17 @@ export default function Home() {
         reverse
         image="https://images.unsplash.com/photo-1604176354204-9268737828e4?auto=format&fit=crop&w=1400&q=85"
         kicker="BESPOKE · MADE FOR YOU"
-        title="HAVE AN IDEA?"
-        body="From a single tee for yourself to a small drop for your brand. No MOQ — start at just one piece. Free design consultation. Founders reply within 24 hours."
+        title="HAVE AN"
+        titleSecondary="IDEA?"
+        body="From a single tee for yourself to a small drop for your brand. No MOQ — start at just one piece, finish at one hundred."
+        bodySecondary="Free design consultation. Hand-drawn mockup within 48 hours. Founders reply personally within one working day."
+        stats={[
+          { value: "1", label: "Min. quantity" },
+          { value: "48H", label: "First mockup" },
+          { value: "0€", label: "Consultation" },
+        ]}
         ctaTo="/custom-request"
-        ctaLabel="START A REQUEST"
+        ctaLabel="Start a request"
       />
 
       {/* 6 · Gift card split */}
@@ -157,18 +217,16 @@ export default function Home() {
         testid="gift-cta"
         image="https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=1400&q=85"
         kicker="GIFTS · TUNCEL CARD"
-        title="A GIFT, EARNED."
-        body={
-          <>
-            <span>Delivered instantly with a personal note. Valid 12 months, redeemable on every piece in the atelier.</span>
-            <br /><br />
-            <span data-testid="gift-single-use-note" className="text-[11px] uppercase tracking-[0.25em] text-black/55">
-              SINGLE-USE · ONE GIFT CARD, ONE ORDER. ANY REMAINING BALANCE IS FORFEITED.
-            </span>
-          </>
+        title="A GIFT,"
+        titleSecondary="EARNED."
+        body="Delivered instantly with a personal note. Valid twelve months, redeemable on every piece in the atelier."
+        bodySecondary={
+          <span data-testid="gift-single-use-note" className="text-[11px] uppercase tracking-[0.25em] text-black/55">
+            SINGLE-USE · ONE GIFT CARD, ONE ORDER. ANY REMAINING BALANCE IS FORFEITED.
+          </span>
         }
         ctaTo="/gift-cards"
-        ctaLabel="SEND A GIFT CARD"
+        ctaLabel="Send a gift card"
       />
 
       {/* 7 · Newsletter — minimal centered */}

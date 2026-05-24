@@ -46,18 +46,17 @@ export const Navbar = () => {
     window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
   };
 
-  // Solid white when hovering navbar OR when scrolled past hero
-  const isSolid = hovering || scrolled || !isHome;
-  // "Floating over dark hero" = home + top of page + not hovered
+  // Solid white ONLY when hovering navbar (user explicitly: no background ever, except hover)
+  const isSolid = hovering;
+  // White text only when over dark hero (home top, not hovered). Black text everywhere else.
   const isOverHero = isHome && !scrolled && !hovering;
+  const textColor = isOverHero ? "#FFFFFF" : "#0A0A0A";
+  const textShadow = isOverHero ? "0 1px 14px rgba(0,0,0,0.55)" : "none";
 
   const navItemCls = ({ isActive }) =>
     `font-prada text-[15px] tracking-[0.02em] transition-opacity hover:opacity-100 ${
       isActive ? "opacity-100" : "opacity-80"
     }`;
-
-  const textColor = isSolid ? "#0A0A0A" : "#FFFFFF";
-  const textShadow = isOverHero ? "0 1px 14px rgba(0,0,0,0.55)" : "none";
 
   return (
     <header
