@@ -101,6 +101,11 @@ Studio gmail: **tunceltextile@gmail.com**
 2. "Enter your support name" prompt → stored in `localStorage.tuncel_admin_name`
 3. Admin name appended to every chat reply + "joined" system messages
 
+## Recent UI tweaks (Feb 2026)
+- **EditorialHero redesigned** — full-bleed single-image carousel (not split-screen). Large side chevron arrows + bottom-center caption stack (`THE DIGITAL EDIT → Title → FOR HIM / FOR HER underlined → dots + chevron ›`). Matches Prada/Gucci editorial layout from user reference screenshots.
+- **Navbar logo legibility** — added top scrim gradient (45% black fade) on transparent home navbar + stronger text-shadow on logo so "TUNCEL TEXTILE" stays visible on light/white hero images.
+- **Admin login copy clean-up** — removed "Eren/Berfin" placeholder names from support-identity screen + cPanel username placeholder. Now neutral ("Your first name", "atelier").
+
 ## Backlog
 - **P1**: Hediye kartları + premium görseller, granüler çerez ayarları modülü, erişilebilirlik modu, Admin analytics dashboard (gelir/sipariş/iade trendleri)
 - **P2**: Verified domain for Resend (currently uses onboarding@resend.dev sandbox), env-driven ADMIN_PANEL_URL in email templates, AI_REPLY_ENABLED admin UI toggle

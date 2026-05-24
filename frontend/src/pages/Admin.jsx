@@ -107,7 +107,7 @@ export default function Admin() {
                   <input
                     type="text"
                     data-testid="admin-username-input"
-                    placeholder="username"
+                    placeholder="atelier"
                     className="flex-1 bg-transparent px-1 py-3 text-sm outline-none"
                     autoComplete="username"
                   />
@@ -163,13 +163,13 @@ export default function Admin() {
       <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-5 py-16 sm:px-8">
         <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">Studio · Support identity</div>
         <h1 className="font-display mt-2 text-5xl uppercase leading-none tracking-[0.02em]">Enter your support name</h1>
-        <p className="mt-4 text-sm leading-relaxed text-neutral-600">This name appears to customers in the live chat (e.g. "Eren joined the chat"). Use your real first name.</p>
+        <p className="mt-4 text-sm leading-relaxed text-neutral-600">This name appears to customers in the live chat. Use your real first name.</p>
         <form onSubmit={handleSaveName} className="mt-8 space-y-4" data-testid="admin-name-form">
           <input
             data-testid="admin-name-input"
             value={nameDraft}
             onChange={(e) => setNameDraft(e.target.value)}
-            placeholder="e.g. Eren"
+            placeholder="Your first name"
             className="w-full border border-black/15 px-4 py-3 outline-none focus:border-black"
             autoFocus
             maxLength={80}

@@ -54,7 +54,14 @@ export const Navbar = () => {
       data-testid="site-navbar"
       className={`sticky top-0 z-40 border-b transition-colors duration-500 ${headerCls}`}
     >
-      <div className="mx-auto grid h-[78px] max-w-[1800px] grid-cols-3 items-center px-5 sm:px-10">
+      {/* Soft top scrim — guarantees logo + nav legibility on any hero image */}
+      {isTransparent && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-[120px] bg-gradient-to-b from-black/45 via-black/15 to-transparent"
+        />
+      )}
+      <div className="relative mx-auto grid h-[78px] max-w-[1800px] grid-cols-3 items-center px-5 sm:px-10">
         {/* LEFT NAV (desktop) + mobile menu trigger */}
         <div className="flex items-center gap-7">
           <Sheet open={open} onOpenChange={setOpen}>
@@ -128,11 +135,13 @@ export const Navbar = () => {
           to="/"
           data-testid="nav-logo"
           aria-label="Tuncel Textile"
-          className="justify-self-center font-display tracking-[0.42em] transition-opacity hover:opacity-70"
+          className="justify-self-center font-display font-semibold tracking-[0.42em] transition-opacity hover:opacity-70"
           style={{
             fontSize: "clamp(14px, 1.45vw, 22px)",
             color: isTransparent ? "#fff" : "#000",
-            textShadow: isTransparent ? "0 1px 12px rgba(0,0,0,0.45)" : "none",
+            textShadow: isTransparent
+              ? "0 2px 18px rgba(0,0,0,0.65), 0 0 1px rgba(0,0,0,0.5)"
+              : "none",
           }}
         >
           TUNCEL TEXTILE
