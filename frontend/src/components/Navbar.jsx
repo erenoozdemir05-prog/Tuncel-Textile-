@@ -46,8 +46,11 @@ export const Navbar = () => {
     window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
   };
 
-  // Solid white ONLY when hovering navbar (user explicitly: no background ever, except hover)
-  const isSolid = hovering;
+  // Solid white when:
+  //   - hovering navbar, OR
+  //   - scrolled past 80px on any page, OR
+  //   - on any non-home page (inner pages have white bg, navbar matches)
+  const isSolid = hovering || scrolled || !isHome;
   // White text only when over dark hero (home top, not hovered). Black text everywhere else.
   const isOverHero = isHome && !scrolled && !hovering;
   const textColor = isOverHero ? "#FFFFFF" : "#0A0A0A";
