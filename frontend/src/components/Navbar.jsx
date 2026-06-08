@@ -81,9 +81,9 @@ export const Navbar = () => {
         color: textColor,
       }}
     >
-      <div className="relative mx-auto grid h-[78px] max-w-[1800px] grid-cols-3 items-center pl-3 pr-5 sm:pl-6 sm:pr-10">
+      <div className="relative mx-auto grid h-[78px] max-w-[1800px] grid-cols-3 items-center pl-2 pr-5 sm:pl-3 sm:pr-10">
         {/* LEFT — Menu + Search (Prada layout) */}
-        <div className="flex items-center gap-8 sm:gap-10" style={{ color: textColor }}>
+        <div className="flex items-center gap-6 sm:gap-8" style={{ color: textColor }}>
           {/* Menu (hamburger) */}
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
@@ -95,10 +95,10 @@ export const Navbar = () => {
               >
                 <Menu className="h-[20px] w-[20px]" strokeWidth={1.5} />
                 <span
-                  className="font-body hidden sm:inline"
+                  className="font-prada hidden sm:inline"
                   style={{
-                    fontSize: "clamp(13px, 0.95vw, 15px)",
-                    letterSpacing: "0.16em",
+                    fontSize: "clamp(14px, 1.05vw, 17px)",
+                    letterSpacing: "0.08em",
                     textTransform: "uppercase",
                     fontWeight: 500,
                   }}
@@ -151,10 +151,10 @@ export const Navbar = () => {
           >
             <Search className="h-[20px] w-[20px]" strokeWidth={1.5} />
             <span
-              className="font-body hidden sm:inline"
+              className="font-prada hidden sm:inline"
               style={{
-                fontSize: "clamp(13px, 0.95vw, 15px)",
-                letterSpacing: "0.16em",
+                fontSize: "clamp(14px, 1.05vw, 17px)",
+                letterSpacing: "0.08em",
                 textTransform: "uppercase",
                 fontWeight: 500,
               }}
@@ -184,10 +184,10 @@ export const Navbar = () => {
           <a
             href="mailto:tunceltextile@gmail.com"
             data-testid="nav-contact-link"
-            className="font-body hidden transition-opacity hover:opacity-70 md:inline"
+            className="font-prada hidden transition-opacity hover:opacity-70 md:inline"
             style={{
-              fontSize: "clamp(13px, 0.95vw, 15px)",
-              letterSpacing: "0.16em",
+              fontSize: "clamp(14px, 1.05vw, 17px)",
+              letterSpacing: "0.08em",
               textTransform: "uppercase",
               fontWeight: 500,
               color: textColor,
