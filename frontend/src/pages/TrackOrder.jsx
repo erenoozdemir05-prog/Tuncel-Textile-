@@ -2,33 +2,37 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { lookupOrder } from "@/lib/api";
 import { toast } from "sonner";
+import { useI18n } from "@/contexts/I18nContext";
 import { Loader2, Package, Check, Truck, Home, X, Clock } from "lucide-react";
 
-const STAGES = [
-  { key: "pending", label: "Order received", body: "We've logged your order and are preparing payment confirmation.", icon: Clock },
-  { key: "processing", label: "In the atelier", body: "Our makers are preparing your piece — printing, finishing, packing.", icon: Package },
-  { key: "shipped", label: "Shipped", body: "Your order has left our Riga atelier and is on its way.", icon: Truck },
-  { key: "out_for_delivery", label: "Out for delivery", body: "With the courier — arriving today.", icon: Truck },
-  { key: "delivered", label: "Delivered", body: "Your order has arrived. Welcome to the wardrobe.", icon: Home },
-];
+const STAGE_KEYS = ["pending", "processing", "shipped", "out_for_delivery", "delivered"];
+const STAGE_ICON = { pending: Clock, processing: Package, shipped: Truck, out_for_delivery: Truck, delivered: Home };
 
 function indexOfStatus(status) {
-  const i = STAGES.findIndex((s) => s.key === status);
+  const i = STAGE_KEYS.indexOf(status);
   return i === -1 ? 0 : i;
 }
 
 export default function TrackOrder() {
   const [params] = useSearchParams();
+  const { t } = useI18n();
   const [reference, setReference] = useState((params.get("ref") || "").toUpperCase());
   const [email, setEmail] = useState(params.get("email") || "");
   const [loading, setLoading] = useState(false);
   const [order, setOrder] = useState(null);
   const [err, setErr] = useState("");
 
+  const STAGES = STAGE_KEYS.map((k) => ({
+    key: k,
+    label: t(`tk.stage_${k === "out_for_delivery" ? "out" : k}`),
+    body: t(`tk.stage_${k === "out_for_delivery" ? "out" : k}_b`),
+    icon: STAGE_ICON[k],
+  }));
+
   const search = async (e) => {
     if (e) e.preventDefault();
     if (!reference || !email) {
-      toast.error("Please enter both order reference and email.");
+      toast.error(t("tk.toast_missing"));
       return;
     }
     setLoading(true);
@@ -38,20 +42,18 @@ export default function TrackOrder() {
       setOrder(res);
     } catch (ex) {
       setOrder(null);
-      setErr("We couldn't find an order matching that reference and email. Please double-check both.");
+      setErr(t("tk.error_not_found"));
     } finally {
       setLoading(false);
     }
   };
 
-  // Auto-search when URL has both params
   useEffect(() => {
     const ref = params.get("ref");
     const em = params.get("email");
     if (ref && em) {
       setReference(ref.toUpperCase());
       setEmail(em);
-      // small delay so state is set
       setTimeout(() => { search(); }, 100);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -62,24 +64,24 @@ export default function TrackOrder() {
 
   return (
     <div data-testid="track-order-page" className="mx-auto max-w-[1100px] px-5 sm:px-8">
-      {/* HERO */}
       <section className="border-b border-black/10 py-16">
-        <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">Atelier · Order tracking</div>
+        <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">{t("tk.kicker")}</div>
         <h1 className="font-display mt-3 text-6xl uppercase leading-none tracking-[0.02em] sm:text-8xl">
-          Where is
+          {t("tk.title_a")}
           <br />
-          <span className="text-neutral-400">my order?</span>
+          <span className="text-neutral-400">{t("tk.title_b")}</span>
         </h1>
         <p className="mt-6 max-w-2xl text-[15px] leading-[1.7] text-neutral-700">
-          Enter your order reference (e.g. <span className="font-mono">TT-XXXXXX</span>) and the email you used at checkout. We'll show you every step from atelier to doorstep.
+          {t("tk.body").split("{ref}").map((part, i, arr) =>
+            i < arr.length - 1 ? (<React.Fragment key={i}>{part}<span className="font-mono">TT-XXXXXX</span></React.Fragment>) : part
+          )}
         </p>
       </section>
 
-      {/* SEARCH FORM */}
       <section className="py-10">
         <form onSubmit={search} className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto]" data-testid="track-form">
           <div>
-            <label className="text-[11px] uppercase tracking-[0.25em] text-neutral-500">Order reference</label>
+            <label className="text-[11px] uppercase tracking-[0.25em] text-neutral-500">{t("tk.ref_label")}</label>
             <input
               data-testid="track-reference"
               value={reference}
@@ -89,7 +91,7 @@ export default function TrackOrder() {
             />
           </div>
           <div>
-            <label className="text-[11px] uppercase tracking-[0.25em] text-neutral-500">Email used at checkout</label>
+            <label className="text-[11px] uppercase tracking-[0.25em] text-neutral-500">{t("tk.email_label")}</label>
             <input
               data-testid="track-email"
               type="email"
@@ -105,7 +107,7 @@ export default function TrackOrder() {
             data-testid="track-submit"
             className="self-end bg-black px-7 py-3.5 text-[12px] font-semibold uppercase tracking-[0.25em] text-white hover:bg-neutral-800 disabled:opacity-60"
           >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Track"}
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("tk.track_btn")}
           </button>
         </form>
 
@@ -116,12 +118,11 @@ export default function TrackOrder() {
         )}
       </section>
 
-      {/* RESULT */}
       {order && (
         <section data-testid="track-result" className="border-t border-black/10 py-12">
           <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_360px]">
             <div>
-              <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">Order</div>
+              <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">{t("tk.order_label")}</div>
               <div className="mt-1 flex flex-wrap items-baseline gap-4">
                 <h2 className="font-display text-5xl uppercase tracking-[0.04em]">{order.reference}</h2>
                 <span className={`px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] ${
@@ -131,13 +132,12 @@ export default function TrackOrder() {
                 }`}>{(order.fulfillment_status || "pending").replace(/_/g, " ")}</span>
               </div>
 
-              {/* TIMELINE */}
               {isCancelled ? (
                 <div className="mt-8 flex items-start gap-3 border border-red-200 bg-red-50 p-5">
                   <X className="mt-1 h-5 w-5 text-red-700" />
                   <div>
-                    <div className="font-display text-xl uppercase tracking-[0.04em] text-red-900">Order cancelled</div>
-                    <p className="mt-1 text-sm text-red-800">{order.shipping_note || "This order has been cancelled. Please contact us if you need help."}</p>
+                    <div className="font-display text-xl uppercase tracking-[0.04em] text-red-900">{t("tk.cancelled_title")}</div>
+                    <p className="mt-1 text-sm text-red-800">{order.shipping_note || t("tk.cancelled_default")}</p>
                   </div>
                 </div>
               ) : (
@@ -161,7 +161,7 @@ export default function TrackOrder() {
                             <p className="mt-1 text-sm leading-relaxed text-neutral-600">{stage.body}</p>
                           )}
                           {current && order.shipping_note && (
-                            <p className="mt-2 text-sm italic text-neutral-500">"{order.shipping_note}"</p>
+                            <p className="mt-2 text-sm italic text-neutral-500">&ldquo;{order.shipping_note}&rdquo;</p>
                           )}
                         </div>
                       </li>
@@ -170,10 +170,9 @@ export default function TrackOrder() {
                 </ol>
               )}
 
-              {/* TRACKING DETAILS */}
               {(order.tracking_number || order.tracking_url) && !isCancelled && (
                 <div className="mt-10 border border-black/10 p-6">
-                  <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">Courier tracking</div>
+                  <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">{t("tk.courier_tracking")}</div>
                   {order.tracking_carrier && (
                     <div className="mt-2 font-display text-2xl uppercase tracking-[0.04em]">{order.tracking_carrier}</div>
                   )}
@@ -188,44 +187,43 @@ export default function TrackOrder() {
                       data-testid="track-courier-link"
                       className="mt-4 inline-flex items-center gap-2 bg-black px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.25em] text-white hover:bg-neutral-800"
                     >
-                      Open with courier →
+                      {t("tk.open_with_courier")}
                     </a>
                   )}
                 </div>
               )}
             </div>
 
-            {/* SUMMARY ASIDE */}
             <aside className="h-fit border border-black/15 p-6">
-              <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">Summary</div>
+              <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">{t("tk.summary")}</div>
               <ul className="mt-4 space-y-3 text-[12px] uppercase tracking-[0.2em] text-neutral-600">
                 <li className="flex justify-between gap-3">
-                  <span className="text-neutral-400">Customer</span>
+                  <span className="text-neutral-400">{t("tk.customer")}</span>
                   <span className="text-right text-black">{order.customer_name || "—"}</span>
                 </li>
                 <li className="flex justify-between gap-3">
-                  <span className="text-neutral-400">Payment</span>
-                  <span className="text-right text-black">{order.payment_method === "iban" ? "IBAN" : "Card"} · {(order.payment_status || "").replace(/_/g, " ")}</span>
+                  <span className="text-neutral-400">{t("tk.payment")}</span>
+                  <span className="text-right text-black">{order.payment_method === "iban" ? t("tk.pay_iban") : t("tk.pay_card")} · {(order.payment_status || "").replace(/_/g, " ")}</span>
                 </li>
                 <li className="flex justify-between gap-3">
-                  <span className="text-neutral-400">Amount</span>
+                  <span className="text-neutral-400">{t("tk.amount")}</span>
                   <span className="text-right text-black font-semibold">€{Number(order.amount || 0).toFixed(2)}</span>
                 </li>
                 {order.shipping_address && (
                   <li>
-                    <div className="text-neutral-400">Ship to</div>
+                    <div className="text-neutral-400">{t("tk.ship_to")}</div>
                     <div className="mt-1 text-right text-black normal-case tracking-normal">{order.shipping_address}</div>
                   </li>
                 )}
               </ul>
               {order.items_summary && (
                 <div className="mt-6 border-t border-black/10 pt-4 text-[11px] uppercase tracking-[0.2em] text-neutral-500">
-                  <div className="text-neutral-400">Items</div>
+                  <div className="text-neutral-400">{t("tk.items")}</div>
                   <div className="mt-1 text-black normal-case tracking-normal">{order.items_summary}</div>
                 </div>
               )}
               <div className="mt-6 border-t border-black/10 pt-4 text-[10px] uppercase tracking-[0.25em] text-neutral-400">
-                Need help? Message us on WhatsApp or write to tunceltextile@gmail.com.
+                {t("tk.help_text")}
               </div>
             </aside>
           </div>

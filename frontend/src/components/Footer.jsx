@@ -39,12 +39,12 @@ export const Footer = () => {
       <div className="border-b border-white/10">
         <div className="mx-auto max-w-[1400px] overflow-hidden px-0 py-10">
           <div className="tx-marquee flex whitespace-nowrap font-display text-[12vw] uppercase leading-none tracking-[0.02em] text-white/95 sm:text-[10vw]">
-            <span className="px-8">Tuncel Textile —</span>
-            <span className="px-8 tx-outline-text">Hand Crafted —</span>
-            <span className="px-8">Made With Care —</span>
-            <span className="px-8 tx-outline-text">Limited Editions —</span>
-            <span className="px-8">Tuncel Textile —</span>
-            <span className="px-8 tx-outline-text">Hand Crafted —</span>
+            <span className="px-8">{t("foot.marquee_a")}</span>
+            <span className="px-8 tx-outline-text">{t("foot.marquee_b")}</span>
+            <span className="px-8">{t("foot.marquee_c")}</span>
+            <span className="px-8 tx-outline-text">{t("foot.marquee_d")}</span>
+            <span className="px-8">{t("foot.marquee_a")}</span>
+            <span className="px-8 tx-outline-text">{t("foot.marquee_b")}</span>
           </div>
         </div>
       </div>
@@ -62,11 +62,10 @@ export const Footer = () => {
         <div className="md:col-span-2">
           <img src={LOGO_URL} alt="Tuncel Textile" className="h-16 w-auto object-contain invert-0" />
           <p className="mt-6 max-w-md text-sm leading-relaxed text-white/70">
-            A two-person atelier crafting limited-run hoodies, tees and accessories. Hand-finished
-            cotton. Considered details. Pieces designed to be worn for years, not seasons.
+            {t("foot.house_desc")}
           </p>
           <p className="mt-4 text-xs uppercase tracking-[0.25em] text-white/50">
-            Atelier · Riga, Latvia
+            {t("foot.atelier_loc")}
           </p>
         </div>
 
@@ -104,20 +103,20 @@ export const Footer = () => {
                 {settings?.contact_email || "tunceltextile@gmail.com"}
               </a>
             </li>
-            <li className="pt-3 text-xs uppercase tracking-[0.25em] text-white/50">Legal</li>
-            <li><Link to="/legal/privacy" className="tx-link">Privacy</Link></li>
-            <li><Link to="/legal/terms-of-use" className="tx-link">Terms of Use</Link></li>
-            <li><Link to="/legal/terms-of-sale" className="tx-link">Terms of Sale</Link></li>
-            <li><Link to="/legal/imprint" className="tx-link">Imprint</Link></li>
-            <li><Link to="/cookie-policy" className="tx-link">Cookies</Link></li>
-            <li><Link to="/legal/accessibility" className="tx-link">Accessibility</Link></li>
+            <li className="pt-3 text-xs uppercase tracking-[0.25em] text-white/50">{t("foot.legal")}</li>
+            <li><Link to="/legal/privacy" className="tx-link">{t("foot.privacy")}</Link></li>
+            <li><Link to="/legal/terms-of-use" className="tx-link">{t("foot.terms_use")}</Link></li>
+            <li><Link to="/legal/terms-of-sale" className="tx-link">{t("foot.terms_sale")}</Link></li>
+            <li><Link to="/legal/imprint" className="tx-link">{t("foot.imprint")}</Link></li>
+            <li><Link to="/cookie-policy" className="tx-link">{t("foot.cookies")}</Link></li>
+            <li><Link to="/legal/accessibility" className="tx-link">{t("foot.accessibility")}</Link></li>
           </ul>
         </div>
       </div>
 
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-[1400px] flex-col items-start justify-between gap-3 px-5 py-6 text-[11px] uppercase tracking-[0.25em] text-white/50 sm:flex-row sm:items-center sm:px-8">
-          <span>© {new Date().getFullYear()} Tuncel Textile · All rights reserved</span>
+          <span>© {new Date().getFullYear()} Tuncel Textile · {t("foot.rights")}</span>
           <span>{t("common.crafted")}</span>
         </div>
       </div>
@@ -149,7 +148,7 @@ export const WhatsappFAB = () => {
       </span>
       <span className="flex flex-col items-start leading-tight">
         <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">WhatsApp</span>
-        <span className="text-[8.5px] uppercase tracking-[0.2em] text-neutral-500">Founders · 1h reply</span>
+        <span className="text-[8.5px] uppercase tracking-[0.2em] text-neutral-500">{t("foot.wa_reply")}</span>
       </span>
     </a>
   );

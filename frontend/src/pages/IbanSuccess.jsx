@@ -4,11 +4,13 @@ import { getIbanOrder } from "@/lib/api";
 import { Copy, CheckCircle2, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/contexts/CartContext";
+import { useI18n } from "@/contexts/I18nContext";
 
 export default function IbanSuccess() {
   const [params] = useSearchParams();
   const reference = params.get("ref");
   const { clear } = useCart();
+  const { t } = useI18n();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const cleared = useRef(false);
@@ -33,15 +35,15 @@ export default function IbanSuccess() {
   if (loading) {
     return (
       <div className="mx-auto max-w-2xl px-5 py-32 text-center sm:px-8">
-        <p className="text-[12px] uppercase tracking-[0.25em] text-neutral-500">Loading…</p>
+        <p className="text-[12px] uppercase tracking-[0.25em] text-neutral-500">{t("iban_succ.loading")}</p>
       </div>
     );
   }
   if (!order) {
     return (
       <div className="mx-auto max-w-2xl px-5 py-32 text-center sm:px-8">
-        <h1 className="font-display text-5xl uppercase">Order not found</h1>
-        <Link to="/" className="tx-link mt-6 inline-block text-sm uppercase tracking-[0.25em]">Return to Home →</Link>
+        <h1 className="font-display text-5xl uppercase">{t("iban_succ.not_found")}</h1>
+        <Link to="/" className="tx-link mt-6 inline-block text-sm uppercase tracking-[0.25em]">{t("iban_succ.return_home")}</Link>
       </div>
     );
   }
@@ -49,7 +51,7 @@ export default function IbanSuccess() {
   const iban = order.iban || {};
   const copy = (val, label) => {
     navigator.clipboard.writeText(val);
-    toast.success(`${label} copied`);
+    toast.success(t("iban_succ.toast_copied").replace("{label}", label));
   };
 
   // Branch: gift card fully paid -> show confirmed view (no IBAN/BIC details)
@@ -63,25 +65,24 @@ export default function IbanSuccess() {
         <div className="flex items-center gap-3">
           <CheckCircle2 className="h-6 w-6 text-green-700" />
           <span className="text-[11px] uppercase tracking-[0.3em] text-neutral-500" data-testid="paid-by-gift-badge">
-            Paid with gift card · Order confirmed
+            {t("iban_succ.paid_with_gift")}
           </span>
         </div>
         <h1 className="font-display mt-4 text-5xl uppercase leading-none tracking-[0.02em] sm:text-7xl">
-          Order confirmed.
+          {t("iban_succ.confirmed_title")}
         </h1>
         <p className="mt-5 max-w-xl text-[15px] leading-[1.7] text-neutral-700">
-          Thank you. Your gift card covered the full amount — no bank transfer needed.
-          We'll dispatch your order within 24 hours from our Riga atelier.
+          {t("iban_succ.gift_covered_body")}
         </p>
 
         <div className="mt-10 border border-black/15">
-          <Row label="Order reference" value={order.reference} highlight onCopy={() => copy(order.reference, "Reference")} />
-          <Row label="Order total" value={`€${Number(order.amount_original || 0).toFixed(2)}`} />
-          <Row label="Gift card discount" value={`−€${Number(order.gift_card_discount || 0).toFixed(2)}`} />
+          <Row label={t("iban_succ.order_reference")} value={order.reference} highlight onCopy={() => copy(order.reference, t("iban_succ.order_reference"))} />
+          <Row label={t("iban_succ.order_total")} value={`€${Number(order.amount_original || 0).toFixed(2)}`} />
+          <Row label={t("iban_succ.gift_discount")} value={`−€${Number(order.gift_card_discount || 0).toFixed(2)}`} />
           {order.gift_card_code && (
-            <Row label="Gift card" value={`···· ${String(order.gift_card_code).slice(-4)}`} mono />
+            <Row label={t("iban_succ.gift_card")} value={`···· ${String(order.gift_card_code).slice(-4)}`} mono />
           )}
-          <Row label="Amount due" value="€0.00" highlight />
+          <Row label={t("iban_succ.amount_due")} value="€0.00" highlight />
         </div>
 
         <div className="mt-10 flex flex-wrap gap-3">
@@ -90,13 +91,13 @@ export default function IbanSuccess() {
             data-testid="iban-track-link"
             className="inline-flex items-center gap-2 bg-black px-7 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] text-white"
           >
-            Track Order →
+            {t("iban_succ.track_order")}
           </Link>
           <Link
             to="/shop/all"
             className="inline-flex items-center gap-2 border border-black px-7 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] text-black hover:bg-black hover:text-white"
           >
-            Continue Shopping
+            {t("iban_succ.continue_shopping")}
           </Link>
         </div>
       </div>
@@ -107,24 +108,23 @@ export default function IbanSuccess() {
     <div data-testid="iban-success-page" className="mx-auto max-w-3xl px-5 py-16 sm:px-8 sm:py-24">
       <div className="flex items-center gap-3">
         <CheckCircle2 className="h-6 w-6" />
-        <span className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">Order received</span>
+        <span className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">{t("iban_succ.order_received")}</span>
       </div>
       <h1 className="font-display mt-4 text-5xl uppercase leading-none tracking-[0.02em] sm:text-7xl">
-        Awaiting transfer
+        {t("iban_succ.awaiting_transfer")}
       </h1>
       <p className="mt-5 max-w-xl text-[15px] leading-[1.7] text-neutral-700">
-        Thank you. Please complete the bank transfer using the details below. We confirm transfers
-        within 24 hours and ship as soon as funds arrive.
+        {t("iban_succ.awaiting_body")}
       </p>
 
       <div className="mt-10 border border-black/15">
-        <Row label="Order reference" value={order.reference} highlight onCopy={() => copy(order.reference, "Reference")} />
-        <Row label="Amount" value={`€${Number(order.amount).toFixed(2)}`} onCopy={() => copy(`${Number(order.amount).toFixed(2)}`, "Amount")} />
-        <Row label="Account holder" value={iban.account_holder || "Tuncel Textile"} onCopy={() => copy(iban.account_holder || "Tuncel Textile", "Holder")} />
-        <Row label="Bank" value={iban.bank_name || "—"} />
-        <Row label="IBAN" value={iban.iban || "—"} mono onCopy={iban.iban ? () => copy(iban.iban, "IBAN") : null} />
-        <Row label="BIC / SWIFT" value={iban.bic || "—"} mono onCopy={iban.bic ? () => copy(iban.bic, "BIC") : null} />
-        <Row label="Reference to use" value={order.reference} mono highlight onCopy={() => copy(order.reference, "Reference")} />
+        <Row label={t("iban_succ.order_reference")} value={order.reference} highlight onCopy={() => copy(order.reference, t("iban_succ.order_reference"))} />
+        <Row label={t("iban_succ.amount")} value={`€${Number(order.amount).toFixed(2)}`} onCopy={() => copy(`${Number(order.amount).toFixed(2)}`, t("iban_succ.amount"))} />
+        <Row label={t("iban_succ.account_holder")} value={iban.account_holder || "Tuncel Textile"} onCopy={() => copy(iban.account_holder || "Tuncel Textile", t("iban_succ.account_holder"))} />
+        <Row label={t("iban_succ.bank")} value={iban.bank_name || "—"} />
+        <Row label={t("iban_succ.iban")} value={iban.iban || "—"} mono onCopy={iban.iban ? () => copy(iban.iban, "IBAN") : null} />
+        <Row label={t("iban_succ.bic")} value={iban.bic || "—"} mono onCopy={iban.bic ? () => copy(iban.bic, "BIC") : null} />
+        <Row label={t("iban_succ.reference_to_use")} value={order.reference} mono highlight onCopy={() => copy(order.reference, t("iban_succ.reference_to_use"))} />
       </div>
 
       {iban.instructions && (
@@ -140,19 +140,19 @@ export default function IbanSuccess() {
           data-testid="iban-track-link"
           className="inline-flex items-center gap-2 bg-black px-7 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] text-white"
         >
-          Track Order →
+          {t("iban_succ.track_order")}
         </Link>
         <Link
           to="/shop/all"
           className="inline-flex items-center gap-2 border border-black px-7 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] text-black hover:bg-black hover:text-white"
         >
-          Continue Shopping
+          {t("iban_succ.continue_shopping")}
         </Link>
         <a
           href={`mailto:hello@tunceltextile.com?subject=Order%20${encodeURIComponent(order.reference)}`}
           className="inline-flex items-center gap-2 border border-black px-7 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] text-black hover:bg-black hover:text-white"
         >
-          Email Us
+          {t("iban_succ.email_us")}
         </a>
       </div>
     </div>

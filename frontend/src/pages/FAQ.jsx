@@ -4,21 +4,21 @@ import { useI18n } from "@/contexts/I18nContext";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Link } from "react-router-dom";
 
-const CATS = [
-  { key: "all", en: "All", ru: "Все", lv: "Visi" },
-  { key: "shipping", en: "Shipping", ru: "Доставка", lv: "Piegāde" },
-  { key: "returns", en: "Returns", ru: "Возврат", lv: "Atgriešana" },
-  { key: "payment", en: "Payment", ru: "Оплата", lv: "Maksājumi" },
-  { key: "custom", en: "Custom orders", ru: "Кастом", lv: "Pielāgots" },
-  { key: "general", en: "General", ru: "Общее", lv: "Vispārējs" },
-];
-
 export default function FAQ() {
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   const [items, setItems] = useState([]);
   const [cat, setCat] = useState("all");
 
   useEffect(() => { fetchFaqs().then(setItems).catch(() => {}); }, []);
+
+  const CATS = [
+    { key: "all",      label: t("faq_page.cat_all") },
+    { key: "shipping", label: t("faq_page.cat_shipping") },
+    { key: "returns",  label: t("faq_page.cat_returns") },
+    { key: "payment",  label: t("faq_page.cat_payment") },
+    { key: "custom",   label: t("faq_page.cat_custom") },
+    { key: "general",  label: t("faq_page.cat_general") },
+  ];
 
   const visible = cat === "all" ? items : items.filter((i) => i.category === cat);
   const pick = (obj) => obj?.[locale] || obj?.en || "";
@@ -26,14 +26,14 @@ export default function FAQ() {
   return (
     <div data-testid="faq-page" className="mx-auto max-w-[1100px] px-5 sm:px-8">
       <section className="border-b border-black/10 py-16">
-        <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">Help · Atelier</div>
+        <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">{t("faq_page.hero_kicker")}</div>
         <h1 className="font-display mt-3 text-6xl uppercase leading-none tracking-[0.02em] sm:text-8xl">
-          Questions
+          {t("faq_page.title_a")}
           <br />
-          <span className="text-neutral-400">answered.</span>
+          <span className="text-neutral-400">{t("faq_page.title_b")}</span>
         </h1>
         <p className="mt-6 max-w-2xl text-[15px] leading-[1.7] text-neutral-700">
-          Everything we get asked most often — about shipping, returns, custom work and payment. Still need a human? Message us on WhatsApp or write to tunceltextile@gmail.com.
+          {t("faq_page.hero_body")}
         </p>
       </section>
 
@@ -48,7 +48,7 @@ export default function FAQ() {
                 cat === c.key ? "bg-black text-white" : "border border-black/15 text-neutral-700 hover:border-black hover:text-black"
               }`}
             >
-              {c[locale] || c.en}
+              {c.label}
             </button>
           ))}
         </div>
@@ -66,18 +66,18 @@ export default function FAQ() {
           ))}
           {visible.length === 0 && (
             <div className="py-16 text-center font-display text-2xl uppercase tracking-[0.05em] text-neutral-400">
-              No answers in this section yet.
+              {t("faq_page.empty")}
             </div>
           )}
         </Accordion>
       </section>
 
       <section className="border-t border-black/10 py-16">
-        <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">Still curious?</div>
-        <h2 className="font-display mt-2 text-4xl uppercase tracking-[0.04em] sm:text-6xl">Talk to a maker.</h2>
+        <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">{t("faq_page.still_curious")}</div>
+        <h2 className="font-display mt-2 text-4xl uppercase tracking-[0.04em] sm:text-6xl">{t("faq_page.talk_maker")}</h2>
         <div className="mt-6 flex flex-wrap gap-3">
-          <Link to="/custom-request" className="inline-flex items-center gap-2 bg-black px-7 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] text-white">Start a Custom Request →</Link>
-          <a href="mailto:tunceltextile@gmail.com" className="inline-flex items-center gap-2 border border-black px-7 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] hover:bg-black hover:text-white">Email Us</a>
+          <Link to="/custom-request" className="inline-flex items-center gap-2 bg-black px-7 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] text-white">{t("faq_page.start_custom")}</Link>
+          <a href="mailto:tunceltextile@gmail.com" className="inline-flex items-center gap-2 border border-black px-7 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] hover:bg-black hover:text-white">{t("faq_page.email_us")}</a>
         </div>
       </section>
     </div>

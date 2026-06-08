@@ -101,6 +101,16 @@ Studio gmail: **tunceltextile@gmail.com**
 2. "Enter your support name" prompt → stored in `localStorage.tuncel_admin_name`
 3. Admin name appended to every chat reply + "joined" system messages
 
+## Multilingual audit & fixes (Feb 2026)
+- **Translation infrastructure expanded** — Added ~250 new keys across EN/TR/RU/LV in 11 new namespaces: `pd` (product detail), `checkout` (success page), `iban_succ` (IBAN success), `account_page`, `faq_page`, `cr` (custom request), `tk` (tracking), `rr` (returns), `gc` (gift cards), `foot` (footer), `chat_x` (chat smart-links).
+- **Wired `t()` calls into 10 pages/components**: ProductDetail, CheckoutSuccess, Account, IbanSuccess, FAQ, TrackOrder, ReturnRequest, GiftCards, CustomRequest, Footer. All visible labels, hero titles, body copy, toasts, form labels, CTA buttons, status badges, policy lists, and preview blocks now translate.
+- **Quality fixes**:
+  - RU hero title was broken `СВОИ / МИ` (split a single word `СВОИМИ` across two lines). Now `СВОИМИ / РУКАМИ` ("with our / hands").
+  - TR hero was `ELDE / DOKUNMUŞ` ("touched/woven" — wrong tense). Now `EL / İŞÇİLİĞİ` ("hand / craftsmanship").
+  - Latvian `house_desc`, `atelier_loc`, all promise strip & legal links now native LV.
+- **Architecture**: Used `{...en.X, ...}` spread pattern so missing TR/RU/LV keys gracefully fall back to English copy instead of showing raw keys.
+- **Verified live** with 4 screenshots (TR locale) — Track Order, FAQ, Custom Request, Footer all render fully in Turkish.
+
 ## Recent UI tweaks (Feb 2026)
 - **Navbar — pure transparent**: Now has NO background at all by default (even on scroll / inner pages). Only on `:hover` over the header does a white blurred bar slide in. Text color smart-adapts: white over dark hero, black everywhere else. Bodoni Moda serif (`.font-prada`) throughout.
 - **EditorialSplit redesigned (Atelier / Bespoke / Gift)**: Bold Bodoni serif title with a lighter grey 2nd line (`TWO HANDS. / ONE ROOM.`), two body paragraphs, optional stats row (e.g. `II / 48H / 100` — FOUNDERS / LEAD-TIME / PER EDITION) in #1F4D3D accent, CTA button with diagonal arrow icon. Matches user reference photo 2.

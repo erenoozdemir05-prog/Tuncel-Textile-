@@ -2,12 +2,14 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { getCheckoutStatus } from "@/lib/api";
 import { useCart } from "@/contexts/CartContext";
+import { useI18n } from "@/contexts/I18nContext";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 
 export default function CheckoutSuccess() {
   const [params] = useSearchParams();
   const sessionId = params.get("session_id");
   const { clear } = useCart();
+  const { t } = useI18n();
   const [state, setState] = useState({ phase: "checking", paymentStatus: null, amount: 0 });
   const attemptsRef = useRef(0);
   const clearedRef = useRef(false);
@@ -57,27 +59,27 @@ export default function CheckoutSuccess() {
       {state.phase === "checking" && (
         <>
           <Loader2 className="h-10 w-10 animate-spin text-black" />
-          <h1 className="font-display mt-6 text-5xl uppercase tracking-[0.04em]">Confirming payment</h1>
-          <p className="mt-3 text-sm text-neutral-600">Hold on while we verify your order with Stripe…</p>
+          <h1 className="font-display mt-6 text-5xl uppercase tracking-[0.04em]">{t("checkout.confirming")}</h1>
+          <p className="mt-3 text-sm text-neutral-600">{t("checkout.confirming_body")}</p>
         </>
       )}
 
       {state.phase === "paid" && (
         <>
           <CheckCircle2 className="h-12 w-12 text-black" />
-          <h1 className="font-display mt-6 text-6xl uppercase tracking-[0.04em] sm:text-7xl">Order confirmed</h1>
+          <h1 className="font-display mt-6 text-6xl uppercase tracking-[0.04em] sm:text-7xl">{t("checkout.confirmed")}</h1>
           <p className="mt-4 max-w-md text-sm text-neutral-700">
-            Thank you. Your prints are on the press. We’ll send a confirmation email shortly.
+            {t("checkout.confirmed_body")}
           </p>
           <div className="mt-3 text-[11px] uppercase tracking-[0.25em] text-neutral-500">
-            Total · €{Number(state.amount).toFixed(2)}
+            {t("checkout.total")} · €{Number(state.amount).toFixed(2)}
           </div>
           <Link
             to="/shop/all"
             data-testid="success-continue-shopping"
             className="mt-10 inline-flex items-center gap-2 bg-black px-8 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] text-white"
           >
-            Continue Shopping
+            {t("checkout.continue_shopping")}
           </Link>
         </>
       )}
@@ -86,25 +88,25 @@ export default function CheckoutSuccess() {
         <>
           <XCircle className="h-12 w-12 text-black" />
           <h1 className="font-display mt-6 text-6xl uppercase tracking-[0.04em]">
-            {state.phase === "timeout" ? "Still processing" : "Something went wrong"}
+            {state.phase === "timeout" ? t("checkout.still_processing") : t("checkout.something_wrong")}
           </h1>
           <p className="mt-4 max-w-md text-sm text-neutral-700">
             {state.phase === "timeout"
-              ? "Your payment is still being processed. You'll receive an email confirmation once it completes."
-              : "We couldn't confirm your payment. Please try again or contact support."}
+              ? t("checkout.timeout_body")
+              : t("checkout.error_body")}
           </p>
           <div className="mt-10 flex gap-3">
             <Link
               to="/cart"
               className="inline-flex items-center gap-2 border border-black px-8 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] text-black hover:bg-black hover:text-white"
             >
-              Back to Cart
+              {t("checkout.back_to_cart")}
             </Link>
             <Link
               to="/"
               className="inline-flex items-center gap-2 bg-black px-8 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] text-white"
             >
-              Home
+              {t("checkout.home")}
             </Link>
           </div>
         </>

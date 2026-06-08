@@ -2,11 +2,13 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { purchaseGiftCard } from "@/lib/api";
 import { toast } from "sonner";
+import { useI18n } from "@/contexts/I18nContext";
 import { Loader2, Gift, Mail, Sparkles } from "lucide-react";
 
 const DENOMINATIONS = [25, 50, 100, 150, 250];
 
 export default function GiftCards() {
+  const { t } = useI18n();
   const [amount, setAmount] = useState(50);
   const [customMode, setCustomMode] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -16,21 +18,21 @@ export default function GiftCards() {
     recipient_name: "",
     recipient_email: "",
     message: "",
-    sendTo: "recipient", // recipient | self
+    sendTo: "recipient",
   });
 
   const submit = async (e) => {
     e.preventDefault();
     if (!form.buyer_name || !form.buyer_email) {
-      toast.error("Please fill your name and email.");
+      toast.error(t("gc.toast_fill"));
       return;
     }
     if (form.sendTo === "recipient" && !form.recipient_email) {
-      toast.error("Please add the recipient's email or send it to yourself.");
+      toast.error(t("gc.toast_recipient"));
       return;
     }
     if (!amount || amount < 5) {
-      toast.error("Minimum gift card amount is €5.");
+      toast.error(t("gc.toast_min"));
       return;
     }
     setSubmitting(true);
@@ -45,7 +47,7 @@ export default function GiftCards() {
       });
       window.location.href = res.checkout_url;
     } catch (ex) {
-      const msg = ex?.response?.data?.detail || "Could not start payment — please try again.";
+      const msg = ex?.response?.data?.detail || t("gc.toast_pay_fail");
       toast.error(msg);
       setSubmitting(false);
     }
@@ -53,23 +55,21 @@ export default function GiftCards() {
 
   return (
     <div data-testid="gift-cards-page" className="mx-auto max-w-[1400px] px-5 sm:px-8">
-      {/* HERO */}
       <section className="border-b border-black/10 py-16">
-        <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">Atelier · Gifts</div>
+        <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">{t("gc.hero_kicker")}</div>
         <h1 className="font-display mt-3 text-7xl uppercase leading-[0.9] tracking-[0.02em] sm:text-[10rem]">
-          The perfect
+          {t("gc.title_a")}
           <br />
-          <span className="text-neutral-400">gift.</span>
+          <span className="text-neutral-400">{t("gc.title_b")}</span>
         </h1>
         <p className="mt-8 max-w-2xl text-[15px] leading-[1.7] text-neutral-700">
-          A premium Tuncel Atelier gift card — delivered instantly by email with a personal note. Valid 12 months, no fees, redeemable on every piece in the atelier.
+          {t("gc.hero_body")}
         </p>
       </section>
 
       <div className="grid grid-cols-1 gap-12 py-12 lg:grid-cols-[1.1fr_1fr]">
         <form onSubmit={submit} className="space-y-10" data-testid="gift-form">
-          {/* AMOUNT */}
-          <Section step="01" title="Choose an amount">
+          <Section step="01" title={t("gc.step1")}>
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
               {DENOMINATIONS.map((d) => (
                 <button
@@ -92,7 +92,7 @@ export default function GiftCards() {
                   customMode ? "border-black bg-black text-white" : "border-black/15 hover:border-black"
                 }`}
               >
-                <div className="font-display text-lg">Custom</div>
+                <div className="font-display text-lg">{t("gc.custom")}</div>
               </button>
             </div>
             {customMode && (
@@ -111,8 +111,7 @@ export default function GiftCards() {
             )}
           </Section>
 
-          {/* DELIVERY */}
-          <Section step="02" title="Who's it for?">
+          <Section step="02" title={t("gc.step2")}>
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
@@ -123,8 +122,8 @@ export default function GiftCards() {
                 }`}
               >
                 <Mail className="h-5 w-5" />
-                <div className="font-display text-2xl uppercase tracking-[0.04em]">A friend</div>
-                <div className={`text-[11px] uppercase tracking-[0.18em] ${form.sendTo === "recipient" ? "text-white/70" : "text-neutral-500"}`}>Delivered to their email</div>
+                <div className="font-display text-2xl uppercase tracking-[0.04em]">{t("gc.a_friend")}</div>
+                <div className={`text-[11px] uppercase tracking-[0.18em] ${form.sendTo === "recipient" ? "text-white/70" : "text-neutral-500"}`}>{t("gc.a_friend_b")}</div>
               </button>
               <button
                 type="button"
@@ -135,35 +134,33 @@ export default function GiftCards() {
                 }`}
               >
                 <Gift className="h-5 w-5" />
-                <div className="font-display text-2xl uppercase tracking-[0.04em]">For myself</div>
-                <div className={`text-[11px] uppercase tracking-[0.18em] ${form.sendTo === "self" ? "text-white/70" : "text-neutral-500"}`}>Code arrives in your inbox</div>
+                <div className="font-display text-2xl uppercase tracking-[0.04em]">{t("gc.myself")}</div>
+                <div className={`text-[11px] uppercase tracking-[0.18em] ${form.sendTo === "self" ? "text-white/70" : "text-neutral-500"}`}>{t("gc.myself_b")}</div>
               </button>
             </div>
           </Section>
 
-          {/* BUYER */}
-          <Section step="03" title="Your details">
+          <Section step="03" title={t("gc.step3")}>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Text label="Your name *"  value={form.buyer_name}  onChange={(v) => setForm({ ...form, buyer_name: v })}  testid="gift-buyer-name" />
-              <Text label="Your email *" value={form.buyer_email} onChange={(v) => setForm({ ...form, buyer_email: v })} testid="gift-buyer-email" type="email" />
+              <Text label={t("gc.your_name")}  value={form.buyer_name}  onChange={(v) => setForm({ ...form, buyer_name: v })}  testid="gift-buyer-name" />
+              <Text label={t("gc.your_email")} value={form.buyer_email} onChange={(v) => setForm({ ...form, buyer_email: v })} testid="gift-buyer-email" type="email" />
             </div>
           </Section>
 
-          {/* RECIPIENT */}
           {form.sendTo === "recipient" && (
-            <Section step="04" title="Recipient">
+            <Section step="04" title={t("gc.step4")}>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Text label="Their name"      value={form.recipient_name}  onChange={(v) => setForm({ ...form, recipient_name: v })}  testid="gift-recipient-name" />
-                <Text label="Their email *"   value={form.recipient_email} onChange={(v) => setForm({ ...form, recipient_email: v })} testid="gift-recipient-email" type="email" />
+                <Text label={t("gc.their_name")}    value={form.recipient_name}  onChange={(v) => setForm({ ...form, recipient_name: v })}  testid="gift-recipient-name" />
+                <Text label={t("gc.their_email")}   value={form.recipient_email} onChange={(v) => setForm({ ...form, recipient_email: v })} testid="gift-recipient-email" type="email" />
               </div>
               <div className="mt-4">
-                <label className="text-[11px] uppercase tracking-[0.25em] text-neutral-500">Personal message (optional)</label>
+                <label className="text-[11px] uppercase tracking-[0.25em] text-neutral-500">{t("gc.message")}</label>
                 <textarea
                   rows={4}
                   data-testid="gift-message"
                   value={form.message}
                   onChange={(e) => setForm({ ...form, message: e.target.value.slice(0, 500) })}
-                  placeholder="Happy birthday — wear it well."
+                  placeholder={t("gc.message_ph")}
                   className="mt-2 w-full border border-black/15 px-3 py-3 text-[15px] leading-[1.7] outline-none focus:border-black"
                 />
                 <div className="mt-1 text-right text-[10px] uppercase tracking-[0.2em] text-neutral-400">{form.message.length}/500</div>
@@ -178,11 +175,10 @@ export default function GiftCards() {
             className="inline-flex w-full items-center justify-center gap-3 bg-black px-8 py-5 text-[12px] font-semibold uppercase tracking-[0.25em] text-white transition-colors hover:bg-neutral-800 disabled:opacity-60"
           >
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {submitting ? "Redirecting to payment…" : `Purchase · €${Number(amount || 0).toFixed(2)}`}
+            {submitting ? t("gc.redirecting") : t("gc.purchase").replace("{amount}", Number(amount || 0).toFixed(2))}
           </button>
         </form>
 
-        {/* PREMIUM PREVIEW CARD */}
         <aside className="h-fit lg:sticky lg:top-24">
           <div className="overflow-hidden border border-black shadow-2xl">
             <div className="relative aspect-[5/3] bg-black text-white">
@@ -196,38 +192,38 @@ export default function GiftCards() {
               <div className="absolute inset-0 flex flex-col justify-between p-8">
                 <div className="flex items-start justify-between">
                   <div>
-                    <div className="text-[10px] uppercase tracking-[0.35em] text-white/50">TUNCEL ATELIER</div>
-                    <div className="font-display mt-1 text-2xl uppercase tracking-[0.04em]">Gift card</div>
+                    <div className="text-[10px] uppercase tracking-[0.35em] text-white/50">{t("gc.card_brand")}</div>
+                    <div className="font-display mt-1 text-2xl uppercase tracking-[0.04em]">{t("gc.card_label")}</div>
                   </div>
                   <Gift className="h-6 w-6 text-white/70" />
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.3em] text-white/40">Amount</div>
+                  <div className="text-[10px] uppercase tracking-[0.3em] text-white/40">{t("gc.card_amount")}</div>
                   <div className="font-display mt-1 text-7xl uppercase leading-none tracking-[0.04em]">€{Number(amount || 0).toFixed(0)}</div>
                   <div className="mt-6 flex items-baseline justify-between gap-3">
                     <div className="font-mono text-xs tracking-[0.2em] text-white/70">XXXX-XXXX-XXXX-XXXX</div>
-                    <div className="text-[9px] uppercase tracking-[0.25em] text-white/40">Valid 12 months</div>
+                    <div className="text-[9px] uppercase tracking-[0.25em] text-white/40">{t("gc.card_valid")}</div>
                   </div>
                 </div>
               </div>
             </div>
             <div className="bg-white p-5">
-              <div className="text-[10px] uppercase tracking-[0.25em] text-neutral-500">What they see</div>
+              <div className="text-[10px] uppercase tracking-[0.25em] text-neutral-500">{t("gc.what_they_see")}</div>
               <p className="mt-2 text-sm leading-relaxed text-neutral-700">
-                <strong>{form.recipient_name || "Recipient"}</strong> opens a black-and-gold email with your message and their unique code. They redeem at checkout — partial use is supported.
+                <strong>{form.recipient_name || t("gc.recipient_default")}</strong> {t("gc.preview_body_a")}
               </p>
             </div>
           </div>
 
           <div className="mt-6 border border-black/15 p-5">
-            <div className="text-[10px] uppercase tracking-[0.25em] text-neutral-500">How it works</div>
+            <div className="text-[10px] uppercase tracking-[0.25em] text-neutral-500">{t("gc.how_it_works")}</div>
             <ol className="mt-3 space-y-2 text-[13px] leading-relaxed text-neutral-700">
-              <li>· You pay — Stripe (instant) or IBAN (24h).</li>
-              <li>· Code emailed immediately on payment.</li>
-              <li>· Redeem at checkout — any product, any size.</li>
-              <li>· Valid for 12 months, no fees, EU shipping included.</li>
+              <li>{t("gc.how_a")}</li>
+              <li>{t("gc.how_b")}</li>
+              <li>{t("gc.how_c")}</li>
+              <li>{t("gc.how_d")}</li>
             </ol>
-            <Link to="/faq" className="tx-link mt-4 inline-block text-[11px] uppercase tracking-[0.25em]">More questions →</Link>
+            <Link to="/faq" className="tx-link mt-4 inline-block text-[11px] uppercase tracking-[0.25em]">{t("gc.more_questions")}</Link>
           </div>
         </aside>
       </div>

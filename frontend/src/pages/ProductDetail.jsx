@@ -23,7 +23,7 @@ export default function ProductDetail() {
   const navigate = useNavigate();
   const { addItem } = useCart();
   const { items: cmsItems } = useCms();
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   const [product, setProduct] = useState(null);
   const [related, setRelated] = useState([]);
   const [size, setSize] = useState(null);
@@ -74,22 +74,22 @@ export default function ProductDetail() {
   if (!product) {
     return (
       <div className="mx-auto max-w-[1400px] px-5 py-32 text-center sm:px-8">
-        <h1 className="font-display text-5xl uppercase">Product not found</h1>
-        <Link to="/shop/all" className="tx-link mt-6 inline-block text-sm uppercase tracking-[0.25em]">Return to Shop →</Link>
+        <h1 className="font-display text-5xl uppercase">{t("pd.not_found")}</h1>
+        <Link to="/shop/all" className="tx-link mt-6 inline-block text-sm uppercase tracking-[0.25em]">{t("pd.return_to_shop")}</Link>
       </div>
     );
   }
 
   const handleAdd = (goToCart = false) => {
     addItem(product, { size, color, quantity: qty });
-    toast.success(`Added — ${product.name}`);
+    toast.success(t("pd.toast_added").replace("{name}", product.name));
     if (goToCart) navigate("/cart");
   };
 
   return (
     <div data-testid="product-detail-page" className="mx-auto max-w-[1400px] px-5 sm:px-8">
       <div className="flex items-center gap-2 py-6 text-[11px] uppercase tracking-[0.25em] text-neutral-500">
-        <Link to="/" className="tx-link">Home</Link>
+        <Link to="/" className="tx-link">{t("pd.home")}</Link>
         <ChevronRight className="h-3 w-3" />
         <Link to={`/shop/${product.category}`} className="tx-link">{product.category}</Link>
         <ChevronRight className="h-3 w-3" />
@@ -145,7 +145,7 @@ export default function ProductDetail() {
           {product.colors?.length > 0 && (
             <div className="mt-10">
               <div className="mb-3 text-[11px] uppercase tracking-[0.25em] text-neutral-500">
-                Color · <span className="text-black">{color}</span>
+                {t("pd.color")} · <span className="text-black">{color}</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {product.colors.map((c) => (
@@ -165,7 +165,7 @@ export default function ProductDetail() {
           {product.sizes?.length > 0 && (
             <div className="mt-8">
               <div className="mb-3 text-[11px] uppercase tracking-[0.25em] text-neutral-500">
-                Size · <span className="text-black">{size}</span>
+                {t("product.size")} · <span className="text-black">{size}</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {product.sizes.map((s) => (
@@ -184,7 +184,7 @@ export default function ProductDetail() {
 
           {/* Qty */}
           <div className="mt-8">
-            <div className="mb-3 text-[11px] uppercase tracking-[0.25em] text-neutral-500">Quantity</div>
+            <div className="mb-3 text-[11px] uppercase tracking-[0.25em] text-neutral-500">{t("pd.quantity")}</div>
             <div className="inline-flex items-center border border-black/15">
               <button
                 data-testid="product-qty-decrease"
@@ -212,31 +212,31 @@ export default function ProductDetail() {
               onClick={() => handleAdd(false)}
               className="inline-flex flex-1 items-center justify-center gap-2 bg-black px-8 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] text-white transition-colors hover:bg-neutral-800"
             >
-              Add to Bag
+              {t("pd.add_to_bag")}
             </button>
             <button
               data-testid="buy-now-button"
               onClick={() => handleAdd(true)}
               className="inline-flex flex-1 items-center justify-center gap-2 border border-black px-8 py-4 text-[12px] font-semibold uppercase tracking-[0.25em] text-black transition-colors hover:bg-black hover:text-white"
             >
-              Buy Now
+              {t("pd.buy_now")}
             </button>
           </div>
 
           <ul className="mt-8 space-y-2 border-t border-black/10 pt-6 text-sm text-neutral-700">
-            <li className="flex items-center gap-2"><Check className="h-4 w-4" /> {cmsText(cmsItems, "limited_edition", locale, "Limited edition · numbered & signed")}</li>
-            <li className="flex items-center gap-2"><Check className="h-4 w-4" /> {cmsText(cmsItems, "handcrafted", locale, "Hand-finished in our atelier")}</li>
-            <li className="flex items-center gap-2"><Check className="h-4 w-4" /> {cmsText(cmsItems, "free_shipping", locale, "Complimentary shipping over €30")}</li>
+            <li className="flex items-center gap-2"><Check className="h-4 w-4" /> {cmsText(cmsItems, "limited_edition", locale, t("pd.limited_edition"))}</li>
+            <li className="flex items-center gap-2"><Check className="h-4 w-4" /> {cmsText(cmsItems, "handcrafted", locale, t("pd.handcrafted"))}</li>
+            <li className="flex items-center gap-2"><Check className="h-4 w-4" /> {cmsText(cmsItems, "free_shipping", locale, t("pd.free_shipping"))}</li>
           </ul>
 
           {/* Accordion details */}
           <Accordion type="single" collapsible className="mt-8 border-t border-black/10">
             <AccordionItem value="size" className="border-b border-black/10">
-              <AccordionTrigger data-testid="size-guide-trigger" className="font-display text-lg uppercase tracking-[0.04em] hover:no-underline">Size guide</AccordionTrigger>
+              <AccordionTrigger data-testid="size-guide-trigger" className="font-display text-lg uppercase tracking-[0.04em] hover:no-underline">{t("pd.size_guide")}</AccordionTrigger>
               <AccordionContent>
                 <table className="w-full text-sm">
                   <thead className="text-[11px] uppercase tracking-[0.2em] text-neutral-500">
-                    <tr><th className="py-2 text-left">Size</th><th className="text-left">Chest (cm)</th><th className="text-left">Length (cm)</th></tr>
+                    <tr><th className="py-2 text-left">{t("pd.th_size")}</th><th className="text-left">{t("pd.th_chest")}</th><th className="text-left">{t("pd.th_length")}</th></tr>
                   </thead>
                   <tbody>
                     {SIZE_GUIDE.map((r) => (
@@ -251,15 +251,15 @@ export default function ProductDetail() {
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="materials" className="border-b border-black/10">
-              <AccordionTrigger className="font-display text-lg uppercase tracking-[0.04em] hover:no-underline">Materials & care</AccordionTrigger>
+              <AccordionTrigger className="font-display text-lg uppercase tracking-[0.04em] hover:no-underline">{t("pd.materials_care")}</AccordionTrigger>
               <AccordionContent className="text-sm leading-relaxed text-neutral-700">
-                100% heavyweight organic cotton, hand-finished in our atelier. Machine wash cold, inside out. Tumble dry low. Iron on the reverse only — never directly on the artwork.
+                {t("pd.materials_body")}
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="shipping">
-              <AccordionTrigger className="font-display text-lg uppercase tracking-[0.04em] hover:no-underline">Shipping & returns</AccordionTrigger>
+              <AccordionTrigger className="font-display text-lg uppercase tracking-[0.04em] hover:no-underline">{t("pd.shipping_returns")}</AccordionTrigger>
               <AccordionContent className="text-sm leading-relaxed text-neutral-700">
-                Dispatched within 48 hours from our atelier in Riga. Complimentary shipping on orders over €30. 14-day returns on unworn pieces — limited editions are final sale.
+                {t("pd.shipping_body")}
               </AccordionContent>
             </AccordionItem>
           </Accordion>
@@ -269,8 +269,8 @@ export default function ProductDetail() {
       {/* Related */}
       {related.length > 0 && (
         <section className="border-t border-black/10 py-16">
-          <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">More from {product.category}</div>
-          <h3 className="font-display mt-2 text-4xl uppercase tracking-[0.04em] sm:text-5xl">You may also like</h3>
+          <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">{t("pd.more_from")} {product.category}</div>
+          <h3 className="font-display mt-2 text-4xl uppercase tracking-[0.04em] sm:text-5xl">{t("pd.you_may_also_like")}</h3>
           <div className="mt-10 grid grid-cols-2 gap-x-5 gap-y-12 md:grid-cols-4">
             {related.map((p) => (<ProductCard key={p.id} product={p} />))}
           </div>
