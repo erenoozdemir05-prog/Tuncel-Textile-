@@ -69,6 +69,16 @@ function AppRouter() {
   );
 }
 
+function MainLayout() {
+  const location = useLocation();
+  const isHome = location.pathname === "/";
+  return (
+    <main className={`flex-1 ${isHome ? "" : "pt-[78px]"}`}>
+      <AppRouter />
+    </main>
+  );
+}
+
 function App() {
   return (
     <I18nProvider>
@@ -81,9 +91,7 @@ function App() {
                 <FaviconBridge />
                 <div className="App flex min-h-screen flex-col bg-white text-black">
                   <Navbar />
-                  <main className="flex-1">
-                    <AppRouter />
-                  </main>
+                  <MainLayout />
                   <Footer />
                   <WhatsappFAB />
                   <ChatWidget />

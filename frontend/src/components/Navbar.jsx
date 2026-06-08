@@ -66,7 +66,7 @@ export const Navbar = () => {
       data-testid="site-navbar"
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
-      className="sticky top-0 z-40 transition-colors duration-500"
+      className="fixed inset-x-0 top-0 z-40 transition-colors duration-500"
       style={{
         backgroundColor: isSolid ? "rgba(255,255,255,0.98)" : "transparent",
         borderBottom: isSolid ? "1px solid rgba(0,0,0,0.08)" : "1px solid transparent",
