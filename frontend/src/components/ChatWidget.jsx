@@ -2,13 +2,14 @@ import React, { useEffect, useRef, useState } from "react";
 import { chatStart, chatSend, chatFetch } from "@/lib/api";
 import { MessageCircle, Send, X, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useI18n } from "@/contexts/I18nContext";
 
-const LINK_MAP = {
-  track:  { to: "/track-order",   label: "Track your order →" },
-  return: { to: "/return-request", label: "Start a return →" },
-  custom: { to: "/custom-request", label: "Open custom request →" },
-  gift:   { to: "/gift-cards",     label: "Browse gift cards →" },
-  faq:    { to: "/faq",            label: "Read the FAQ →" },
+const LINK_MAP_PATHS = {
+  track:  "/track-order",
+  return: "/return-request",
+  custom: "/custom-request",
+  gift:   "/gift-cards",
+  faq:    "/faq",
 };
 
 // Auto-detect intent words in any language and surface the matching CTA below an AI bubble.
@@ -44,6 +45,7 @@ const STORAGE_KEY = "tuncel_chat_session";
 const POLL_MS = 3000;
 
 export function ChatWidget() {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [sessionId, setSessionId] = useState(() => localStorage.getItem(STORAGE_KEY) || "");
   const [sessionStatus, setSessionStatus] = useState("open");
@@ -56,6 +58,14 @@ export function ChatWidget() {
   const [unread, setUnread] = useState(0);
   const lastSeenRef = useRef(null);
   const scrollRef = useRef(null);
+
+  const smartLinkLabel = (k) => ({
+    track:  t("chat_x.smart_track"),
+    return: t("chat_x.smart_return"),
+    custom: t("chat_x.smart_custom"),
+    gift:   t("chat_x.smart_gift"),
+    faq:    t("chat_x.smart_faq"),
+  })[k];
 
   // Poll messages while session exists
   useEffect(() => {
@@ -169,10 +179,10 @@ export function ChatWidget() {
           {/* HEADER */}
           <div className="flex items-center justify-between border-b border-black bg-black px-4 py-3 text-white">
             <div>
-              <div className="font-display text-base uppercase tracking-[0.18em]">Atelier chat</div>
+              <div className="font-display text-base uppercase tracking-[0.18em]">{t("chat_x.header_title")}</div>
               <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.25em] text-white/70">
                 <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-                AI Supported · usually replies in seconds
+                {t("chat_x.header_sub")}
               </div>
             </div>
             <button data-testid="chat-close" onClick={() => setOpen(false)} aria-label="Close chat" className="p-1 hover:bg-white/10">
@@ -183,19 +193,19 @@ export function ChatWidget() {
           {/* BODY */}
           {!sessionId ? (
             <form onSubmit={start} className="flex flex-1 flex-col gap-3 overflow-y-auto p-5">
-              <p className="text-sm text-neutral-700">Hi — leave your name and a quick message. We reply by chat or email.</p>
+              <p className="text-sm text-neutral-700">{t("chat_x.intro")}</p>
               <input
                 data-testid="chat-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Your name (optional)"
+                placeholder={t("chat_x.name_ph")}
                 className="border border-black/15 px-3 py-2 text-sm outline-none focus:border-black"
               />
               <input
                 data-testid="chat-email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email (so we can follow up)"
+                placeholder={t("chat_x.email_ph")}
                 className="border border-black/15 px-3 py-2 text-sm outline-none focus:border-black"
               />
               <textarea
@@ -203,7 +213,7 @@ export function ChatWidget() {
                 rows={4}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                placeholder="How can we help?"
+                placeholder={t("chat_x.initial_ph")}
                 className="border border-black/15 px-3 py-2 text-sm outline-none focus:border-black"
               />
               <button
@@ -212,14 +222,14 @@ export function ChatWidget() {
                 data-testid="chat-start"
                 className="mt-auto bg-black px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.25em] text-white disabled:opacity-50"
               >
-                {starting ? "Sending…" : "Start chat"}
+                {starting ? t("chat_x.sending") : t("chat_x.start_chat")}
               </button>
             </form>
           ) : (
             <>
               <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4" data-testid="chat-messages">
                 {messages.length === 0 ? (
-                  <p className="text-center text-xs text-neutral-400">No messages yet.</p>
+                  <p className="text-center text-xs text-neutral-400">{t("chat_x.no_messages")}</p>
                 ) : (
                   messages.map((m) => {
                     const isAi = m.sender === "ai";
@@ -233,7 +243,7 @@ export function ChatWidget() {
                       );
                     }
                     const fromAtelierSide = isAi || isAdmin;
-                    const senderLabel = isAi ? "Atelier AI" : isAdmin ? (m.sender_name || "Atelier") : "You";
+                    const senderLabel = isAi ? t("chat_x.atelier_ai") : isAdmin ? (m.sender_name || t("chat_x.atelier")) : t("chat_x.you");
                     const { text, links } = isAi ? parseSmartLinks(m.body) : { text: m.body, links: [] };
                     return (
                       <div key={m.id} className={`mb-3 flex w-full flex-col ${fromAtelierSide ? "items-start" : "items-end"}`}>
@@ -249,7 +259,7 @@ export function ChatWidget() {
                         >
                           {isAi && (
                             <div className="mb-1 flex items-center gap-1 text-[9px] uppercase tracking-[0.2em] text-purple-700">
-                              <Sparkles className="h-2.5 w-2.5" /> Auto-reply
+                              <Sparkles className="h-2.5 w-2.5" /> {t("chat_x.auto_reply")}
                             </div>
                           )}
                           {text}
@@ -262,12 +272,12 @@ export function ChatWidget() {
                             {links.map((k) => (
                               <Link
                                 key={k}
-                                to={LINK_MAP[k].to}
+                                to={LINK_MAP_PATHS[k]}
                                 onClick={() => setOpen(false)}
                                 data-testid={`chat-smartlink-${k}`}
                                 className="inline-flex items-center gap-1 border border-black bg-white px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-black hover:bg-black hover:text-white"
                               >
-                                {LINK_MAP[k].label}
+                                {smartLinkLabel(k)}
                               </Link>
                             ))}
                           </div>
@@ -278,25 +288,25 @@ export function ChatWidget() {
                 )}
                 {aiTyping && (
                   <div className="mb-3 flex flex-col items-start" data-testid="chat-ai-typing">
-                    <div className="text-[9px] uppercase tracking-[0.2em] text-purple-700">Atelier AI</div>
+                    <div className="text-[9px] uppercase tracking-[0.2em] text-purple-700">{t("chat_x.atelier_ai")}</div>
                     <div className="mt-1 inline-flex items-center gap-1.5 border border-purple-200 bg-purple-50 px-3 py-2.5 text-sm">
                       <span className="h-2 w-2 animate-bounce rounded-full bg-purple-400" style={{ animationDelay: "0ms" }} />
                       <span className="h-2 w-2 animate-bounce rounded-full bg-purple-500" style={{ animationDelay: "150ms" }} />
                       <span className="h-2 w-2 animate-bounce rounded-full bg-purple-600" style={{ animationDelay: "300ms" }} />
-                      <span className="ml-1 text-[10px] uppercase tracking-[0.2em] text-purple-700">typing…</span>
+                      <span className="ml-1 text-[10px] uppercase tracking-[0.2em] text-purple-700">{t("chat_x.typing")}</span>
                     </div>
                   </div>
                 )}
               </div>
               {sessionStatus === "closed" ? (
                 <div className="border-t border-black/10 p-4 text-center" data-testid="chat-closed-banner">
-                  <p className="text-[12px] text-neutral-600">Support chat has been closed.</p>
+                  <p className="text-[12px] text-neutral-600">{t("chat_x.closed")}</p>
                   <button
                     onClick={startNewChat}
                     data-testid="chat-start-new"
                     className="mt-3 inline-flex w-full items-center justify-center gap-2 bg-black px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.25em] text-white hover:bg-neutral-800"
                   >
-                    Start New Chat
+                    {t("chat_x.start_new")}
                   </button>
                 </div>
               ) : (
@@ -305,7 +315,7 @@ export function ChatWidget() {
                     data-testid="chat-draft"
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
-                    placeholder="Type a message…"
+                    placeholder={t("chat_x.type_ph")}
                     className="flex-1 border border-black/15 px-3 py-2 text-sm outline-none focus:border-black"
                   />
                   <button
@@ -337,8 +347,8 @@ export function ChatWidget() {
           <Sparkles className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 text-emerald-300" />
         </span>
         <span className="flex flex-col items-start leading-tight">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">AI Chat</span>
-          <span className="text-[8.5px] uppercase tracking-[0.2em] text-white/60">Live · with humans</span>
+          <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">{t("chat_x.fab_title")}</span>
+          <span className="text-[8.5px] uppercase tracking-[0.2em] text-white/60">{t("chat_x.fab_sub")}</span>
         </span>
         {unread > 0 && !open && (
           <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-semibold text-white">

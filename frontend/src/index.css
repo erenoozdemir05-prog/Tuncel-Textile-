@@ -68,7 +68,7 @@
     100% { transform: translateX(-50%); }
 }
 .tx-marquee {
-    animation: tx-marquee 40s linear infinite;
+    animation: tx-marquee 28s linear infinite;
 }
 
 /* Hero slide transitions */

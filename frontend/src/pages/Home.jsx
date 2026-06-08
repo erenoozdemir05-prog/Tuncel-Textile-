@@ -179,18 +179,18 @@ export default function Home() {
       <EditorialSplit
         testid="editorial-manifesto"
         image="https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&w=1400&q=85"
-        kicker="THE ATELIER · MANIFESTO"
-        title="TWO HANDS."
-        titleSecondary="ONE ROOM."
-        body="Tuncel Textile is a two-person atelier in Riga. Every piece is conceived, cut, finished and signed under one roof — never sub-contracted, never mass-produced."
-        bodySecondary="What we put out is what we'd wear ourselves. Heavy-gauge cotton. Hand-pulled prints. Editions of one hundred. When an edition closes — it does not return."
+        kicker={t("ed_atelier.kicker")}
+        title={t("ed_atelier.title_a")}
+        titleSecondary={t("ed_atelier.title_b")}
+        body={t("ed_atelier.body_a")}
+        bodySecondary={t("ed_atelier.body_b")}
         stats={[
-          { value: "II", label: "Founders" },
-          { value: "48H", label: "Lead-time" },
-          { value: "100", label: "Per edition" },
+          { value: t("ed_atelier.stat1_v"), label: t("ed_atelier.stat1_l") },
+          { value: t("ed_atelier.stat2_v"), label: t("ed_atelier.stat2_l") },
+          { value: t("ed_atelier.stat3_v"), label: t("ed_atelier.stat3_l") },
         ]}
         ctaTo="/about"
-        ctaLabel="Discover the atelier"
+        ctaLabel={t("ed_atelier.cta")}
       />
 
       {/* 5 · Bespoke / Custom split */}
@@ -198,35 +198,35 @@ export default function Home() {
         testid="bespoke-cta"
         reverse
         image="https://images.unsplash.com/photo-1604176354204-9268737828e4?auto=format&fit=crop&w=1400&q=85"
-        kicker="BESPOKE · MADE FOR YOU"
-        title="HAVE AN"
-        titleSecondary="IDEA?"
-        body="From a single tee for yourself to a small drop for your brand. No MOQ — start at just one piece, finish at one hundred."
-        bodySecondary="Free design consultation. Hand-drawn mockup within 48 hours. Founders reply personally within one working day."
+        kicker={t("ed_bespoke.kicker")}
+        title={t("ed_bespoke.title_a")}
+        titleSecondary={t("ed_bespoke.title_b")}
+        body={t("ed_bespoke.body_a")}
+        bodySecondary={t("ed_bespoke.body_b")}
         stats={[
-          { value: "1", label: "Min. quantity" },
-          { value: "48H", label: "First mockup" },
-          { value: "0€", label: "Consultation" },
+          { value: t("ed_bespoke.stat1_v"), label: t("ed_bespoke.stat1_l") },
+          { value: t("ed_bespoke.stat2_v"), label: t("ed_bespoke.stat2_l") },
+          { value: t("ed_bespoke.stat3_v"), label: t("ed_bespoke.stat3_l") },
         ]}
         ctaTo="/custom-request"
-        ctaLabel="Start a request"
+        ctaLabel={t("ed_bespoke.cta")}
       />
 
       {/* 6 · Gift card split */}
       <EditorialSplit
         testid="gift-cta"
         image="https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=1400&q=85"
-        kicker="GIFTS · TUNCEL CARD"
-        title="A GIFT,"
-        titleSecondary="EARNED."
-        body="Delivered instantly with a personal note. Valid twelve months, redeemable on every piece in the atelier."
+        kicker={t("ed_gift.kicker")}
+        title={t("ed_gift.title_a")}
+        titleSecondary={t("ed_gift.title_b")}
+        body={t("ed_gift.body_a")}
         bodySecondary={
           <span data-testid="gift-single-use-note" className="text-[11px] uppercase tracking-[0.25em] text-black/55">
-            SINGLE-USE · ONE GIFT CARD, ONE ORDER. ANY REMAINING BALANCE IS FORFEITED.
+            {t("ed_gift.body_b_note")}
           </span>
         }
         ctaTo="/gift-cards"
-        ctaLabel="Send a gift card"
+        ctaLabel={t("ed_gift.cta")}
       />
 
       {/* 7 · Newsletter — minimal centered */}

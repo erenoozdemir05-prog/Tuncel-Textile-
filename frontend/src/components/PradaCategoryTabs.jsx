@@ -102,8 +102,15 @@ export const PradaCategoryTabs = () => {
               type="button"
               onClick={() => setActive(g)}
               data-testid={`prada-toggle-${g}`}
-              className="group relative pb-1 text-[12px] uppercase tracking-[0.45em] transition-colors"
-              style={{ color: active === g ? "#0A0A0A" : "rgba(10,10,10,0.4)" }}
+              className="font-prada group relative pb-2 transition-all"
+              style={{
+                fontFamily: "'Bodoni Moda', 'Cormorant Garamond', serif",
+                fontSize: "clamp(20px, 1.6vw, 28px)",
+                fontWeight: 400,
+                letterSpacing: "0.34em",
+                color: active === g ? "#0A0A0A" : "rgba(10,10,10,0.35)",
+                textTransform: "uppercase",
+              }}
             >
               {t(`nav.${g}`)}
               <span

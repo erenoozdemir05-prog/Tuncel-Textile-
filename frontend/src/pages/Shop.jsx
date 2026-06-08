@@ -12,26 +12,6 @@ const TITLES = {
   all: { kicker: "ATELIER · MMXXVI", title_key: "shop_page.all_pieces" },
 };
 
-const FILTERS = [
-  { key: "all", label: "ALL" },
-  { key: "hoodie", label: "HOODIES" },
-  { key: "tshirt", label: "T-SHIRTS" },
-  { key: "accessory", label: "ACCESSORIES" },
-];
-
-const SORTS = [
-  { key: "newest", label: "NEWEST" },
-  { key: "price-asc", label: "PRICE ↑" },
-  { key: "price-desc", label: "PRICE ↓" },
-];
-
-const RANGES = [
-  { key: "all", label: "ALL PRICES" },
-  { key: "u40", label: "UNDER €40", max: 40 },
-  { key: "40-80", label: "€40 — €80", min: 40, max: 80 },
-  { key: "80p", label: "€80+", min: 80 },
-];
-
 const ProductCard = ({ product, index }) => (
   <Link
     to={`/product/${product.id}`}
@@ -70,6 +50,24 @@ export default function Shop() {
   const activeRange = searchParams.get("range") || "all";
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const FILTERS = [
+    { key: "all",       label: t("shop_filter.all") },
+    { key: "hoodie",    label: t("shop_filter.hoodie") },
+    { key: "tshirt",    label: t("shop_filter.tshirt") },
+    { key: "accessory", label: t("shop_filter.accessory") },
+  ];
+  const SORTS = [
+    { key: "newest",     label: t("shop_filter.sort_newest") },
+    { key: "price-asc",  label: t("shop_filter.sort_price_asc") },
+    { key: "price-desc", label: t("shop_filter.sort_price_desc") },
+  ];
+  const RANGES = [
+    { key: "all",   label: t("shop_filter.range_all") },
+    { key: "u40",   label: t("shop_filter.range_u40"),   max: 40 },
+    { key: "40-80", label: t("shop_filter.range_40_80"), min: 40, max: 80 },
+    { key: "80p",   label: t("shop_filter.range_80p"),   min: 80 },
+  ];
 
   const meta = TITLES[category] || TITLES.all;
   const titleText = t(meta.title_key);

@@ -102,14 +102,15 @@ Studio gmail: **tunceltextile@gmail.com**
 3. Admin name appended to every chat reply + "joined" system messages
 
 ## Multilingual audit & fixes (Feb 2026)
-- **Translation infrastructure expanded** — Added ~250 new keys across EN/TR/RU/LV in 11 new namespaces: `pd` (product detail), `checkout` (success page), `iban_succ` (IBAN success), `account_page`, `faq_page`, `cr` (custom request), `tk` (tracking), `rr` (returns), `gc` (gift cards), `foot` (footer), `chat_x` (chat smart-links).
-- **Wired `t()` calls into 10 pages/components**: ProductDetail, CheckoutSuccess, Account, IbanSuccess, FAQ, TrackOrder, ReturnRequest, GiftCards, CustomRequest, Footer. All visible labels, hero titles, body copy, toasts, form labels, CTA buttons, status badges, policy lists, and preview blocks now translate.
+- **Translation infrastructure expanded** — Added ~320 keys across EN/TR/RU/LV in 13 new namespaces: `pd`, `checkout`, `iban_succ`, `account_page`, `faq_page`, `cr`, `tk`, `rr`, `gc`, `foot`, `chat_x`, `ed_atelier`/`ed_bespoke`/`ed_gift` (home editorial splits), `shop_filter`, `nav.menu/search/contact_us`.
+- **Wired `t()` calls into 11 pages/components**: ProductDetail, CheckoutSuccess, Account, IbanSuccess, FAQ, TrackOrder, ReturnRequest, GiftCards, CustomRequest, Footer, Home (3 splits), Shop (filters/sort/range), Navbar (drawer + chat copy), ChatWidget (header, placeholders, smart-links, FAB, closed banner).
+- **Navbar redesigned — Prada layout**: `Menu + Search` icons on left, `TUNCEL TEXTILE` (Bodoni) center, `Contact us · Lang · Account · Cart` right. `position: fixed` over hero (truly transparent at top, white on scroll/hover). Larger 18px Bodoni labels with 0.05em tracking. Language switcher uses `variant="dark"` over the hero so it stays white & legible.
 - **Quality fixes**:
-  - RU hero title was broken `СВОИ / МИ` (split a single word `СВОИМИ` across two lines). Now `СВОИМИ / РУКАМИ` ("with our / hands").
-  - TR hero was `ELDE / DOKUNMUŞ` ("touched/woven" — wrong tense). Now `EL / İŞÇİLİĞİ` ("hand / craftsmanship").
-  - Latvian `house_desc`, `atelier_loc`, all promise strip & legal links now native LV.
-- **Architecture**: Used `{...en.X, ...}` spread pattern so missing TR/RU/LV keys gracefully fall back to English copy instead of showing raw keys.
-- **Verified live** with 4 screenshots (TR locale) — Track Order, FAQ, Custom Request, Footer all render fully in Turkish.
+  - RU hero: `СВОИ / МИ` (broken word split) → `СВОИМИ / РУКАМИ` ✓
+  - TR hero: `ELDE / DOKUNMUŞ` (wrong tense) → `EL / İŞÇİLİĞİ` ✓
+- **Footer marquee speed** bumped 40s → 28s for liveliness.
+- **PradaCategoryTabs toggle** uses Bodoni Moda serif at 28px with 0.34em letter-spacing (matches reference photo).
+- **Architecture**: Used `{...en.X, ...}` spread pattern so missing TR/RU/LV keys gracefully fall back to English copy.
 
 ## Recent UI tweaks (Feb 2026)
 - **Navbar — pure transparent**: Now has NO background at all by default (even on scroll / inner pages). Only on `:hover` over the header does a white blurred bar slide in. Text color smart-adapts: white over dark hero, black everywhere else. Bodoni Moda serif (`.font-prada`) throughout.
