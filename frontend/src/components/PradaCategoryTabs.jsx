@@ -11,56 +11,16 @@ import { useI18n } from "@/contexts/I18nContext";
 
 const COLUMNS = {
   women: [
-    {
-      label: "READY-TO-WEAR",
-      to: "/shop/women?type=hoodie",
-      image:
-        "https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=900&q=85",
-    },
-    {
-      label: "T-SHIRTS",
-      to: "/shop/women?type=tshirt",
-      image:
-        "https://images.unsplash.com/photo-1485518882345-15568b007407?auto=format&fit=crop&w=900&q=85",
-    },
-    {
-      label: "BAGS",
-      to: "/shop/accessories",
-      image:
-        "https://images.unsplash.com/photo-1591561954557-26941169b49e?auto=format&fit=crop&w=900&q=85",
-    },
-    {
-      label: "ACCESSORIES",
-      to: "/shop/accessories",
-      image:
-        "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=85",
-    },
+    { labelKey: "tabs.ready_to_wear", to: "/shop/women?type=hoodie", image: "https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=900&q=85" },
+    { labelKey: "tabs.tshirts",       to: "/shop/women?type=tshirt", image: "https://images.unsplash.com/photo-1485518882345-15568b007407?auto=format&fit=crop&w=900&q=85" },
+    { labelKey: "tabs.bags",          to: "/shop/accessories",       image: "https://images.unsplash.com/photo-1591561954557-26941169b49e?auto=format&fit=crop&w=900&q=85" },
+    { labelKey: "tabs.accessories",   to: "/shop/accessories",       image: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=85" },
   ],
   men: [
-    {
-      label: "READY-TO-WEAR",
-      to: "/shop/men?type=hoodie",
-      image:
-        "https://images.unsplash.com/photo-1617137968427-85924c800a22?auto=format&fit=crop&w=900&q=85",
-    },
-    {
-      label: "T-SHIRTS",
-      to: "/shop/men?type=tshirt",
-      image:
-        "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=900&q=85",
-    },
-    {
-      label: "BAGS",
-      to: "/shop/accessories",
-      image:
-        "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?auto=format&fit=crop&w=900&q=85",
-    },
-    {
-      label: "ACCESSORIES",
-      to: "/shop/accessories",
-      image:
-        "https://images.unsplash.com/photo-1591561954557-26941169b49e?auto=format&fit=crop&w=900&q=85",
-    },
+    { labelKey: "tabs.ready_to_wear", to: "/shop/men?type=hoodie", image: "https://images.unsplash.com/photo-1617137968427-85924c800a22?auto=format&fit=crop&w=900&q=85" },
+    { labelKey: "tabs.tshirts",       to: "/shop/men?type=tshirt", image: "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=900&q=85" },
+    { labelKey: "tabs.bags",          to: "/shop/accessories",     image: "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?auto=format&fit=crop&w=900&q=85" },
+    { labelKey: "tabs.accessories",   to: "/shop/accessories",     image: "https://images.unsplash.com/photo-1591561954557-26941169b49e?auto=format&fit=crop&w=900&q=85" },
   ],
 };
 
@@ -129,29 +89,32 @@ export const PradaCategoryTabs = () => {
           className="grid grid-cols-2 gap-[2px] lg:grid-cols-4"
           style={{ animation: "pradaFade 700ms ease-out both" }}
         >
-          {tiles.map((tile, i) => (
-            <Link
-              key={tile.label + i}
-              to={tile.productId ? `/product/${tile.productId}` : tile.to}
-              data-testid={`prada-tile-${active}-${i}`}
-              className="group block"
-            >
-              <div className="relative aspect-[3/4] overflow-hidden bg-[#F5F1E8]">
-                <img
-                  src={tile.image}
-                  alt={tile.label}
-                  loading="lazy"
-                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1400ms] ease-out group-hover:scale-[1.04]"
-                />
-                {/* Label overlaid at bottom on hover — keeps the grid pure imagery */}
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 via-black/0 to-transparent p-4 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
-                  <div className="font-prada text-center text-[12px] uppercase tracking-[0.3em] text-white">
-                    {tile.label}
+          {tiles.map((tile, i) => {
+            const label = tile.labelKey ? t(tile.labelKey) : tile.label;
+            return (
+              <Link
+                key={(tile.labelKey || tile.label) + i}
+                to={tile.productId ? `/product/${tile.productId}` : tile.to}
+                data-testid={`prada-tile-${active}-${i}`}
+                className="group block"
+              >
+                <div className="relative aspect-[3/4] overflow-hidden bg-[#F5F1E8]">
+                  <img
+                    src={tile.image}
+                    alt={label}
+                    loading="lazy"
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1400ms] ease-out group-hover:scale-[1.04]"
+                  />
+                  {/* Label overlaid at bottom on hover — keeps the grid pure imagery */}
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 via-black/0 to-transparent p-4 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
+                    <div className="font-prada text-center text-[12px] uppercase tracking-[0.3em] text-white">
+                      {label}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       </div>
 

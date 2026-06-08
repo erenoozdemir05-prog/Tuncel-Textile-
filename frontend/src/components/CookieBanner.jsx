@@ -26,18 +26,18 @@ export const setCookieConsent = (prefs) => {
   localStorage.setItem(KEY, JSON.stringify({ ...prefs, essential: true, ts: Date.now() }));
 };
 
-const CATEGORIES = [
-  { key: "essential", title: "Essential",   body: "Cart, checkout, secure login, IBAN reference cookies. Cannot be turned off — the site won't work without them." },
-  { key: "preferences", title: "Preferences", body: "Remember your language (EN/RU/LV), region and recently viewed pieces so you don't have to re-set them." },
-  { key: "analytics", title: "Analytics",    body: "Anonymous traffic, page-view and conversion measurement (e.g. Plausible / GA). Helps us see what to make next. No tracking across other sites." },
-  { key: "marketing", title: "Marketing",    body: "Personalised drops and re-targeting on Instagram, Meta and TikTok. Turn off if you'd rather not see Tuncel ads anywhere else." },
-];
-
 export const CookieBanner = () => {
   const { t } = useI18n();
   const [show, setShow] = useState(false);
   const [customize, setCustomize] = useState(false);
   const [prefs, setPrefs] = useState(DEFAULT_PREFS);
+
+  const CATEGORIES = [
+    { key: "essential",   title: t("cookies.cat_essential"),   body: t("cookies.cat_essential_body") },
+    { key: "preferences", title: t("cookies.cat_preferences"), body: t("cookies.cat_preferences_body") },
+    { key: "analytics",   title: t("cookies.cat_analytics"),   body: t("cookies.cat_analytics_body") },
+    { key: "marketing",   title: t("cookies.cat_marketing"),   body: t("cookies.cat_marketing_body") },
+  ];
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -74,7 +74,7 @@ export const CookieBanner = () => {
           <div className="flex items-center justify-between border-b border-black/10 px-6 py-4">
             <div className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
-              <div className="font-display text-xl uppercase tracking-[0.04em]">Cookie preferences</div>
+              <div className="font-display text-xl uppercase tracking-[0.04em]">{t("cookies.modal_title")}</div>
             </div>
             <button data-testid="cookie-modal-close" onClick={() => setCustomize(false)} className="p-1 hover:bg-black/5">
               <X className="h-4 w-4" />
@@ -82,7 +82,7 @@ export const CookieBanner = () => {
           </div>
           <div className="flex-1 overflow-y-auto p-6">
             <p className="text-sm leading-relaxed text-neutral-700">
-              Choose what we can use to make Tuncel Textile better. You can change these any time from the cookie policy page.
+              {t("cookies.modal_body")}
             </p>
             <div className="mt-6 space-y-4">
               {CATEGORIES.map((c) => {
@@ -93,7 +93,7 @@ export const CookieBanner = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <div className="font-display text-base uppercase tracking-[0.04em]">{c.title}</div>
-                        {locked && <span className="text-[9px] uppercase tracking-[0.25em] text-neutral-500">Always on</span>}
+                        {locked && <span className="text-[9px] uppercase tracking-[0.25em] text-neutral-500">{t("cookies.always_on")}</span>}
                       </div>
                       <p className="mt-1 text-xs leading-relaxed text-neutral-600">{c.body}</p>
                     </div>
@@ -115,13 +115,13 @@ export const CookieBanner = () => {
           </div>
           <div className="flex flex-col gap-2 border-t border-black/10 p-4 sm:flex-row">
             <button data-testid="cookie-reject-all" onClick={rejectAll} className="flex-1 border border-black/15 px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.2em] hover:bg-black hover:text-white">
-              Reject all
+              {t("cookies.reject_all")}
             </button>
             <button data-testid="cookie-save" onClick={savePrefs} className="flex-1 bg-black px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-white hover:bg-neutral-800">
-              Save preferences
+              {t("cookies.save_prefs")}
             </button>
             <button data-testid="cookie-accept-all" onClick={acceptAll} className="flex-1 border border-black px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.2em] hover:bg-black hover:text-white">
-              Accept all
+              {t("cookies.accept_all")}
             </button>
           </div>
         </div>
@@ -154,7 +154,7 @@ export const CookieBanner = () => {
             onClick={() => setCustomize(true)}
             className="whitespace-nowrap border border-black/15 px-3 py-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-black hover:bg-black hover:text-white sm:px-4"
           >
-            Customize
+            {t("cookies.customize")}
           </button>
           <button
             data-testid="cookie-decline"

@@ -8,23 +8,26 @@ const FALLBACK = [
   {
     image_url:
       "https://customer-assets.emergentagent.com/job_tuncel-textile/artifacts/i2x1jl91_image.png",
-    kicker: { en: "THE DIGITAL EDIT" },
-    title: { en: "Hellenistic Ascension" },
+    kicker: { en: "THE DIGITAL EDIT", tr: "DİJİTAL SEÇKİ", ru: "ДИДЖИТАЛ-ВЫПУСК", lv: "DIGITĀLĀ IZLASE" },
+    title: { en: "Hellenistic Ascension", tr: "Helenistik Yükseliş", ru: "Эллинистическое Восхождение", lv: "Hellēnisma Pacelšanās" },
     gender: "men",
   },
   {
     image_url:
       "https://customer-assets.emergentagent.com/job_tuncel-textile/artifacts/k3l9o3xm_image.png",
-    kicker: { en: "THE DIGITAL EDIT" },
-    title: { en: "Divine Decay" },
+    kicker: { en: "THE DIGITAL EDIT", tr: "DİJİTAL SEÇKİ", ru: "ДИДЖИТАЛ-ВЫПУСК", lv: "DIGITĀLĀ IZLASE" },
+    title: { en: "Divine Decay", tr: "Kutsal Çürüyüş", ru: "Божественный Распад", lv: "Dievišķā Sairšana" },
     gender: "women",
   },
 ];
 
-const pickText = (obj, fb = "") => (obj && (obj.en || Object.values(obj)[0])) || fb;
+// Locale-aware text picker. Falls back to EN, then any other locale, then `fb`.
+const pickText = (obj, locale = "en", fb = "") => {
+  if (!obj) return fb;
+  return obj[locale] || obj.en || Object.values(obj)[0] || fb;
+};
 const inferGender = (slide, i) => slide?.gender || (i === 0 ? "men" : "women");
 const genderPath = (g) => (g === "women" ? "/shop/women" : g === "men" ? "/shop/men" : "/shop/all");
-const genderLabel = (g) => (g === "women" ? "FOR HER" : g === "men" ? "FOR HIM" : "SHOP");
 
 /**
  * EditorialHero — Prada/Gucci-style single-image carousel.
@@ -36,13 +39,16 @@ const genderLabel = (g) => (g === "women" ? "FOR HER" : g === "men" ? "FOR HIM" 
  */
 export const EditorialHero = () => {
   const { heroSlides } = useCms();
+  const { locale, t } = useI18n();
   const list = (heroSlides && heroSlides.length > 0 ? heroSlides : FALLBACK).slice(0, 6);
   const [i, setI] = useState(0);
 
   const slide = list[i];
   const gender = inferGender(slide, i);
-  const title = pickText(slide?.title, "TUNCEL");
-  const kicker = pickText(slide?.kicker, "THE DIGITAL EDIT").toUpperCase();
+  const title = pickText(slide?.title, locale, "TUNCEL");
+  const kicker = pickText(slide?.kicker, locale, t("hero_x.kicker_default")).toUpperCase();
+
+  const genderLabel = (g) => g === "women" ? t("hero_x.for_her") : g === "men" ? t("hero_x.for_him") : t("hero_x.shop");
 
   const next = () => setI((p) => (p + 1) % list.length);
   const prev = () => setI((p) => (p - 1 + list.length) % list.length);
@@ -65,7 +71,7 @@ export const EditorialHero = () => {
         <img
           key={s.image_url + idx}
           src={s.image_url}
-          alt={pickText(s.title)}
+          alt={pickText(s.title, locale)}
           className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-[1100ms] ease-out ${
             idx === i ? "opacity-100" : "opacity-0"
           }`}

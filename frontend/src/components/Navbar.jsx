@@ -97,7 +97,7 @@ export const Navbar = () => {
                 <span
                   className="font-prada hidden sm:inline"
                   style={{
-                    fontSize: "clamp(14px, 1.05vw, 17px)",
+                    fontSize: "clamp(12px, 0.85vw, 14px)",
                     letterSpacing: "0.08em",
                     textTransform: "uppercase",
                     fontWeight: 500,
@@ -153,7 +153,7 @@ export const Navbar = () => {
             <span
               className="font-prada hidden sm:inline"
               style={{
-                fontSize: "clamp(14px, 1.05vw, 17px)",
+                fontSize: "clamp(12px, 0.85vw, 14px)",
                 letterSpacing: "0.08em",
                 textTransform: "uppercase",
                 fontWeight: 500,
@@ -186,7 +186,7 @@ export const Navbar = () => {
             data-testid="nav-contact-link"
             className="font-prada hidden transition-opacity hover:opacity-70 md:inline"
             style={{
-              fontSize: "clamp(14px, 1.05vw, 17px)",
+              fontSize: "clamp(12px, 0.85vw, 14px)",
               letterSpacing: "0.08em",
               textTransform: "uppercase",
               fontWeight: 500,

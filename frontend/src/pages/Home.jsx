@@ -24,6 +24,7 @@ const CategoryBanner = ({
   testid,
 }) => {
   const { ref, visible } = useReveal();
+  const { t } = useI18n();
   return (
     <Link
       to={to}
@@ -55,7 +56,7 @@ const CategoryBanner = ({
           {label.toUpperCase()}
         </div>
         <span className="mt-6 inline-flex items-center gap-2 border-b border-white/70 pb-1 text-[11px] uppercase tracking-[0.4em] text-white transition-all group-hover:gap-4">
-          DISCOVER →
+          {t("hero_x.discover")} →
         </span>
       </div>
     </Link>

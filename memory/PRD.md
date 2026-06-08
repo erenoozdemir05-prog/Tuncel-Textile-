@@ -133,6 +133,14 @@ Studio gmail: **tunceltextile@gmail.com**
 - **PradaCategoryTabs toggle** uses Bodoni Moda serif at 28px with 0.34em letter-spacing (matches reference photo).
 - **Architecture**: Used `{...en.X, ...}` spread pattern so missing TR/RU/LV keys gracefully fall back to English copy.
 
+## Final Hardcoded Sweep (Mar 2026)
+- **PradaCategoryTabs**: COLUMNS array now uses `labelKey: "tabs.ready_to_wear" | "tabs.tshirts" | "tabs.bags" | "tabs.accessories"`; tile component resolves via `t(labelKey)`.
+- **EditorialHero**: `pickText(obj, locale, fb)` is now locale-aware (was EN-only); `genderLabel` is in-component closure using `t("hero_x.for_him|for_her|shop")`; `kicker_default` falls back to translated `"hero_x.kicker_default"` instead of hardcoded "THE DIGITAL EDIT". FALLBACK slides now ship TR/RU/LV translations for title + kicker.
+- **Home.jsx**: CategoryBanner's `DISCOVER →` button now `t("hero_x.discover") →`.
+- **CookieBanner**: CATEGORIES moved inside the component (locale-aware); modal title, body, "Always on", "Reject all / Save preferences / Accept all", and "Customize" all wired to `t(cookies.*)`.
+- **Translations**: Added `tabs.*`, `hero_x.*`, and expanded `cookies.cat_*_body / save_prefs / accept_all` keys across all 4 locales (EN/TR/RU/LV).
+- **Navbar font shrink**: MENU / SEARCH / CONTACT US now `clamp(12px, 0.85vw, 14px)` (was 14-17px) — more refined, matches site weight without dominating.
+
 ## Recent UI tweaks (Feb 2026)
 - **Navbar — pure transparent**: Now has NO background at all by default (even on scroll / inner pages). Only on `:hover` over the header does a white blurred bar slide in. Text color smart-adapts: white over dark hero, black everywhere else. Bodoni Moda serif (`.font-prada`) throughout.
 - **EditorialSplit redesigned (Atelier / Bespoke / Gift)**: Bold Bodoni serif title with a lighter grey 2nd line (`TWO HANDS. / ONE ROOM.`), two body paragraphs, optional stats row (e.g. `II / 48H / 100` — FOUNDERS / LEAD-TIME / PER EDITION) in #1F4D3D accent, CTA button with diagonal arrow icon. Matches user reference photo 2.
