@@ -3,6 +3,7 @@ import { chatStart, chatSend, chatFetch } from "@/lib/api";
 import { MessageCircle, Send, X, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useI18n } from "@/contexts/I18nContext";
+import TurnstileField from "@/components/TurnstileField";
 
 const LINK_MAP_PATHS = {
   track:  "/track-order",
@@ -56,6 +57,8 @@ export function ChatWidget() {
   const [email, setEmail] = useState("");
   const [starting, setStarting] = useState(false);
   const [unread, setUnread] = useState(0);
+  const [captchaToken, setCaptchaToken] = useState(null);
+  const captchaRef = useRef(null);
   const lastSeenRef = useRef(null);
   const scrollRef = useRef(null);
 
@@ -126,16 +129,25 @@ export function ChatWidget() {
   const start = async (e) => {
     e?.preventDefault();
     if (!draft.trim()) return;
+    if (!captchaToken) {
+      try { (await import("sonner")).toast.error(t("toasts.captcha_required") || "Please complete the captcha."); } catch (_) { /* noop */ }
+      return;
+    }
     setStarting(true);
     try {
       const res = await chatStart({
         customer_name: name.trim() || undefined,
         customer_email: email.trim() || undefined,
         initial_message: draft.trim(),
+        turnstile_token: captchaToken,
       });
       localStorage.setItem(STORAGE_KEY, res.session_id);
       setSessionId(res.session_id);
       setDraft("");
+    } catch (ex) {
+      try { (await import("sonner")).toast.error(ex?.response?.data?.detail || "Could not start chat"); } catch (_) { /* noop */ }
+      captchaRef.current?.reset();
+      setCaptchaToken(null);
     } finally {
       setStarting(false);
     }
@@ -216,6 +228,7 @@ export function ChatWidget() {
                 placeholder={t("chat_x.initial_ph")}
                 className="border border-black/15 px-3 py-2 text-sm outline-none focus:border-black"
               />
+              <TurnstileField ref={captchaRef} onToken={setCaptchaToken} action="chat-start" />
               <button
                 type="submit"
                 disabled={starting || !draft.trim()}

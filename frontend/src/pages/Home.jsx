@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useI18n } from "@/contexts/I18nContext";
 import { useReveal } from "@/hooks/useReveal";
 import { EditorialHero } from "@/components/EditorialHero";
 import { PradaCategoryTabs } from "@/components/PradaCategoryTabs";
+import TurnstileField from "@/components/TurnstileField";
+import { subscribeNewsletter } from "@/lib/api";
 import { toast } from "sonner";
 
 /* =================================================================
@@ -158,13 +160,27 @@ const EditorialSplit = ({
    ================================================================= */
 export default function Home() {
   const [email, setEmail] = useState("");
+  const [token, setToken] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const captchaRef = useRef(null);
   const { t } = useI18n();
 
-  const handleSubscribe = (e) => {
+  const handleSubscribe = async (e) => {
     e.preventDefault();
     if (!email) return;
-    toast.success(t("toasts.sub_thanks"));
-    setEmail("");
+    if (!token) { toast.error(t("toasts.captcha_required")); return; }
+    setBusy(true);
+    try {
+      await subscribeNewsletter({ email, turnstile_token: token });
+      toast.success(t("toasts.sub_thanks"));
+      setEmail("");
+    } catch (ex) {
+      toast.error(ex?.response?.data?.detail || t("toasts.sub_fail"));
+      captchaRef.current?.reset();
+      setToken(null);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -247,24 +263,30 @@ export default function Home() {
           <form
             data-testid="newsletter-form"
             onSubmit={handleSubscribe}
-            className="mx-auto mt-10 flex max-w-md flex-col gap-3 sm:flex-row"
+            className="mx-auto mt-10 flex max-w-md flex-col gap-3"
           >
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={t("nl.email_ph")}
-              data-testid="newsletter-input"
-              className="flex-1 border-b border-black/40 bg-transparent px-1 py-3 text-center text-sm text-black placeholder:text-black/45 focus:border-black focus:outline-none sm:text-left"
-            />
-            <button
-              type="submit"
-              data-testid="newsletter-submit"
-              className="border border-black px-8 py-3 text-[11px] uppercase tracking-[0.4em] text-black transition hover:bg-black hover:text-white"
-            >
-              {t("nl.subscribe")}
-            </button>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={t("nl.email_ph")}
+                data-testid="newsletter-input"
+                className="flex-1 border-b border-black/40 bg-transparent px-1 py-3 text-center text-sm text-black placeholder:text-black/45 focus:border-black focus:outline-none sm:text-left"
+              />
+              <button
+                type="submit"
+                data-testid="newsletter-submit"
+                disabled={busy}
+                className="border border-black px-8 py-3 text-[11px] uppercase tracking-[0.4em] text-black transition hover:bg-black hover:text-white disabled:opacity-50"
+              >
+                {busy ? "…" : t("nl.subscribe")}
+              </button>
+            </div>
+            <div className="mx-auto">
+              <TurnstileField ref={captchaRef} onToken={setToken} action="newsletter" />
+            </div>
           </form>
         </div>
       </section>

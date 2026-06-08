@@ -42,6 +42,34 @@ RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
 ADMIN_NOTIFY_EMAIL = os.environ.get("ADMIN_NOTIFY_EMAIL", "")
 AI_REPLY_ENABLED = os.environ.get("AI_REPLY_ENABLED", "true").lower() == "true"
+TURNSTILE_SECRET_KEY = os.environ.get("TURNSTILE_SECRET_KEY", "")
+TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+
+
+async def verify_turnstile(token: Optional[str], request: Optional[Request] = None) -> bool:
+    """Verify a Turnstile token with Cloudflare. Returns True on success, raises HTTPException(400) on failure."""
+    if not TURNSTILE_SECRET_KEY:
+        # If not configured, skip verification (dev mode)
+        return True
+    if not token:
+        raise HTTPException(status_code=400, detail="captcha_required")
+    data = {"secret": TURNSTILE_SECRET_KEY, "response": token}
+    if request is not None and request.client is not None:
+        data["remoteip"] = request.client.host
+    try:
+        # requests is sync but kept for parity with the rest of the file
+        resp = requests.post(TURNSTILE_VERIFY_URL, data=data, timeout=8)
+    except Exception as exc:
+        logging.warning("Turnstile request failed: %s", exc)
+        raise HTTPException(status_code=400, detail="captcha_verify_failed")
+    if resp.status_code != 200:
+        raise HTTPException(status_code=400, detail="captcha_verify_failed")
+    body = resp.json()
+    if not body.get("success"):
+        logging.info("Turnstile rejected: %s", body.get("error-codes"))
+        raise HTTPException(status_code=400, detail="captcha_invalid")
+    return True
+
 
 if RESEND_API_KEY:
     resend.api_key = RESEND_API_KEY
@@ -1452,6 +1480,26 @@ DEFAULT_FAQS = [
 # ============================================================
 # CUSTOM REQUESTS (bespoke / custom apparel inquiries)
 # ============================================================
+class NewsletterIn(BaseModel):
+    email: EmailStr
+    turnstile_token: Optional[str] = None
+
+
+@api_router.post("/newsletter/subscribe")
+async def newsletter_subscribe(payload: NewsletterIn, request: Request):
+    await verify_turnstile(payload.turnstile_token, request)
+    email = payload.email.strip().lower()
+    existing = await db.newsletter_subscribers.find_one({"email": email}, {"_id": 0})
+    if existing:
+        return {"ok": True, "already": True}
+    await db.newsletter_subscribers.insert_one({
+        "id": str(uuid.uuid4()),
+        "email": email,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return {"ok": True, "already": False}
+
+
 class CustomRequestIn(BaseModel):
     customer_name: str
     email: EmailStr
@@ -1465,12 +1513,15 @@ class CustomRequestIn(BaseModel):
     quantity: int = 1
     budget_range: Optional[str] = None
     contact_preference: Optional[str] = None  # email | whatsapp
+    turnstile_token: Optional[str] = None
 
 
 @api_router.post("/custom-requests")
-async def submit_custom_request(payload: CustomRequestIn):
+async def submit_custom_request(payload: CustomRequestIn, request: Request):
+    await verify_turnstile(payload.turnstile_token, request)
     short_id = uuid.uuid4().hex[:6].upper()
     doc = payload.model_dump()
+    doc.pop("turnstile_token", None)
     doc["id"] = str(uuid.uuid4())
     doc["reference"] = f"CR-{short_id}"
     doc["status"] = "new"
@@ -1552,10 +1603,12 @@ class ReturnIn(BaseModel):
     image_urls: List[str] = []
     exchange_size: Optional[str] = None
     iban_for_refund: Optional[str] = None
+    turnstile_token: Optional[str] = None
 
 
 @api_router.post("/returns")
-async def submit_return(payload: ReturnIn):
+async def submit_return(payload: ReturnIn, request: Request):
+    await verify_turnstile(payload.turnstile_token, request)
     ref = payload.order_reference.strip().upper()
     email = payload.email.strip().lower()
     if payload.return_type not in RETURN_TYPES:
@@ -1577,6 +1630,7 @@ async def submit_return(payload: ReturnIn):
 
     short_id = uuid.uuid4().hex[:6].upper()
     doc = payload.model_dump()
+    doc.pop("turnstile_token", None)
     doc["id"] = str(uuid.uuid4())
     doc["reference"] = f"RT-{short_id}"
     doc["order_reference"] = ref
@@ -1855,6 +1909,7 @@ class ChatStartIn(BaseModel):
     customer_name: Optional[str] = None
     customer_email: Optional[EmailStr] = None
     initial_message: Optional[str] = None
+    turnstile_token: Optional[str] = None
 
 
 class ChatMessageIn(BaseModel):
@@ -1883,7 +1938,8 @@ async def _insert_system_message(session_id: str, body: str) -> None:
 
 
 @api_router.post("/chat/start")
-async def chat_start(payload: ChatStartIn):
+async def chat_start(payload: ChatStartIn, request: Request):
+    await verify_turnstile(payload.turnstile_token, request)
     session_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
     doc = {
@@ -2112,10 +2168,12 @@ class GiftCardPurchaseIn(BaseModel):
     recipient_email: Optional[EmailStr] = None
     message: Optional[str] = None
     deliver_at: Optional[str] = None  # ISO date string
+    turnstile_token: Optional[str] = None
 
 
 @api_router.post("/gift-cards/checkout")
 async def gift_card_checkout(req: GiftCardPurchaseIn, request: Request):
+    await verify_turnstile(req.turnstile_token, request)
     if req.amount <= 0 or req.amount > 1000:
         raise HTTPException(400, "Amount must be between €1 and €1000")
     if not STRIPE_API_KEY:

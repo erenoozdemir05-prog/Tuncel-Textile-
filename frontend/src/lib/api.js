@@ -124,6 +124,10 @@ export const submitCustomRequest = async (payload) => {
   const { data } = await api.post("/custom-requests", payload);
   return data;
 };
+export const subscribeNewsletter = async (payload) => {
+  const { data } = await api.post("/newsletter/subscribe", payload);
+  return data;
+};
 export const adminListCustomRequests = async (token) => {
   const { data } = await api.get("/admin/custom-requests", { headers: { "X-Admin-Token": token } });
   return data;

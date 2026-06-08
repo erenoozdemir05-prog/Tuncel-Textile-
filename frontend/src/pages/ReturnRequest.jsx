@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { submitReturn } from "@/lib/api";
 import { toast } from "sonner";
 import { useI18n } from "@/contexts/I18nContext";
+import TurnstileField from "@/components/TurnstileField";
 import { Loader2, Check, RefreshCw, Coins } from "lucide-react";
 
 const SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
@@ -13,6 +14,8 @@ export default function ReturnRequest() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(null);
   const [refImages, setRefImages] = useState([]);
+  const [captchaToken, setCaptchaToken] = useState(null);
+  const captchaRef = useRef(null);
   const [form, setForm] = useState({
     order_reference: (params.get("ref") || "").toUpperCase(),
     email: params.get("email") || "",
@@ -49,6 +52,10 @@ export default function ReturnRequest() {
       toast.error(t("rr.toast_fill"));
       return;
     }
+    if (!captchaToken) {
+      toast.error(t("toasts.captcha_required"));
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await submitReturn({
@@ -56,12 +63,15 @@ export default function ReturnRequest() {
         order_reference: form.order_reference.trim().toUpperCase(),
         email: form.email.trim(),
         image_urls: refImages,
+        turnstile_token: captchaToken,
       });
       setSubmitted(res);
       toast.success(t("rr.toast_submitted").replace("{ref}", res.reference));
     } catch (ex) {
       const msg = ex?.response?.data?.detail || t("rr.toast_fail");
       toast.error(msg);
+      captchaRef.current?.reset();
+      setCaptchaToken(null);
     } finally {
       setSubmitting(false);
     }
@@ -228,6 +238,10 @@ export default function ReturnRequest() {
               )}
             </Section>
           )}
+
+          <div className="pt-2">
+            <TurnstileField ref={captchaRef} onToken={setCaptchaToken} action="return-request" />
+          </div>
 
           <button
             type="submit"

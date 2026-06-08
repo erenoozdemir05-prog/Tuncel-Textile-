@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { purchaseGiftCard } from "@/lib/api";
 import { toast } from "sonner";
 import { useI18n } from "@/contexts/I18nContext";
+import TurnstileField from "@/components/TurnstileField";
 import { Loader2, Gift, Mail, Sparkles } from "lucide-react";
 
 const DENOMINATIONS = [25, 50, 100, 150, 250];
@@ -12,6 +13,8 @@ export default function GiftCards() {
   const [amount, setAmount] = useState(50);
   const [customMode, setCustomMode] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState(null);
+  const captchaRef = useRef(null);
   const [form, setForm] = useState({
     buyer_name: "",
     buyer_email: "",
@@ -35,6 +38,10 @@ export default function GiftCards() {
       toast.error(t("gc.toast_min"));
       return;
     }
+    if (!captchaToken) {
+      toast.error(t("toasts.captcha_required"));
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await purchaseGiftCard({
@@ -44,11 +51,14 @@ export default function GiftCards() {
         recipient_name: form.sendTo === "recipient" ? form.recipient_name : form.buyer_name,
         recipient_email: form.sendTo === "recipient" ? form.recipient_email : form.buyer_email,
         message: form.message,
+        turnstile_token: captchaToken,
       });
       window.location.href = res.checkout_url;
     } catch (ex) {
       const msg = ex?.response?.data?.detail || t("gc.toast_pay_fail");
       toast.error(msg);
+      captchaRef.current?.reset();
+      setCaptchaToken(null);
       setSubmitting(false);
     }
   };
@@ -167,6 +177,10 @@ export default function GiftCards() {
               </div>
             </Section>
           )}
+
+          <div className="pt-2">
+            <TurnstileField ref={captchaRef} onToken={setCaptchaToken} action="gift-card" />
+          </div>
 
           <button
             type="submit"

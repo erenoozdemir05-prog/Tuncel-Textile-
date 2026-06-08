@@ -106,6 +106,22 @@ Studio gmail: **tunceltextile@gmail.com**
 - ✅ **Newsletter section i18n'd** — `STAY IN THE ROOM.` → `ODANIN İÇİNDE KAL.` (TR), `ОСТАВАЙСЯ В КОМНАТЕ.` (RU), `PALIEC ISTABĀ.` (LV) + body & subscribe button.
 - ✅ **Admin-editable navbar labels** — Menu / Search / Contact strings live in CMS (keys: `nav_menu_label`, `nav_search_label`, `nav_contact_label`) — atelier can rename them per locale from Admin → CMS without code changes. Defaults seeded for all 4 locales.
 
+## Captcha (Cloudflare Turnstile) — Mar 2026
+- **All 5 public forms protected**: Newsletter (`/api/newsletter/subscribe`), Custom Request (`/api/custom-requests`), Return Request (`/api/returns`), Gift Card purchase (`/api/gift-cards/checkout`), Chat start (`/api/chat/start`).
+- **Backend verifier** `verify_turnstile(token, request)` in `server.py` calls `https://challenges.cloudflare.com/turnstile/v0/siteverify` and raises `HTTPException(400, captcha_required|captcha_invalid|captcha_verify_failed)` on failure. Returns 200 with no token if `TURNSTILE_SECRET_KEY` is unset (dev mode).
+- **Frontend reusable** `<TurnstileField ref onToken action />` component (`/app/frontend/src/components/TurnstileField.jsx`). Each form keeps `captchaToken` state + ref; on backend failure, calls `captchaRef.current.reset()` to remount the widget.
+- **Env vars**:
+  - `REACT_APP_TURNSTILE_SITE_KEY` (frontend, public)
+  - `TURNSTILE_SECRET_KEY` (backend, secret)
+- **New endpoint** `POST /api/newsletter/subscribe` (saves into `newsletter_subscribers` collection, idempotent on email).
+- **i18n**: `toasts.captcha_required` + `toasts.sub_thanks` + `toasts.sub_fail` keys added for EN/TR/RU/LV.
+- **Live verified**: curl tests confirm backend returns `400 captcha_required` (no token) and `400 captcha_invalid` (bad token). Widget renders on the page; if hostname not whitelisted in Cloudflare dashboard, widget shows "Unable to connect" — owner must add the preview/prod hostname under Turnstile → Hostname Management.
+
+## Navbar refinement — Mar 2026
+- ✅ Navbar labels (`MENU / SEARCH / CONTACT US`) switched to **Bodoni serif** (same `font-prada` as the TUNCEL TEXTILE logo) — visually unified.
+- ✅ Menu + Search icons shifted further left (`pl-2 sm:pl-3`, gap `6/8` instead of `8/10`).
+- ✅ Font size bumped to clamp(14, 1.05vw, 17px), letter-spacing 0.08em — premium and readable.
+
 ## Multilingual audit & fixes (Feb 2026)
 - **Translation infrastructure expanded** — Added ~320 keys across EN/TR/RU/LV in 13 new namespaces: `pd`, `checkout`, `iban_succ`, `account_page`, `faq_page`, `cr`, `tk`, `rr`, `gc`, `foot`, `chat_x`, `ed_atelier`/`ed_bespoke`/`ed_gift` (home editorial splits), `shop_filter`, `nav.menu/search/contact_us`.
 - **Wired `t()` calls into 11 pages/components**: ProductDetail, CheckoutSuccess, Account, IbanSuccess, FAQ, TrackOrder, ReturnRequest, GiftCards, CustomRequest, Footer, Home (3 splits), Shop (filters/sort/range), Navbar (drawer + chat copy), ChatWidget (header, placeholders, smart-links, FAB, closed banner).

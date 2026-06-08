@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { submitCustomRequest } from "@/lib/api";
 import { useSettings, buildWhatsappLink } from "@/contexts/SettingsContext";
 import { useI18n } from "@/contexts/I18nContext";
+import TurnstileField from "@/components/TurnstileField";
 import { toast } from "sonner";
 import { Check, ChevronDown, Loader2, Sparkles } from "lucide-react";
 
@@ -13,6 +14,8 @@ export default function CustomRequest() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(null);
   const [refImages, setRefImages] = useState([]);
+  const [captchaToken, setCaptchaToken] = useState(null);
+  const captchaRef = useRef(null);
   const [form, setForm] = useState({
     customer_name: "", email: "", phone: "",
     product_type: "hoodie", design_style: "minimalist",
@@ -76,6 +79,10 @@ export default function CustomRequest() {
       toast.error(t("cr.toast_fill"));
       return;
     }
+    if (!captchaToken) {
+      toast.error(t("toasts.captcha_required"));
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await submitCustomRequest({
@@ -84,11 +91,14 @@ export default function CustomRequest() {
         budget_range:    labelOf(BUDGETS, form.budget_range),
         quantity: Number(form.quantity) || 1,
         image_urls: refImages,
+        turnstile_token: captchaToken,
       });
       setSubmitted(res);
       toast.success(t("cr.toast_received").replace("{ref}", res.reference));
-    } catch {
-      toast.error(t("cr.toast_fail"));
+    } catch (ex) {
+      toast.error(ex?.response?.data?.detail || t("cr.toast_fail"));
+      captchaRef.current?.reset();
+      setCaptchaToken(null);
     } finally {
       setSubmitting(false);
     }
@@ -259,6 +269,10 @@ export default function CustomRequest() {
                 options={[{ key: "email", label: "Email" }, { key: "whatsapp", label: "WhatsApp" }]} testid="cr-channel" />
             </div>
           </Section>
+
+          <div className="pt-2">
+            <TurnstileField ref={captchaRef} onToken={setCaptchaToken} action="custom-request" />
+          </div>
 
           <button
             type="submit"

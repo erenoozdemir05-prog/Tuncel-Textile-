@@ -100,3 +100,4 @@ credentials.json
 *.key
 .credentials
 tuncel_textile.zip
+frontend/node_modules/.cache/default-development/0.pack
