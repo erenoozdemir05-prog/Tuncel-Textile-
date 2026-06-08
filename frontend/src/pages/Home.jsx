@@ -233,16 +233,16 @@ export default function Home() {
       <section className="bg-white">
         <div className="mx-auto max-w-[900px] border-t border-black/15 px-6 py-24 text-center sm:py-32">
           <div className="text-[10px] uppercase tracking-[0.55em]" style={{ color: ACCENT }}>
-            NEWSLETTER
+            {t("nl.kicker")}
           </div>
           <h2
             className="font-display mt-5 uppercase"
             style={{ fontSize: "clamp(28px, 3.5vw, 56px)", letterSpacing: "0.04em", lineHeight: 1 }}
           >
-            STAY IN THE ROOM.
+            {t("nl.title")}
           </h2>
           <p className="mx-auto mt-5 max-w-md text-sm leading-relaxed text-black/65">
-            Limited drops, atelier journal, and early access — sent rarely, never sold.
+            {t("nl.body")}
           </p>
           <form
             data-testid="newsletter-form"
@@ -254,7 +254,7 @@ export default function Home() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@email.com"
+              placeholder={t("nl.email_ph")}
               data-testid="newsletter-input"
               className="flex-1 border-b border-black/40 bg-transparent px-1 py-3 text-center text-sm text-black placeholder:text-black/45 focus:border-black focus:outline-none sm:text-left"
             />
@@ -263,7 +263,7 @@ export default function Home() {
               data-testid="newsletter-submit"
               className="border border-black px-8 py-3 text-[11px] uppercase tracking-[0.4em] text-black transition hover:bg-black hover:text-white"
             >
-              SUBSCRIBE
+              {t("nl.subscribe")}
             </button>
           </form>
         </div>

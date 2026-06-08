@@ -101,6 +101,11 @@ Studio gmail: **tunceltextile@gmail.com**
 2. "Enter your support name" prompt → stored in `localStorage.tuncel_admin_name`
 3. Admin name appended to every chat reply + "joined" system messages
 
+- ✅ **Navbar font refined** — switched from Bodoni serif to Manrope sans (matches site body font). 14px / weight 500 / 0.16em tracking · MENU + SEARCH icons shifted further left (`pl-3 sm:pl-6`).
+- ✅ **PradaCategoryTabs KADIN/ERKEK** — moved from Bodoni 28px to Manrope 14px with 0.42em tracking — cleaner, more cohesive with the rest of the site.
+- ✅ **Newsletter section i18n'd** — `STAY IN THE ROOM.` → `ODANIN İÇİNDE KAL.` (TR), `ОСТАВАЙСЯ В КОМНАТЕ.` (RU), `PALIEC ISTABĀ.` (LV) + body & subscribe button.
+- ✅ **Admin-editable navbar labels** — Menu / Search / Contact strings live in CMS (keys: `nav_menu_label`, `nav_search_label`, `nav_contact_label`) — atelier can rename them per locale from Admin → CMS without code changes. Defaults seeded for all 4 locales.
+
 ## Multilingual audit & fixes (Feb 2026)
 - **Translation infrastructure expanded** — Added ~320 keys across EN/TR/RU/LV in 13 new namespaces: `pd`, `checkout`, `iban_succ`, `account_page`, `faq_page`, `cr`, `tk`, `rr`, `gc`, `foot`, `chat_x`, `ed_atelier`/`ed_bespoke`/`ed_gift` (home editorial splits), `shop_filter`, `nav.menu/search/contact_us`.
 - **Wired `t()` calls into 11 pages/components**: ProductDetail, CheckoutSuccess, Account, IbanSuccess, FAQ, TrackOrder, ReturnRequest, GiftCards, CustomRequest, Footer, Home (3 splits), Shop (filters/sort/range), Navbar (drawer + chat copy), ChatWidget (header, placeholders, smart-links, FAB, closed banner).

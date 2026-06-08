@@ -1303,6 +1303,9 @@ async def admin_delete_hero(slide_id: str, _: bool = Depends(require_admin)):
 # CMS TEXT (editable global strings, multi-language)
 # ============================================================
 DEFAULT_CMS_ITEMS = [
+    {"key": "nav_menu_label",    "label": "Navbar · Menu label",    "values": {"en": "Menu",       "tr": "Menü",      "ru": "Меню",   "lv": "Izvēlne"}},
+    {"key": "nav_search_label",  "label": "Navbar · Search label",  "values": {"en": "Search",     "tr": "Ara",       "ru": "Поиск",  "lv": "Meklēt"}},
+    {"key": "nav_contact_label", "label": "Navbar · Contact label", "values": {"en": "Contact us", "tr": "İletişim",  "ru": "Связаться", "lv": "Sazināties"}},
     {"key": "limited_edition", "label": "Limited edition tag", "values": {"en": "Limited edition · numbered & signed", "ru": "Лимитированный выпуск · с номером и подписью", "lv": "Limitēts izdevums · numurēts un parakstīts"}},
     {"key": "handcrafted", "label": "Handcrafted tag", "values": {"en": "Hand-finished in our atelier", "ru": "Ручная финишная работа в нашем ателье", "lv": "Roku darbs mūsu ateljē"}},
     {"key": "free_shipping", "label": "Free shipping tag", "values": {"en": "Complimentary shipping on orders over €30", "ru": "Бесплатная доставка от €30", "lv": "Bezmaksas piegāde no €30"}},

@@ -4,6 +4,7 @@ import { Menu, ShoppingBag, User, X, Search } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useI18n } from "@/contexts/I18nContext";
+import { useCms, cmsText } from "@/contexts/CmsContext";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
@@ -14,11 +15,13 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
  * Left:   [Menu icon + label]  [Search icon + label]
  * Center: TUNCEL TEXTILE logo
  * Right:  Contact us · Lang · Account · Cart
+ * Labels Menu / Search / Contact are CMS-editable (admin panel → CMS).
  */
 export const Navbar = () => {
   const { totals } = useCart();
   const { user } = useAuth();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const { items: cmsItems } = useCms();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -78,9 +81,9 @@ export const Navbar = () => {
         color: textColor,
       }}
     >
-      <div className="relative mx-auto grid h-[78px] max-w-[1800px] grid-cols-3 items-center px-5 sm:px-10">
+      <div className="relative mx-auto grid h-[78px] max-w-[1800px] grid-cols-3 items-center pl-3 pr-5 sm:pl-6 sm:pr-10">
         {/* LEFT — Menu + Search (Prada layout) */}
-        <div className="flex items-center gap-10 sm:gap-12" style={{ color: textColor }}>
+        <div className="flex items-center gap-8 sm:gap-10" style={{ color: textColor }}>
           {/* Menu (hamburger) */}
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
@@ -90,12 +93,17 @@ export const Navbar = () => {
                 className="inline-flex items-center gap-2.5 transition-opacity hover:opacity-70"
                 style={{ filter: iconDrop, textShadow }}
               >
-                <Menu className="h-[22px] w-[22px]" strokeWidth={1.3} />
+                <Menu className="h-[20px] w-[20px]" strokeWidth={1.5} />
                 <span
-                  className="font-prada hidden sm:inline"
-                  style={{ fontSize: "clamp(16px, 1.15vw, 18px)", letterSpacing: "0.05em" }}
+                  className="font-body hidden sm:inline"
+                  style={{
+                    fontSize: "clamp(13px, 0.95vw, 15px)",
+                    letterSpacing: "0.16em",
+                    textTransform: "uppercase",
+                    fontWeight: 500,
+                  }}
                 >
-                  {t("nav.menu")}
+                  {cmsText(cmsItems, "nav_menu_label", locale, t("nav.menu"))}
                 </span>
               </button>
             </SheetTrigger>
@@ -141,12 +149,17 @@ export const Navbar = () => {
             className="inline-flex items-center gap-2.5 transition-opacity hover:opacity-70"
             style={{ filter: iconDrop, textShadow }}
           >
-            <Search className="h-[22px] w-[22px]" strokeWidth={1.3} />
+            <Search className="h-[20px] w-[20px]" strokeWidth={1.5} />
             <span
-              className="font-prada hidden sm:inline"
-              style={{ fontSize: "clamp(16px, 1.15vw, 18px)", letterSpacing: "0.05em" }}
+              className="font-body hidden sm:inline"
+              style={{
+                fontSize: "clamp(13px, 0.95vw, 15px)",
+                letterSpacing: "0.16em",
+                textTransform: "uppercase",
+                fontWeight: 500,
+              }}
             >
-              {t("nav.search")}
+              {cmsText(cmsItems, "nav_search_label", locale, t("nav.search"))}
             </span>
           </button>
         </div>
@@ -171,15 +184,17 @@ export const Navbar = () => {
           <a
             href="mailto:tunceltextile@gmail.com"
             data-testid="nav-contact-link"
-            className="font-prada hidden transition-opacity hover:opacity-70 md:inline"
+            className="font-body hidden transition-opacity hover:opacity-70 md:inline"
             style={{
-              fontSize: "clamp(16px, 1.15vw, 18px)",
-              letterSpacing: "0.05em",
+              fontSize: "clamp(13px, 0.95vw, 15px)",
+              letterSpacing: "0.16em",
+              textTransform: "uppercase",
+              fontWeight: 500,
               color: textColor,
               textShadow,
             }}
           >
-            {t("nav.contact_us")}
+            {cmsText(cmsItems, "nav_contact_label", locale, t("nav.contact_us"))}
           </a>
 
           <div className="hidden sm:block">

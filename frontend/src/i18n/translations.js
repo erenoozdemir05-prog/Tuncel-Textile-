@@ -777,6 +777,13 @@ const en = {
     range_40_80: "€40 — €80",
     range_80p: "€80+",
   },
+  nl: {
+    kicker: "NEWSLETTER",
+    title: "STAY IN THE ROOM.",
+    body: "Limited drops, atelier journal, and early access — sent rarely, never sold.",
+    email_ph: "your@email.com",
+    subscribe: "SUBSCRIBE",
+  },
 };
 
 const tr = {
@@ -1535,6 +1542,13 @@ const tr = {
     range_40_80: "€40 — €80",
     range_80p: "€80+",
   },
+  nl: {
+    kicker: "BÜLTEN",
+    title: "ODANIN İÇİNDE KAL.",
+    body: "Sınırlı dropları, atölye günlüğünü ve erken erişimi gönderiyoruz — nadiren, satılmadan.",
+    email_ph: "sen@email.com",
+    subscribe: "ABONE OL",
+  },
 };
 
 // RU and LV: keep top-level keys mirrored to EN where translation exists, fall back to EN otherwise.
@@ -1794,6 +1808,13 @@ const ru = {
     sort_newest: "НОВОЕ", sort_price_asc: "ЦЕНА ↑", sort_price_desc: "ЦЕНА ↓",
     range_all: "ВСЕ ЦЕНЫ", range_u40: "ДО €40", range_40_80: "€40 — €80", range_80p: "€80+",
   },
+  nl: {
+    kicker: "РАССЫЛКА",
+    title: "ОСТАВАЙСЯ В КОМНАТЕ.",
+    body: "Лимитированные дропы, дневник ателье и ранний доступ — пишем редко, не продаём.",
+    email_ph: "ваш@email.com",
+    subscribe: "ПОДПИСАТЬСЯ",
+  },
 };
 
 const lv = {
@@ -1977,6 +1998,13 @@ const lv = {
     all: "VISI", hoodie: "KAPUCES", tshirt: "T-KREKLI", accessory: "AKSESUĀRI",
     sort_newest: "JAUNĀKIE", sort_price_asc: "CENA ↑", sort_price_desc: "CENA ↓",
     range_all: "VISAS CENAS", range_u40: "ZEM €40", range_40_80: "€40 — €80", range_80p: "€80+",
+  },
+  nl: {
+    kicker: "JAUNUMI",
+    title: "PALIEC ISTABĀ.",
+    body: "Limitēti dropi, ateljē dienasgrāmata un agra piekļuve — sūtām reti, nepārdodam.",
+    email_ph: "tavs@epasts.com",
+    subscribe: "PIERAKSTĪTIES",
   },
 };
 
