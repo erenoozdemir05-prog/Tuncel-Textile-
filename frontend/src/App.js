@@ -75,7 +75,7 @@ function MainLayout() {
   const location = useLocation();
   const isHome = location.pathname === "/";
   return (
-    <main className={`flex-1 ${isHome ? "" : "pt-[78px]"}`}>
+    <main className={`flex-1 ${isHome ? "" : "pt-[64px] sm:pt-[78px]"}`}>
       <AppRouter />
     </main>
   );

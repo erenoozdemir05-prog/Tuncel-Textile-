@@ -96,9 +96,9 @@ export const Navbar = () => {
         color: textColor,
       }}
     >
-      <div className="relative mx-auto grid h-[78px] max-w-[1800px] grid-cols-3 items-center pl-2 pr-5 sm:pl-3 sm:pr-10">
+      <div className="relative mx-auto grid h-[64px] max-w-[1800px] grid-cols-3 items-center pl-2 pr-3 sm:h-[78px] sm:pl-3 sm:pr-10">
         {/* LEFT — Menu + Search (Prada layout) */}
-        <div className="flex items-center gap-6 sm:gap-8" style={{ color: textColor }}>
+        <div className="flex items-center gap-4 sm:gap-8" style={{ color: textColor }}>
           {/* Menu (hamburger) */}
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
@@ -186,7 +186,7 @@ export const Navbar = () => {
           aria-label="Tuncel Textile"
           className="font-prada justify-self-center font-semibold tracking-[0.14em] transition-opacity hover:opacity-70"
           style={{
-            fontSize: "clamp(18px, 1.7vw, 26px)",
+            fontSize: "clamp(13px, 1.7vw, 26px)",
             color: textColor,
             textShadow,
           }}

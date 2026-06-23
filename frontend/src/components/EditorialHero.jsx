@@ -64,7 +64,7 @@ export const EditorialHero = () => {
     <section
       data-testid="editorial-hero"
       className="relative w-full overflow-hidden bg-black"
-      style={{ height: "100vh", minHeight: "700px" }}
+      style={{ height: "100vh", minHeight: "560px" }}
     >
       {/* Stacked images for slow crossfade */}
       {list.map((s, idx) => (

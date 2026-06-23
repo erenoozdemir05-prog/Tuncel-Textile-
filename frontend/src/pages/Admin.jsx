@@ -871,7 +871,10 @@ function OrdersTab({ token }) {
                   {isExpanded && (
                     <tr className="border-b border-black/10 bg-neutral-50">
                       <td colSpan={7} className="px-3 py-5">
-                        <FulfillmentEditor order={o} onSave={(p) => saveFulfillment(ref, p)} />
+                        <CustomerAddressBlock order={o} />
+                        <div className="mt-6">
+                          <FulfillmentEditor order={o} onSave={(p) => saveFulfillment(ref, p)} />
+                        </div>
                       </td>
                     </tr>
                   )}
@@ -887,6 +890,53 @@ function OrdersTab({ token }) {
 }
 
 const FULFILLMENT_OPTIONS = ["pending", "processing", "shipped", "out_for_delivery", "delivered", "cancelled"];
+
+const AddressCard = ({ title, a, testid }) => (
+  <div className="border border-black/15 bg-white p-4" data-testid={testid}>
+    <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">{title}</div>
+    {a ? (
+      <div className="mt-2 text-sm leading-relaxed text-black">
+        <div className="font-semibold">{a.first_name} {a.last_name}</div>
+        {a.email && <div className="text-neutral-700">{a.email}</div>}
+        {a.phone && <div className="text-neutral-700">{a.phone}</div>}
+        <div className="mt-2 text-neutral-700">
+          {a.address1}{a.address2 ? `, ${a.address2}` : ""}<br />
+          {a.city}{a.state ? `, ${a.state}` : ""} {a.postal_code}<br />
+          {a.country}
+        </div>
+      </div>
+    ) : (
+      <div className="mt-2 text-sm text-neutral-400">— Not provided —</div>
+    )}
+  </div>
+);
+
+function CustomerAddressBlock({ order }) {
+  const ship = order.shipping_address_obj;
+  const bill = order.billing_address_obj;
+  const items = order.items || [];
+  return (
+    <div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <AddressCard title="Shipping address" a={ship} testid="admin-shipping-address" />
+        <AddressCard title="Billing address" a={order.billing_same_as_shipping ? ship : bill} testid="admin-billing-address" />
+      </div>
+      {items.length > 0 && (
+        <div className="mt-4 border border-black/15 bg-white p-4">
+          <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">Items</div>
+          <ul className="mt-2 divide-y divide-black/5 text-sm">
+            {items.map((it, i) => (
+              <li key={i} className="flex justify-between gap-3 py-2">
+                <span>{it.name || it.product_id} · {[it.size, it.color].filter(Boolean).join(" / ") || "—"}</span>
+                <span className="text-neutral-600">× {it.quantity}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function FulfillmentEditor({ order, onSave }) {
   const [form, setForm] = useState({

@@ -37,7 +37,7 @@ export default function CheckoutSuccess() {
           setState({ phase: "failed", paymentStatus: data.payment_status, amount: data.amount_total });
           return;
         }
-        if (attemptsRef.current >= 8) {
+        if (attemptsRef.current >= 20) {
           setState({ phase: "timeout", paymentStatus: data.payment_status, amount: data.amount_total });
           return;
         }
