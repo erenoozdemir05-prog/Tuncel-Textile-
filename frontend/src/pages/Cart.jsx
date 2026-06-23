@@ -46,7 +46,12 @@ export default function Cart() {
 
   const startCheckout = () => {
     if (items.length === 0) return;
-    setStep("choose");
+    if (gift?.code) {
+      try { sessionStorage.setItem("tt_gift_code", gift.code); } catch (_) {}
+    } else {
+      try { sessionStorage.removeItem("tt_gift_code"); } catch (_) {}
+    }
+    navigate("/checkout");
   };
 
   const handleCard = async () => {

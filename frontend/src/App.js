@@ -18,6 +18,7 @@ import Home from "@/pages/Home";
 import Shop from "@/pages/Shop";
 import ProductDetail from "@/pages/ProductDetail";
 import Cart from "@/pages/Cart";
+import Checkout from "@/pages/Checkout";
 import CheckoutSuccess from "@/pages/CheckoutSuccess";
 import About from "@/pages/About";
 import Admin from "@/pages/Admin";
@@ -50,6 +51,7 @@ function AppRouter() {
       <Route path="/shop/:category" element={<Shop />} />
       <Route path="/product/:id" element={<ProductDetail />} />
       <Route path="/cart" element={<Cart />} />
+      <Route path="/checkout" element={<Checkout />} />
       <Route path="/checkout/success" element={<CheckoutSuccess />} />
       <Route path="/checkout/iban-success" element={<IbanSuccess />} />
       <Route path="/auth/callback" element={<AuthCallback />} />

@@ -47,10 +47,18 @@ TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverif
 
 
 async def verify_turnstile(token: Optional[str], request: Optional[Request] = None) -> bool:
-    """Verify a Turnstile token with Cloudflare. Returns True on success, raises HTTPException(400) on failure."""
+    """Verify a Turnstile token with Cloudflare. Returns True on success, raises HTTPException(400) on failure.
+    Skipped if admin disabled captcha (Settings.captcha_enabled = False) or TURNSTILE_SECRET_KEY unset.
+    """
     if not TURNSTILE_SECRET_KEY:
-        # If not configured, skip verification (dev mode)
         return True
+    # Admin toggle — check site_settings
+    try:
+        s = await db.site_settings.find_one({"id": "default"}, {"_id": 0, "captcha_enabled": 1})
+        if s is not None and s.get("captcha_enabled") is False:
+            return True
+    except Exception:
+        pass
     if not token:
         raise HTTPException(status_code=400, detail="captcha_required")
     data = {"secret": TURNSTILE_SECRET_KEY, "response": token}
@@ -176,11 +184,27 @@ class CartItemIn(BaseModel):
     color: Optional[str] = None
 
 
+class AddressIn(BaseModel):
+    first_name: str
+    last_name: str
+    email: EmailStr
+    phone: str
+    country: str
+    state: Optional[str] = None
+    city: str
+    postal_code: str
+    address1: str
+    address2: Optional[str] = None
+
+
 class CheckoutRequest(BaseModel):
     items: List[CartItemIn]
     origin_url: str
     customer_email: Optional[str] = None
     gift_card_code: Optional[str] = None
+    shipping_address: Optional[AddressIn] = None
+    billing_address: Optional[AddressIn] = None
+    billing_same_as_shipping: bool = True
 
 
 class CheckoutResponse(BaseModel):
@@ -379,6 +403,11 @@ async def create_checkout(req: CheckoutRequest, http_request: Request, user: Opt
     session: CheckoutSessionResponse = await stripe_checkout.create_checkout_session(checkout_request)
 
     # Create payment_transactions entry BEFORE redirect
+    _ship = req.shipping_address.model_dump() if req.shipping_address else None
+    _bill = (
+        req.shipping_address.model_dump() if req.billing_same_as_shipping and req.shipping_address
+        else (req.billing_address.model_dump() if req.billing_address else None)
+    )
     transaction = {
         "id": str(uuid.uuid4()),
         "session_id": session.session_id,
@@ -390,6 +419,9 @@ async def create_checkout(req: CheckoutRequest, http_request: Request, user: Opt
         "metadata": metadata,
         "items": [it.model_dump() for it in req.items],
         "customer_email": req.customer_email or (user.get("email") if user else None),
+        "shipping_address_obj": _ship,
+        "billing_address_obj": _bill,
+        "billing_same_as_shipping": req.billing_same_as_shipping,
         "user_id": user.get("user_id") if user else None,
         "payment_status": "initiated",
         "status": "open",
@@ -925,6 +957,11 @@ DEFAULT_SETTINGS = {
     "whatsapp_number": "+371 20677937",
     "whatsapp_default_message": "Hello Tuncel Textile, I'm interested in your collection.",
     "contact_email": "tunceltextile@gmail.com",
+    # Navbar "Contact us" link — admin can choose: "email" (mailto), "whatsapp", or "url" (any link)
+    "contact_link_type": "email",  # email | whatsapp | url
+    "contact_link_value": "",      # if blank, falls back to contact_email/whatsapp_number
+    # Captcha toggle — admin can turn off Cloudflare Turnstile if it misbehaves
+    "captcha_enabled": True,
     "favicon_url": "https://customer-assets.emergentagent.com/job_tuncel-textile/artifacts/x9q410pf_WhatsApp_Image_2026-05-06_at_18.11.35-removebg-preview.png",
     "social": {
         "instagram": "",
@@ -957,6 +994,9 @@ class SettingsIn(BaseModel):
     whatsapp_number: Optional[str] = None
     whatsapp_default_message: Optional[str] = None
     contact_email: Optional[str] = None
+    contact_link_type: Optional[str] = None
+    contact_link_value: Optional[str] = None
+    captcha_enabled: Optional[bool] = None
     favicon_url: Optional[str] = None
     social: Optional[Dict[str, str]] = None
     iban: Optional[Dict[str, str]] = None
@@ -997,6 +1037,9 @@ class IbanCheckoutRequest(BaseModel):
     customer_email: EmailStr
     customer_name: str
     shipping_address: Optional[str] = None
+    shipping_address_obj: Optional[AddressIn] = None
+    billing_address_obj: Optional[AddressIn] = None
+    billing_same_as_shipping: bool = True
     note: Optional[str] = None
     gift_card_code: Optional[str] = None
 
@@ -1049,6 +1092,12 @@ async def create_iban_order(req: IbanCheckoutRequest, user: Optional[dict] = Dep
         "customer_email": req.customer_email,
         "customer_name": req.customer_name,
         "shipping_address": req.shipping_address,
+        "shipping_address_obj": req.shipping_address_obj.model_dump() if req.shipping_address_obj else None,
+        "billing_address_obj": (
+            req.shipping_address_obj.model_dump() if req.billing_same_as_shipping and req.shipping_address_obj
+            else (req.billing_address_obj.model_dump() if req.billing_address_obj else None)
+        ),
+        "billing_same_as_shipping": req.billing_same_as_shipping,
         "note": req.note,
         "user_id": user.get("user_id") if user else None,
         "payment_status": "paid" if fully_paid_by_gift else "awaiting_bank_transfer",

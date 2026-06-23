@@ -5,6 +5,7 @@ import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useI18n } from "@/contexts/I18nContext";
 import { useCms, cmsText } from "@/contexts/CmsContext";
+import { useSettings, buildWhatsappLink } from "@/contexts/SettingsContext";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
@@ -22,6 +23,7 @@ export const Navbar = () => {
   const { user } = useAuth();
   const { t, locale } = useI18n();
   const { items: cmsItems } = useCms();
+  const { settings } = useSettings();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -59,6 +61,19 @@ export const Navbar = () => {
     { to: "/gift-cards",       label: t("ed_gift.cta") },
   ];
 
+  // Contact link — admin-managed via settings: email | whatsapp | url
+  const ctype = settings?.contact_link_type || "email";
+  const cval  = settings?.contact_link_value || "";
+  let contactHref = "mailto:tunceltextile@gmail.com";
+  if (ctype === "whatsapp") {
+    contactHref = buildWhatsappLink(settings, "Hello Tuncel Textile, I'd like to ask something.");
+  } else if (ctype === "url" && cval) {
+    contactHref = cval.startsWith("http") ? cval : `https://${cval}`;
+  } else if (ctype === "email") {
+    contactHref = `mailto:${cval || settings?.contact_email || "tunceltextile@gmail.com"}`;
+  }
+  const contactExternal = ctype === "whatsapp" || ctype === "url";
+
   const onSearch = (e) => {
     e.preventDefault();
     const q = query.trim();
@@ -93,12 +108,12 @@ export const Navbar = () => {
                 className="inline-flex items-center gap-2.5 transition-opacity hover:opacity-70"
                 style={{ filter: iconDrop, textShadow }}
               >
-                <Menu className="h-[20px] w-[20px]" strokeWidth={1.5} />
+                <Menu className="h-[16px] w-[16px]" strokeWidth={1.5} />
                 <span
                   className="font-prada hidden sm:inline"
                   style={{
-                    fontSize: "clamp(12px, 0.85vw, 14px)",
-                    letterSpacing: "0.08em",
+                    fontSize: "11px",
+                    letterSpacing: "0.06em",
                     textTransform: "uppercase",
                     fontWeight: 500,
                   }}
@@ -149,12 +164,12 @@ export const Navbar = () => {
             className="inline-flex items-center gap-2.5 transition-opacity hover:opacity-70"
             style={{ filter: iconDrop, textShadow }}
           >
-            <Search className="h-[20px] w-[20px]" strokeWidth={1.5} />
+            <Search className="h-[16px] w-[16px]" strokeWidth={1.5} />
             <span
               className="font-prada hidden sm:inline"
               style={{
-                fontSize: "clamp(12px, 0.85vw, 14px)",
-                letterSpacing: "0.08em",
+                fontSize: "11px",
+                letterSpacing: "0.06em",
                 textTransform: "uppercase",
                 fontWeight: 500,
               }}
@@ -182,12 +197,14 @@ export const Navbar = () => {
         {/* RIGHT */}
         <div className="flex items-center justify-end gap-6" style={{ color: textColor }}>
           <a
-            href="mailto:tunceltextile@gmail.com"
+            href={contactHref}
+            target={contactExternal ? "_blank" : undefined}
+            rel={contactExternal ? "noopener noreferrer" : undefined}
             data-testid="nav-contact-link"
             className="font-prada hidden transition-opacity hover:opacity-70 md:inline"
             style={{
-              fontSize: "clamp(12px, 0.85vw, 14px)",
-              letterSpacing: "0.08em",
+              fontSize: "11px",
+              letterSpacing: "0.06em",
               textTransform: "uppercase",
               fontWeight: 500,
               color: textColor,
