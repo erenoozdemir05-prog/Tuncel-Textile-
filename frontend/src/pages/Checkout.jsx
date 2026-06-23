@@ -108,7 +108,7 @@ export default function Checkout() {
       if (method === "stripe") {
         const res = await createCheckout({
           items: items.map((it) => ({
-            product_id: it.product.id,
+            product_id: it.product_id,
             quantity: it.quantity,
             size: it.size,
             color: it.color,
@@ -125,7 +125,7 @@ export default function Checkout() {
         const fullShip = `${ship.address1}${ship.address2 ? ", " + ship.address2 : ""}, ${ship.city}, ${ship.state ? ship.state + ", " : ""}${ship.postal_code}, ${ship.country}`;
         const res = await createIbanOrder({
           items: items.map((it) => ({
-            product_id: it.product.id,
+            product_id: it.product_id,
             quantity: it.quantity,
             size: it.size,
             color: it.color,
@@ -245,16 +245,16 @@ export default function Checkout() {
 
             <ul className="mt-6 divide-y divide-black/10">
               {items.map((it) => (
-                <li key={cartKey(it.product.id, it.size, it.color)} className="flex gap-3 py-4">
-                  <img src={it.product.image_url} alt={it.product.name} className="h-20 w-16 object-cover" />
+                <li key={cartKey(it)} className="flex gap-3 py-4">
+                  <img src={it.image_url} alt={it.name} className="h-20 w-16 object-cover" />
                   <div className="flex-1">
                     <div className="text-[11px] uppercase tracking-[0.2em] text-neutral-500">
                       {[it.size, it.color].filter(Boolean).join(" · ") || "—"}
                     </div>
-                    <div className="font-display mt-0.5 text-base uppercase tracking-[0.04em]">{it.product.name}</div>
+                    <div className="font-display mt-0.5 text-base uppercase tracking-[0.04em]">{it.name}</div>
                     <div className="mt-1 text-[12px] text-neutral-500">× {it.quantity}</div>
                   </div>
-                  <div className="font-semibold">€{(Number(it.product.price) * it.quantity).toFixed(2)}</div>
+                  <div className="font-semibold">€{(Number(it.price) * it.quantity).toFixed(2)}</div>
                 </li>
               ))}
             </ul>
