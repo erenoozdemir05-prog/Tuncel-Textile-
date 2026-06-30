@@ -168,6 +168,7 @@ class Product(BaseModel):
     product_type: str  # hoodie | tshirt | accessory
     image_url: str
     hover_image_url: Optional[str] = None  # lifestyle/model photo shown on hover
+    gallery_images: List[str] = []  # vertical PDP gallery (admin-managed, ordered)
     sizes: List[str] = []
     colors: List[str] = []
     in_stock: bool = True
@@ -811,6 +812,7 @@ class ProductIn(BaseModel):
     product_type: str
     image_url: str
     hover_image_url: Optional[str] = None
+    gallery_images: List[str] = []
     sizes: List[str] = []
     colors: List[str] = []
     in_stock: bool = True

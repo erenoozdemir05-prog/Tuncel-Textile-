@@ -50,11 +50,22 @@ export default function ProductDetail() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  // Build a "gallery" by repeating the main image with subtle variants for now (placeholder)
+  // Gallery: admin-managed list (gallery_images) first, then fallback to primary + hover, then repeats.
   const gallery = useMemo(() => {
     if (!product) return [];
-    return [product.image_url, product.image_url, product.image_url, product.image_url];
+    const g = (product.gallery_images || []).filter(Boolean);
+    if (g.length > 0) return g;
+    const base = [product.image_url];
+    if (product.hover_image_url) base.push(product.hover_image_url);
+    while (base.length < 4) base.push(product.image_url);
+    return base;
   }, [product]);
+
+  const scrollToImage = (i) => {
+    const el = document.getElementById(`pdp-img-${i}`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    setActiveImage(i);
+  };
 
   if (loading) {
     return (
@@ -81,6 +92,10 @@ export default function ProductDetail() {
   }
 
   const handleAdd = (goToCart = false) => {
+    if ((product.sizes || []).length > 0 && !size) {
+      toast.error(t("pd.select_size") || "Please select a size");
+      return;
+    }
     addItem(product, { size, color, quantity: qty });
     toast.success(t("pd.toast_added").replace("{name}", product.name));
     if (goToCart) navigate("/cart");
@@ -96,46 +111,53 @@ export default function ProductDetail() {
         <span className="text-black">{product.name}</span>
       </div>
 
-      <div className="grid grid-cols-1 gap-10 pb-16 md:grid-cols-[100px_1fr_1fr] md:gap-8">
-        {/* Thumbnails (desktop) */}
-        <div className="order-2 hidden flex-col gap-3 md:order-1 md:flex">
-          {gallery.map((g, i) => (
-            <button
-              key={i}
-              data-testid={`gallery-thumb-${i}`}
-              onClick={() => setActiveImage(i)}
-              className={`aspect-[4/5] overflow-hidden border-2 ${activeImage === i ? "border-black" : "border-transparent opacity-60 hover:opacity-100"}`}
-            >
-              <img src={g} alt={`view ${i + 1}`} className="h-full w-full object-cover" />
-            </button>
-          ))}
-        </div>
-
-        {/* Main image */}
-        <div className="order-1 md:order-2">
-          <div className="relative aspect-[4/5] w-full overflow-hidden bg-neutral-100">
-            <img src={gallery[activeImage]} alt={product.name} className="absolute inset-0 h-full w-full object-cover" />
-            {product.print_name && (
-              <div className="absolute left-4 top-4 bg-white/95 px-3 py-1.5 font-display text-xs uppercase tracking-[0.25em] text-black">
-                {product.print_name}
-              </div>
-            )}
-          </div>
-          {/* Mobile thumbnails */}
-          <div className="mt-3 flex gap-2 md:hidden">
+      <div className="grid grid-cols-1 gap-10 pb-16 lg:grid-cols-[58fr_42fr] lg:gap-12">
+        {/* LEFT — vertical scroll gallery (Prada-style) */}
+        <div className="order-1">
+          {/* Optional thumbnails (top, horizontal) — click to scroll-to */}
+          {gallery.length > 1 && (
+            <div className="mb-6 hidden gap-2 lg:flex">
+              {gallery.map((g, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  data-testid={`gallery-thumb-${i}`}
+                  onClick={() => scrollToImage(i)}
+                  className={`h-16 w-14 overflow-hidden border-2 transition-opacity ${activeImage === i ? "border-black opacity-100" : "border-transparent opacity-60 hover:opacity-100"}`}
+                  aria-label={`Scroll to image ${i + 1}`}
+                >
+                  <img src={g} alt={`thumb ${i + 1}`} className="h-full w-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="space-y-6 lg:space-y-10">
             {gallery.map((g, i) => (
-              <button
+              <div
                 key={i}
-                onClick={() => setActiveImage(i)}
-                className={`aspect-[4/5] w-16 overflow-hidden border-2 ${activeImage === i ? "border-black" : "border-transparent opacity-60"}`}
+                id={`pdp-img-${i}`}
+                className="relative w-full overflow-hidden bg-neutral-100"
+                style={{ maxHeight: "95vh" }}
               >
-                <img src={g} alt={`view ${i + 1}`} className="h-full w-full object-cover" />
-              </button>
+                <img
+                  src={g}
+                  alt={`${product.name} — ${i + 1}`}
+                  loading={i < 2 ? "eager" : "lazy"}
+                  className="w-full"
+                  style={{ height: "auto", maxHeight: "95vh", objectFit: "contain" }}
+                />
+                {i === 0 && product.print_name && (
+                  <div className="absolute left-4 top-4 bg-white/95 px-3 py-1.5 font-display text-xs uppercase tracking-[0.25em] text-black">
+                    {product.print_name}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </div>
 
-        <div className="order-3 flex flex-col">
+        {/* RIGHT — sticky product info */}
+        <div className="order-2 lg:sticky lg:top-24 lg:h-fit">
           <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">{product.product_type} · {product.category}</div>
           <h1 className="font-display mt-2 text-5xl uppercase leading-none tracking-[0.02em] sm:text-7xl">{product.name}</h1>
           <div className="mt-4 text-2xl font-semibold">€{Number(product.price).toFixed(2)}</div>
@@ -276,6 +298,26 @@ export default function ProductDetail() {
           </div>
         </section>
       )}
+
+      {/* Mobile sticky add-to-cart bar */}
+      <div
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-black/10 bg-white/95 px-4 py-3 backdrop-blur-md lg:hidden"
+        data-testid="pdp-mobile-cta"
+      >
+        <div className="flex items-center gap-3">
+          <div className="flex-1">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">{product.name}</div>
+            <div className="font-semibold">€{Number(product.price).toFixed(2)}</div>
+          </div>
+          <button
+            onClick={() => handleAdd(false)}
+            data-testid="pdp-mobile-add"
+            className="bg-black px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.25em] text-white"
+          >
+            {t("pd.add_to_bag")}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

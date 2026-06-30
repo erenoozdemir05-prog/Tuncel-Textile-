@@ -21,7 +21,7 @@ const LANGS = ["en", "ru", "lv"];
 
 const EMPTY_PRODUCT = {
   name: "", description: "", price: 0, category: "men", product_type: "tshirt",
-  image_url: "", hover_image_url: "", sizes: ["S", "M", "L", "XL"], colors: ["Black"],
+  image_url: "", hover_image_url: "", gallery_images: [], sizes: ["S", "M", "L", "XL"], colors: ["Black"],
   in_stock: true, featured: false, print_name: "",
   stock_count: null, status_label: "in_stock",
 };
@@ -409,6 +409,18 @@ function ProductsTab({ token }) {
           <ImagePicker label="Product image (default)" value={form.image_url} onChange={(v) => setForm({ ...form, image_url: v })} onUpload={handleUpload} uploading={uploading} />
 
           <ImagePicker label="Hover image (lifestyle / model — optional)" value={form.hover_image_url} onChange={(v) => setForm({ ...form, hover_image_url: v })} onUpload={handleUploadHover} uploading={uploadingHover} />
+
+          <GalleryManager
+            value={form.gallery_images || []}
+            onChange={(v) => setForm({ ...form, gallery_images: v })}
+            onUpload={async (file) => {
+              try {
+                const res = await adminUploadImage(token, file);
+                setForm((f) => ({ ...f, gallery_images: [...(f.gallery_images || []), res.url] }));
+                toast.success("Gallery image added");
+              } catch { toast.error("Upload failed"); }
+            }}
+          />
 
           <div className="flex gap-6 pt-2">
             <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={form.featured} onChange={(e) => setForm({ ...form, featured: e.target.checked })} /> Featured on home</label>
@@ -1901,6 +1913,37 @@ const Select = ({ label, value, onChange, options }) => (
     </select>
   </div>
 );
+
+const GalleryManager = ({ value, onChange, onUpload }) => {
+  const move = (i, dir) => {
+    const arr = [...value]; const j = i + dir;
+    if (j < 0 || j >= arr.length) return;
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+    onChange(arr);
+  };
+  const remove = (i) => onChange(value.filter((_, k) => k !== i));
+  return (
+    <div data-testid="admin-gallery-manager">
+      <label className="text-[11px] uppercase tracking-[0.25em] text-neutral-500">Gallery images (PDP scroll · ordered · optional)</label>
+      <div className="mt-2 space-y-2">
+        {value.map((url, i) => (
+          <div key={i} className="flex items-center gap-3 border border-black/15 p-2">
+            <img src={url} alt={`g-${i}`} className="h-16 w-14 object-cover" />
+            <input value={url} onChange={(e) => { const a = [...value]; a[i] = e.target.value; onChange(a); }} className="flex-1 border border-black/10 px-2 py-1 text-xs outline-none focus:border-black" />
+            <button type="button" onClick={() => move(i, -1)} className="px-2 py-1 text-xs hover:bg-black hover:text-white" disabled={i === 0}>↑</button>
+            <button type="button" onClick={() => move(i, 1)} className="px-2 py-1 text-xs hover:bg-black hover:text-white" disabled={i === value.length - 1}>↓</button>
+            <button type="button" onClick={() => remove(i)} data-testid={`gallery-remove-${i}`} className="px-2 py-1 text-xs text-red-600 hover:bg-red-600 hover:text-white">✕</button>
+          </div>
+        ))}
+        <label className="flex h-20 w-full cursor-pointer items-center justify-center border border-dashed border-black/30 text-[11px] uppercase tracking-[0.2em] text-neutral-500 hover:border-black">
+          + Add image
+          <input type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files[0]) onUpload(e.target.files[0]); e.target.value = ""; }} data-testid="gallery-upload" />
+        </label>
+      </div>
+    </div>
+  );
+};
+
 
 const ImagePicker = ({ label, value, onChange, onUpload, uploading, small = false }) => (
   <div>
