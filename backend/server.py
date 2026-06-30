@@ -810,6 +810,7 @@ class ProductIn(BaseModel):
     category: str
     product_type: str
     image_url: str
+    hover_image_url: Optional[str] = None
     sizes: List[str] = []
     colors: List[str] = []
     in_stock: bool = True
