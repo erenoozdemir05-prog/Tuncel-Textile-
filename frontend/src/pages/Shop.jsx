@@ -23,8 +23,16 @@ const ProductCard = ({ product, index }) => (
         src={product.image_url}
         alt={product.name}
         loading="lazy"
-        className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1400ms] ease-out group-hover:scale-[1.04]"
+        className={`absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-[450ms] ease-out will-change-[opacity,transform] ${product.hover_image_url ? "md:group-hover:opacity-0" : "md:group-hover:scale-[1.04]"}`}
       />
+      {product.hover_image_url && (
+        <img
+          src={product.hover_image_url}
+          alt={`${product.name} — lifestyle`}
+          loading="lazy"
+          className="absolute inset-0 hidden h-full w-full object-cover opacity-0 transition-[opacity,transform] duration-[450ms] ease-out will-change-[opacity,transform] md:block md:group-hover:opacity-100 md:group-hover:scale-[1.02]"
+        />
+      )}
       <div className="absolute left-3 top-3 text-[9px] uppercase tracking-[0.4em] text-white mix-blend-difference">
         {String(index + 1).padStart(2, "0")}
       </div>

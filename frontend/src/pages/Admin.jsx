@@ -348,7 +348,26 @@ function ProductsTab({ token }) {
             <tbody>
               {products.map((p) => (
                 <tr key={p.id} data-testid={`admin-row-${p.id}`} className="border-b border-black/5">
-                  <td className="py-3"><img src={p.image_url} alt={p.name} className="h-14 w-14 object-cover" /></td>
+                  <td className="py-3">
+                    <div className="flex items-center gap-1.5">
+                      <div className="relative">
+                        <img src={p.image_url} alt={p.name} className="h-14 w-14 object-cover" />
+                        <span className="absolute -bottom-1 -left-1 bg-black px-1 text-[8px] uppercase tracking-[0.15em] text-white">1</span>
+                      </div>
+                      <div className="relative" data-testid={`admin-hover-thumb-${p.id}`}>
+                        {p.hover_image_url ? (
+                          <>
+                            <img src={p.hover_image_url} alt="hover" className="h-14 w-14 object-cover" />
+                            <span className="absolute -bottom-1 -left-1 bg-emerald-700 px-1 text-[8px] uppercase tracking-[0.15em] text-white">2</span>
+                          </>
+                        ) : (
+                          <div className="flex h-14 w-14 items-center justify-center border border-dashed border-black/20 text-[9px] uppercase tracking-[0.18em] text-neutral-400">
+                            no hover
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </td>
                   <td className="font-display text-lg">{p.name}</td>
                   <td className="capitalize">{p.category}</td>
                   <td className="capitalize">{p.product_type}</td>
