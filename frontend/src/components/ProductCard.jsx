@@ -27,12 +27,22 @@ export const ProductCard = ({ product }) => {
       className="tx-card group block"
     >
       <div className="relative aspect-[4/5] w-full overflow-hidden bg-neutral-100">
+        {/* Default photo (always visible, fades out on hover when hover image exists) */}
         <img
           src={product.image_url}
           alt={product.name}
-          className="tx-card-img absolute inset-0 h-full w-full object-cover"
+          className={`absolute inset-0 h-full w-full object-cover transition-[opacity,transform] duration-[450ms] ease-out will-change-[opacity,transform] ${product.hover_image_url ? "group-hover:opacity-0" : "group-hover:scale-[1.03]"}`}
           loading="lazy"
         />
+        {/* Lifestyle/model photo — fades in on hover (admin-managed) */}
+        {product.hover_image_url && (
+          <img
+            src={product.hover_image_url}
+            alt={`${product.name} — lifestyle`}
+            className="absolute inset-0 h-full w-full object-cover opacity-0 transition-[opacity,transform] duration-[450ms] ease-out will-change-[opacity,transform] group-hover:opacity-100 group-hover:scale-[1.02]"
+            loading="lazy"
+          />
+        )}
         {product.print_name && (
           <div className="pointer-events-none absolute left-4 top-4 bg-white/90 px-2 py-1 font-display text-[11px] uppercase tracking-[0.2em] text-black">
             {product.print_name}

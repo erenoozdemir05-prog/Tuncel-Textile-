@@ -21,7 +21,7 @@ const LANGS = ["en", "ru", "lv"];
 
 const EMPTY_PRODUCT = {
   name: "", description: "", price: 0, category: "men", product_type: "tshirt",
-  image_url: "", sizes: ["S", "M", "L", "XL"], colors: ["Black"],
+  image_url: "", hover_image_url: "", sizes: ["S", "M", "L", "XL"], colors: ["Black"],
   in_stock: true, featured: false, print_name: "",
   stock_count: null, status_label: "in_stock",
 };
@@ -295,6 +295,17 @@ function ProductsTab({ token }) {
     finally { setUploading(false); }
   };
 
+  const [uploadingHover, setUploadingHover] = useState(false);
+  const handleUploadHover = async (file) => {
+    setUploadingHover(true);
+    try {
+      const res = await adminUploadImage(token, file);
+      setForm((f) => ({ ...f, hover_image_url: res.url }));
+      toast.success("Hover image uploaded");
+    } catch { toast.error("Upload failed"); }
+    finally { setUploadingHover(false); }
+  };
+
   const handleSave = async () => {
     try {
       const payload = {
@@ -376,7 +387,9 @@ function ProductsTab({ token }) {
             <Field label="Stock count (for low stock)" type="number" value={form.stock_count ?? ""} onChange={(v) => setForm({ ...form, stock_count: v })} />
           </div>
 
-          <ImagePicker label="Product image" value={form.image_url} onChange={(v) => setForm({ ...form, image_url: v })} onUpload={handleUpload} uploading={uploading} />
+          <ImagePicker label="Product image (default)" value={form.image_url} onChange={(v) => setForm({ ...form, image_url: v })} onUpload={handleUpload} uploading={uploading} />
+
+          <ImagePicker label="Hover image (lifestyle / model — optional)" value={form.hover_image_url} onChange={(v) => setForm({ ...form, hover_image_url: v })} onUpload={handleUploadHover} uploading={uploadingHover} />
 
           <div className="flex gap-6 pt-2">
             <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={form.featured} onChange={(e) => setForm({ ...form, featured: e.target.checked })} /> Featured on home</label>

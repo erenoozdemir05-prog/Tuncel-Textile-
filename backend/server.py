@@ -167,6 +167,7 @@ class Product(BaseModel):
     category: str  # men | women | accessories
     product_type: str  # hoodie | tshirt | accessory
     image_url: str
+    hover_image_url: Optional[str] = None  # lifestyle/model photo shown on hover
     sizes: List[str] = []
     colors: List[str] = []
     in_stock: bool = True
