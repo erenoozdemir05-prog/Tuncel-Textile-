@@ -245,6 +245,19 @@ export default function ProductDetail() {
             </button>
           </div>
 
+          {/* Wishlist + Size guide */}
+          <div className="mt-4 flex items-center justify-between text-[11px] uppercase tracking-[0.22em] text-neutral-600">
+            <button
+              type="button"
+              data-testid="pdp-wishlist"
+              onClick={() => toast.success(t("pd.wishlist_added") || "Added to your list")}
+              className="inline-flex items-center gap-2 border-b border-transparent pb-0.5 transition-colors hover:border-black hover:text-black"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              <span>{t("pd.add_to_list") || "Add to list"}</span>
+            </button>
+          </div>
+
           <ul className="mt-8 space-y-2 border-t border-black/10 pt-6 text-sm text-neutral-700">
             <li className="flex items-center gap-2"><Check className="h-4 w-4" /> {cmsText(cmsItems, "limited_edition", locale, t("pd.limited_edition"))}</li>
             <li className="flex items-center gap-2"><Check className="h-4 w-4" /> {cmsText(cmsItems, "handcrafted", locale, t("pd.handcrafted"))}</li>
