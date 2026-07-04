@@ -102,7 +102,7 @@ export default function ProductDetail() {
   };
 
   return (
-    <div data-testid="product-detail-page" className="mx-auto max-w-[1400px] px-5 sm:px-8">
+    <div data-testid="product-detail-page" className="w-full">
       <div className="flex items-center gap-2 py-6 text-[11px] uppercase tracking-[0.25em] text-neutral-500">
         <Link to="/" className="tx-link">{t("pd.home")}</Link>
         <ChevronRight className="h-3 w-3" />
@@ -111,9 +111,9 @@ export default function ProductDetail() {
         <span className="text-black">{product.name}</span>
       </div>
 
-      <div className="grid grid-cols-1 gap-10 pb-16 lg:grid-cols-[62fr_38fr] lg:gap-12">
+      <div className="grid grid-cols-1 gap-10 pb-16 lg:grid-cols-[50fr_50fr] lg:gap-12">
         {/* LEFT — vertical scroll gallery (Prada-style) */}
-        <div className="order-1">
+        <div className="order-1 lg:pl-0">
           {/* Optional thumbnails (top, horizontal) — click to scroll-to */}
           {gallery.length > 1 && (
             <div className="mb-6 hidden gap-2 lg:flex">
@@ -156,7 +156,7 @@ export default function ProductDetail() {
         </div>
 
         {/* RIGHT — sticky product info */}
-        <div className="order-2 lg:sticky lg:top-24 lg:h-fit">
+        <div className="order-2 lg:sticky lg:top-24 lg:h-fit lg:pr-8 xl:pr-16">
           <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">{product.product_type} · {product.category}</div>
           <h1 className="font-display mt-2 text-5xl uppercase leading-none tracking-[0.02em] sm:text-7xl">{product.name}</h1>
           <div className="mt-4 text-2xl font-semibold">€{Number(product.price).toFixed(2)}</div>
