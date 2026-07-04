@@ -111,7 +111,7 @@ export default function ProductDetail() {
         <span className="text-black">{product.name}</span>
       </div>
 
-      <div className="grid grid-cols-1 gap-10 pb-16 lg:grid-cols-[58fr_42fr] lg:gap-12">
+      <div className="grid grid-cols-1 gap-10 pb-16 lg:grid-cols-[62fr_38fr] lg:gap-12">
         {/* LEFT — vertical scroll gallery (Prada-style) */}
         <div className="order-1">
           {/* Optional thumbnails (top, horizontal) — click to scroll-to */}
@@ -137,14 +137,13 @@ export default function ProductDetail() {
                 key={i}
                 id={`pdp-img-${i}`}
                 className="relative w-full overflow-hidden bg-neutral-100"
-                style={{ maxHeight: "95vh" }}
+                style={{ aspectRatio: "4 / 5" }}
               >
                 <img
                   src={g}
                   alt={`${product.name} — ${i + 1}`}
                   loading={i < 2 ? "eager" : "lazy"}
-                  className="w-full"
-                  style={{ height: "auto", maxHeight: "95vh", objectFit: "contain" }}
+                  className="absolute inset-0 h-full w-full object-cover"
                 />
                 {i === 0 && product.print_name && (
                   <div className="absolute left-4 top-4 bg-white/95 px-3 py-1.5 font-display text-xs uppercase tracking-[0.25em] text-black">
@@ -169,17 +168,21 @@ export default function ProductDetail() {
               <div className="mb-3 text-[11px] uppercase tracking-[0.25em] text-neutral-500">
                 {t("pd.color")} · <span className="text-black">{color}</span>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {product.colors.map((c) => (
-                  <button
-                    key={c}
-                    data-testid={`product-color-${c.toLowerCase()}`}
-                    onClick={() => setColor(c)}
-                    className={`px-4 py-2 text-[11px] uppercase tracking-[0.25em] ${color === c ? "bg-black text-white" : "border border-black/15 text-neutral-700 hover:border-black"}`}
-                  >
-                    {c}
-                  </button>
-                ))}
+              <div className="flex flex-wrap items-center gap-3">
+                {product.colors.map((c) => {
+                  const bg = c.toLowerCase() === "white" ? "#ffffff" : c.toLowerCase() === "black" ? "#0a0a0a" : c;
+                  return (
+                    <button
+                      key={c}
+                      data-testid={`product-color-${c.toLowerCase()}`}
+                      onClick={() => setColor(c)}
+                      title={c}
+                      aria-label={c}
+                      className={`h-8 w-8 rounded-full border border-black/20 transition-all ${color === c ? "ring-2 ring-black ring-offset-2" : "hover:scale-105"}`}
+                      style={{ backgroundColor: bg }}
+                    />
+                  );
+                })}
               </div>
             </div>
           )}
@@ -189,17 +192,19 @@ export default function ProductDetail() {
               <div className="mb-3 text-[11px] uppercase tracking-[0.25em] text-neutral-500">
                 {t("product.size")} · <span className="text-black">{size}</span>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {product.sizes.map((s) => (
-                  <button
-                    key={s}
-                    data-testid={`product-size-${s.toLowerCase().replace(/\s+/g, "-")}`}
-                    onClick={() => setSize(s)}
-                    className={`min-w-12 px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.15em] ${size === s ? "bg-black text-white" : "border border-black/15 text-neutral-700 hover:border-black"}`}
-                  >
-                    {s}
-                  </button>
-                ))}
+              <div className="relative">
+                <select
+                  data-testid="product-size-select"
+                  value={size}
+                  onChange={(e) => setSize(e.target.value)}
+                  className="w-full appearance-none border border-black bg-white px-4 py-3 pr-10 text-[12px] font-semibold uppercase tracking-[0.2em] text-black outline-none focus:border-black"
+                >
+                  <option value="">{t("pd.select_size") || "Select a size"}</option>
+                  {product.sizes.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+                <svg className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M6 9l6 6 6-6"/></svg>
               </div>
             </div>
           )}
