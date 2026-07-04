@@ -357,7 +357,6 @@ export function ChatWidget() {
       >
         <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white/10">
           <MessageCircle className="h-5 w-5" />
-          <Sparkles className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 text-emerald-300" />
         </span>
         <span className="flex flex-col items-start leading-tight">
           <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">{t("chat_x.fab_title")}</span>
