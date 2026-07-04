@@ -103,12 +103,14 @@ export default function ProductDetail() {
 
   return (
     <div data-testid="product-detail-page" className="w-full">
+      <div className="mx-auto max-w-[1400px] px-5 sm:px-8">
       <div className="flex items-center gap-2 py-6 text-[11px] uppercase tracking-[0.25em] text-neutral-500">
         <Link to="/" className="tx-link">{t("pd.home")}</Link>
         <ChevronRight className="h-3 w-3" />
         <Link to={`/shop/${product.category}`} className="tx-link">{product.category}</Link>
         <ChevronRight className="h-3 w-3" />
         <span className="text-black">{product.name}</span>
+      </div>
       </div>
 
       <div className="grid grid-cols-1 gap-10 pb-16 lg:grid-cols-[50fr_50fr] lg:gap-12">
@@ -309,10 +311,12 @@ export default function ProductDetail() {
       {/* Related */}
       {related.length > 0 && (
         <section className="border-t border-black/10 py-16">
+          <div className="mx-auto max-w-[1400px] px-5 sm:px-8">
           <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500">{t("pd.more_from")} {product.category}</div>
           <h3 className="font-display mt-2 text-4xl uppercase tracking-[0.04em] sm:text-5xl">{t("pd.you_may_also_like")}</h3>
           <div className="mt-10 grid grid-cols-2 gap-x-5 gap-y-12 md:grid-cols-4">
             {related.map((p) => (<ProductCard key={p.id} product={p} />))}
+          </div>
           </div>
         </section>
       )}
